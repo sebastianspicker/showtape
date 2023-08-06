@@ -5,7 +5,9 @@
 This page keeps the current 0001 stack nextjs musickit guidance concise after earlier rough notes.
 
 ## Usage
-- Merged scattered api guidance into the docs.
+- Made the the main flow assumptions easier to check later.
+
+- Earlier scratch notes were compressed into the current guidance.
 
 ## Notes Folded Into Current Flow
 Early notes are still uneven and may be folded into clearer sections later.
@@ -15,5 +17,10 @@ Some setup details still depend on the current local workflow and may change aga
 
 ## Architecture
 - Moved api behind a narrower boundary.
+
+- Earlier scratch notes were compressed into the current guidance.
+
+## Features
+- Left web concrete enough for the next pass to build on.
 
 - Earlier scratch notes were compressed into the current guidance.
