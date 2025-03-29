@@ -6,10 +6,10 @@ A working tree for setlist-to-playlist with an evolving implementation history.
 setlist-to-playlist records the stable project shape and the work still worth checking.
 
 ## Status
-Lifecycle stage: core-build-out. Earlier setup detail now lives in maintained guidance.
+Lifecycle stage: publication. The useful early notes have been carried forward.
 
 ## Usage
-- Rewrote the api explanation around the maintained behavior.
+- Made the github actions assumptions easier to check later.
 
 - The older setup fragments have been reduced to the useful parts.
 
@@ -19,3 +19,9 @@ Lifecycle stage: core-build-out. Earlier setup detail now lives in maintained gu
 ## Current Focus
 Prefer narrow maintenance work over broad rewrites.
 Use the next review to check behavior before adding surface area.
+Keep the next pass focused on verification and smaller changes.
+
+## Development
+- Reduced surprise in the the main flow release checks.
+
+- The document now favors checked behavior over exploratory notes.
