@@ -26,3 +26,10 @@ export function typescriptService() {
 export function matchService() {
   return { scope: "match", status: "ready" };
 }
+
+// current lane: vitest
+export function vitestService() {
+  return { scope: "vitest", status: "ready" };
+}
+
+// forced-vitest-8
