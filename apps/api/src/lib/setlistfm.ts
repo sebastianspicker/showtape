@@ -3,6 +3,7 @@ import { readTextWithinLimit, SETLIST_FM_BASE_URL } from '@repo/shared';
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 const cache = new Map<string, { body: unknown; expires: number }>();
 const MAX_UPSTREAM_RESPONSE_BYTES = 10 * 1024 * 1024;
+const MAX_CACHEABLE_BODY_CHARS = 500_000;
 
 function getCached(id: string): unknown | null {
   const entry = cache.get(id);
@@ -26,8 +27,8 @@ function evictExpired(): void {
 }
 
 function setCached(id: string, body: unknown): void {
-  // Skip caching oversized responses to prevent memory bloat.
-  if (JSON.stringify(body).length > 500_000) return;
+  // Successful setlist responses are usually small; skip unusual payloads to bound memory use.
+  if (JSON.stringify(body).length > MAX_CACHEABLE_BODY_CHARS) return;
 
   cache.set(id, { body, expires: Date.now() + CACHE_TTL_MS });
   if (cache.size > CACHE_EVICT_THRESHOLD) {
@@ -46,17 +47,18 @@ function setCached(id: string, body: unknown): void {
 
 const MAX_RETRIES_429 = 2;
 const BACKOFF_MS = 1000;
-const MAX_RETRY_AFTER_MS = 5000;
+const MAX_RETRY_AFTER_DELAY_MS = 2000;
 
 function parseRetryAfterMs(value: string | null): number | null {
   if (!value) return null;
 
-  const seconds = Number.parseInt(value, 10);
-  if (!Number.isNaN(seconds) && seconds >= 0) {
-    return seconds * 1000;
+  const trimmed = value.trim();
+  if (/^\d+$/.test(trimmed)) {
+    return Number.parseInt(trimmed, 10) * 1000;
   }
+  if (/^[+-]\d+$/.test(trimmed)) return null;
 
-  const timestamp = Date.parse(value);
+  const timestamp = Date.parse(trimmed);
   if (Number.isNaN(timestamp)) return null;
 
   return Math.max(0, timestamp - Date.now());
@@ -66,10 +68,10 @@ function getRetryDelayMs(res: Response): number {
   const retryAfterValue =
     typeof res.headers?.get === 'function' ? res.headers.get('retry-after') : null;
   const retryAfterMs = parseRetryAfterMs(retryAfterValue);
-  const boundedRetryAfterMs =
-    retryAfterMs === null ? null : Math.min(retryAfterMs, MAX_RETRY_AFTER_MS);
+  const baseDelayMs = Math.min(retryAfterMs ?? BACKOFF_MS, MAX_RETRY_AFTER_DELAY_MS);
+  // Add small jitter so parallel callers do not retry at the exact same instant.
   const jitterMs = Math.floor(Math.random() * 100);
-  return Math.max(0, boundedRetryAfterMs ?? BACKOFF_MS) + jitterMs;
+  return Math.max(0, baseDelayMs) + jitterMs;
 }
 
 export type FetchSetlistResult =

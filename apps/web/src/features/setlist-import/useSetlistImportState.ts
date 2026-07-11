@@ -5,7 +5,7 @@ import { mapSetlistFmToSetlist } from '@repo/core';
 import type { Setlist, SetlistFmResponse } from '@repo/core';
 import { getErrorMessage, isOk, MAX_SETLIST_INPUT_LENGTH, SETLIST_MESSAGES } from '@repo/shared';
 import { setlistProxyUrl } from '@/lib/api';
-import { fetchJson } from '@/lib/fetch';
+import { fetchApiJson } from '@/lib/fetch';
 
 const HISTORY_KEY = 'setlist_import_history_v1';
 const MAX_HISTORY_ITEMS = 8;
@@ -48,7 +48,7 @@ export interface UseSetlistImportState {
   history: string[];
   loadSetlist: (value: string) => Promise<boolean>;
   retryLast: () => void;
-  selectHistoryItem: (value: string) => void;
+  selectHistoryItem: (value: string) => Promise<boolean>;
   clearHistory: () => void;
 }
 
@@ -59,7 +59,9 @@ export function useSetlistImportState(): UseSetlistImportState {
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<string[]>([]);
 
-  const currentRequestRef = useRef<string | null>(null);
+  // Numeric IDs distinguish repeated submissions of the same input and block late responses.
+  const currentRequestRef = useRef(0);
+  const requestCounterRef = useRef(0);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -75,15 +77,17 @@ export function useSetlistImportState(): UseSetlistImportState {
       return false;
     }
 
+    const requestId = ++requestCounterRef.current;
+    currentRequestRef.current = requestId;
     abortControllerRef.current?.abort();
-    abortControllerRef.current = new AbortController();
-    const signal = abortControllerRef.current.signal;
-    currentRequestRef.current = trimmed;
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+    const signal = abortController.signal;
     setLoading(true);
     try {
       const url = setlistProxyUrl(`id=${encodeURIComponent(trimmed)}`);
-      const result = await fetchJson<SetlistFmResponse>(url, { signal });
-      if (currentRequestRef.current !== trimmed) return false;
+      const result = await fetchApiJson<SetlistFmResponse>(url, { signal });
+      if (currentRequestRef.current !== requestId) return false;
 
       if (isOk(result)) {
         const mapped = mapSetlistFmToSetlist(result.value);
@@ -101,14 +105,15 @@ export function useSetlistImportState(): UseSetlistImportState {
       }
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return false;
-      if (currentRequestRef.current !== trimmed) return false;
+      if (currentRequestRef.current !== requestId) return false;
       setError(getErrorMessage(err, 'Network error.'));
       setSetlist(null);
       return false;
     } finally {
-      if (currentRequestRef.current === trimmed) {
+      if (currentRequestRef.current === requestId) {
         setLoading(false);
-        currentRequestRef.current = null;
+        currentRequestRef.current = 0;
+        abortControllerRef.current = null;
       }
     }
   }
@@ -122,9 +127,9 @@ export function useSetlistImportState(): UseSetlistImportState {
     setError(null);
   }
 
-  function selectHistoryItem(value: string) {
+  async function selectHistoryItem(value: string): Promise<boolean> {
     setInputValueState(value);
-    void loadSetlist(value);
+    return loadSetlist(value);
   }
 
   function clearHistory() {

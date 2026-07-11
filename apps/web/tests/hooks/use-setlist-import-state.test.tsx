@@ -2,10 +2,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 
-const mockFetchJson = vi.fn();
+const mockFetchApiJson = vi.fn();
 
 vi.mock('../../src/lib/fetch', () => ({
-  fetchJson: (...args: unknown[]) => mockFetchJson(...args),
+  fetchApiJson: (...args: unknown[]) => mockFetchApiJson(...args),
 }));
 
 import { useSetlistImportState } from '../../src/features/setlist-import/useSetlistImportState';
@@ -25,6 +25,20 @@ const secondSetlist = {
   venue: { name: 'South Park' },
   set: [{ song: [{ name: 'There There' }] }],
 };
+
+function createDeferred<T>(): {
+  promise: Promise<T>;
+  resolve: (value: T) => void;
+  reject: (reason?: unknown) => void;
+} {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
 
 function createStorageMock(): Storage {
   const store = new Map<string, string>();
@@ -52,7 +66,7 @@ function createStorageMock(): Storage {
 
 describe('useSetlistImportState', () => {
   beforeEach(() => {
-    mockFetchJson.mockReset();
+    mockFetchApiJson.mockReset();
     vi.stubGlobal('localStorage', createStorageMock());
     Object.defineProperty(window, 'localStorage', {
       value: globalThis.localStorage,
@@ -66,7 +80,7 @@ describe('useSetlistImportState', () => {
   });
 
   it('keeps only the latest request result when a previous fetch is aborted', async () => {
-    mockFetchJson
+    mockFetchApiJson
       .mockImplementationOnce((_url: string, init?: RequestInit) => {
         return new Promise((_resolve, reject) => {
           init?.signal?.addEventListener('abort', () => {
@@ -92,9 +106,43 @@ describe('useSetlistImportState', () => {
     expect(result.current.error).toBeNull();
   });
 
+  it('keeps the latest result when the same input is submitted twice', async () => {
+    const secondFetch = createDeferred<{ ok: true; value: typeof firstSetlist }>();
+    mockFetchApiJson
+      .mockImplementationOnce((_url: string, init?: RequestInit) => {
+        return new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => {
+            reject(new DOMException('Aborted', 'AbortError'));
+          });
+        });
+      })
+      .mockImplementationOnce(() => secondFetch.promise);
+
+    const { result } = renderHook(() => useSetlistImportState());
+
+    let firstPromise!: Promise<boolean>;
+    let secondPromise!: Promise<boolean>;
+    await act(async () => {
+      firstPromise = result.current.loadSetlist('63de4613');
+      secondPromise = result.current.loadSetlist('63de4613');
+    });
+
+    await expect(firstPromise).resolves.toBe(false);
+
+    await act(async () => {
+      secondFetch.resolve({ ok: true, value: firstSetlist });
+      await secondPromise;
+    });
+
+    await expect(secondPromise).resolves.toBe(true);
+    expect(result.current.setlist?.id).toBe('63de4613');
+    expect(result.current.loading).toBe(false);
+    expect(result.current.error).toBeNull();
+  });
+
   it('selectHistoryItem updates the input and loads that setlist', async () => {
     window.localStorage.setItem('setlist_import_history_v1', JSON.stringify(['63de4613']));
-    mockFetchJson.mockResolvedValueOnce({ ok: true, value: firstSetlist });
+    mockFetchApiJson.mockResolvedValueOnce({ ok: true, value: firstSetlist });
 
     const { result } = renderHook(() => useSetlistImportState());
 
@@ -103,13 +151,33 @@ describe('useSetlistImportState', () => {
     });
 
     await act(async () => {
-      result.current.selectHistoryItem('63de4613');
+      await result.current.selectHistoryItem('63de4613');
     });
 
     await waitFor(() => {
       expect(result.current.inputValue).toBe('63de4613');
       expect(result.current.setlist?.artist).toBe('The Beatles');
     });
-    expect(mockFetchJson).toHaveBeenCalledOnce();
+    expect(mockFetchApiJson).toHaveBeenCalledOnce();
+  });
+
+  it('selectHistoryItem returns whether the load succeeded', async () => {
+    window.localStorage.setItem('setlist_import_history_v1', JSON.stringify(['63de4613']));
+    mockFetchApiJson.mockResolvedValueOnce({ ok: false, error: 'Setlist not found.' });
+
+    const { result } = renderHook(() => useSetlistImportState());
+
+    await waitFor(() => {
+      expect(result.current.history).toEqual(['63de4613']);
+    });
+
+    let ok!: boolean;
+    await act(async () => {
+      ok = await result.current.selectHistoryItem('63de4613');
+    });
+
+    expect(ok).toBe(false);
+    expect(result.current.error).toBe('Setlist not found.');
+    expect(result.current.setlist).toBeNull();
   });
 });

@@ -292,8 +292,31 @@ describe('Boundary conditions', () => {
       ).toBe('53d6a489');
     });
 
+    it('documents representative setlist.fm URL compatibility fixtures', () => {
+      expect(
+        parseSetlistIdFromInput(
+          'http://www.setlist.fm/setlist/the-beatles/1964/hollywood-bowl-ABCDEF12.html?view=1#songs'
+        )
+      ).toBe('ABCDEF12');
+      expect(parseSetlistIdFromInput('www.setlist.fm/setlist/artist/venue-dead1f.html')).toBe(
+        'dead1f'
+      );
+      expect(parseSetlistIdFromInput('https://www.setlist.fm/setlist/63de4613.html')).toBe(
+        '63de4613'
+      );
+    });
+
     it('returns null for non-setlist.fm URLs', () => {
       expect(parseSetlistIdFromInput('https://example.com/page-abcd1234.html')).toBeNull();
+    });
+
+    it('returns null for malformed setlist.fm URLs without a valid ID suffix', () => {
+      expect(
+        parseSetlistIdFromInput('https://www.setlist.fm/setlist/artist/venue.html')
+      ).toBeNull();
+      expect(
+        parseSetlistIdFromInput('https://www.setlist.fm/setlist/artist/venue-xyz.html')
+      ).toBeNull();
     });
 
     it('handles setlist.fm URL without www prefix', () => {

@@ -8,6 +8,9 @@ export interface InMemoryRateLimiter {
   take: (key: string) => RateLimitResult;
 }
 
+const RATE_LIMIT_POLICY_TRUSTED_PROXY = 'trusted-proxy';
+const RATE_LIMIT_POLICY_DISABLED_DIRECT = 'disabled-direct-no-trusted-client-key';
+
 /** Threshold at which expired-bucket cleanup runs. */
 const CLEANUP_THRESHOLD = 1000;
 
@@ -91,10 +94,15 @@ export function createInMemoryRateLimiter(
  *
  * **Important:** This relies on `X-Forwarded-For` and `X-Real-IP` headers,
  * which are only trustworthy when the application sits behind a trusted
- * reverse proxy (e.g., Vercel, nginx, Cloudflare) that sets these headers.
+ * reverse proxy (for example Traefik, nginx, or Caddy) that sets these headers.
  * Without a trusted proxy, clients can spoof these headers to bypass rate limits.
+ * If no trusted fallback is provided, direct deployments skip per-client limiting
+ * instead of collapsing every caller into one shared bucket.
  */
-export function extractClientKeyFromHeaders(headers: Headers, fallback = 'unknown'): string {
+export function extractClientKeyFromHeaders(
+  headers: Headers,
+  fallback: string | null = null
+): string | null {
   const trustProxy = process.env.TRUST_PROXY === '1';
   if (!trustProxy) {
     return fallback;
@@ -106,4 +114,14 @@ export function extractClientKeyFromHeaders(headers: Headers, fallback = 'unknow
     if (first) return first;
   }
   return headers.get('x-real-ip') ?? fallback;
+}
+
+export function rateLimitHeaders(limit: RateLimitResult | null): Record<string, string> {
+  if (!limit) {
+    return { 'X-RateLimit-Policy': RATE_LIMIT_POLICY_DISABLED_DIRECT };
+  }
+  return {
+    'X-RateLimit-Policy': RATE_LIMIT_POLICY_TRUSTED_PROXY,
+    'X-RateLimit-Remaining': String(limit.remaining),
+  };
 }

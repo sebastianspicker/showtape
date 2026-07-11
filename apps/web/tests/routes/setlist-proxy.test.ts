@@ -64,6 +64,47 @@ describe('GET /api/setlist/proxy', () => {
     expect(mockHandleSetlistProxy).toHaveBeenCalledWith('63de4613');
   });
 
+  it('documents disabled direct-deployment rate limiting when TRUST_PROXY is unset', async () => {
+    mockHandleSetlistProxy.mockResolvedValue({
+      ok: true,
+      value: { body: { id: 'direct' } },
+    });
+
+    const request = mockNextRequest('http://localhost:3000/api/setlist/proxy?id=direct', {
+      headers: { 'x-forwarded-for': '203.0.113.10' },
+    });
+    const response = await GET(request);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('X-RateLimit-Policy')).toBe(
+      'disabled-direct-no-trusted-client-key'
+    );
+    expect(response.headers.get('X-RateLimit-Remaining')).toBeNull();
+  });
+
+  it('rate limits by trusted forwarded IP when TRUST_PROXY=1', async () => {
+    vi.stubEnv('TRUST_PROXY', '1');
+    mockHandleSetlistProxy.mockResolvedValue({
+      ok: true,
+      value: { body: { id: 'limited' } },
+    });
+
+    let response: Response | null = null;
+    for (let i = 0; i < 21; i++) {
+      response = await GET(
+        mockNextRequest(`http://localhost:3000/api/setlist/proxy?id=limited-${i}`, {
+          headers: { 'x-forwarded-for': '198.51.100.7, 10.0.0.1' },
+        })
+      );
+    }
+
+    expect(response?.status).toBe(429);
+    expect(response?.headers.get('Retry-After')).toBeDefined();
+    expect(response?.headers.get('X-RateLimit-Policy')).toBe('trusted-proxy');
+    const body = await response!.json();
+    expect(body.code).toBe('RATE_LIMIT');
+  });
+
   it('returns Cache-Control private for successful response', async () => {
     mockHandleSetlistProxy.mockResolvedValue({
       ok: true,

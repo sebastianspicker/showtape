@@ -4,6 +4,6 @@
 - **Design:** [design-docs/](design-docs/) – UX flows and references to the design system master
 - **Tech:** [tech/](tech/) – frontend, backend, API reference, data flow, Apple Music, setlist.fm, security, reliability, deployment
 - **ADR:** [adr/](adr/) – architecture decision records
-- **Archived audits:** [../deprecated/](../deprecated/) – prior audit and inspection reports kept out of the active docs set
 
-Audit/fix runtime logs are treated as local artifacts and are not part of versioned docs.
+Local audit reports, remediation ledgers, and generated fix-runner output are not
+part of the public documentation set.
