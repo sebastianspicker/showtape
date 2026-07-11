@@ -48,7 +48,7 @@ export interface UseSetlistImportState {
   history: string[];
   loadSetlist: (value: string) => Promise<boolean>;
   retryLast: () => void;
-  selectHistoryItem: (value: string) => Promise<boolean>;
+  selectHistoryItem: (_value: string) => Promise<boolean>;
   clearHistory: () => void;
 }
 

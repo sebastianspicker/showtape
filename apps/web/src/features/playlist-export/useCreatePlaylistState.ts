@@ -28,20 +28,25 @@ function resumeKey(setlistId: string): string {
   return `playlist_resume_v1:${setlistId}`;
 }
 
+function isResumeState(value: unknown): value is ResumeState {
+  if (!value || typeof value !== 'object') return false;
+  const { status, id, selectionSignature, remainingIds } = value as Record<string, unknown>;
+  return (
+    status === 'incomplete' &&
+    typeof id === 'string' &&
+    Boolean(id) &&
+    typeof selectionSignature === 'string' &&
+    Array.isArray(remainingIds)
+  );
+}
+
 function readResume(setlistId: string): ResumeState | null {
   if (typeof window === 'undefined') return null;
   try {
     const raw = window.sessionStorage.getItem(resumeKey(setlistId));
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as ResumeState;
-    if (
-      parsed?.status !== 'incomplete' ||
-      !parsed.id ||
-      typeof parsed.selectionSignature !== 'string' ||
-      !Array.isArray(parsed.remainingIds)
-    ) {
-      return null;
-    }
+    const parsed: unknown = JSON.parse(raw);
+    if (!isResumeState(parsed)) return null;
     return {
       ...parsed,
       progress: parsed.progress === 'unknown' ? 'unknown' : 'exact',
@@ -49,6 +54,24 @@ function readResume(setlistId: string): ResumeState | null {
   } catch {
     return null;
   }
+}
+
+function isResumeStale(storedAt: number | undefined): boolean {
+  return typeof storedAt === 'number' && Date.now() - storedAt > RESUME_STALE_AFTER_MS;
+}
+
+function shouldDiscardResume(
+  stored: ResumeState,
+  selectionSignature: string,
+  songIds: string[]
+): boolean {
+  return (
+    isResumeStale(stored.storedAt) ||
+    stored.selectionSignature !== selectionSignature ||
+    (stored.progress === 'exact' &&
+      (stored.remainingIds.length === 0 ||
+        !isRemainingSubsetOfSelection(stored.remainingIds, songIds)))
+  );
 }
 
 function createSelectionSignature(songIds: string[], dedupeTracks: boolean): string {
@@ -147,22 +170,18 @@ export function useCreatePlaylistState({
 
   useEffect(() => {
     const stored = readResume(setlist.id);
-    if (stored) {
-      const storedAt = (stored as ResumeState & { storedAt?: number }).storedAt;
-      const isStale = typeof storedAt === 'number' && Date.now() - storedAt > RESUME_STALE_AFTER_MS;
-      const isMismatched = stored.selectionSignature !== selectionSignature;
-      const isEmptyExact = stored.progress === 'exact' && stored.remainingIds.length === 0;
-      const hasInvalidRemainingIds =
-        stored.progress === 'exact' && !isRemainingSubsetOfSelection(stored.remainingIds, songIds);
-      if (isStale || isMismatched || isEmptyExact || hasInvalidRemainingIds) {
-        writeResume(setlist.id, null);
-        setResumeState(null);
-      } else {
-        setResumeState(stored);
-      }
-    } else {
+    if (!stored) {
       setResumeState(null);
+      return;
     }
+
+    if (shouldDiscardResume(stored, selectionSignature, songIds)) {
+      writeResume(setlist.id, null);
+      setResumeState(null);
+      return;
+    }
+
+    setResumeState(stored);
   }, [selectionSignature, setlist.id, songIds]);
 
   async function handleCreate() {
