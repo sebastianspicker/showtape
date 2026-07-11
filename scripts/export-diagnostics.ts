@@ -1,18 +1,16 @@
 /**
  * Export diagnostics for support or debugging.
- * Collects non-sensitive config (env var names present, API base URL) and outputs JSON.
- * No secret values are included.
+ * Collects support metadata (env var names present, API base URL) and outputs JSON.
+ * Secret values are excluded, but the report should still be reviewed before sharing.
  *
  * Usage:
  *   npx tsx scripts/export-diagnostics.ts
- *   npx tsx scripts/export-diagnostics.ts --out report.json
+ *   mkdir -p reports && npx tsx scripts/export-diagnostics.ts --out reports/diagnostics.json
  */
 
-import { writeFileSync } from 'node:fs';
-import { dirname, resolve, relative } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
+import { existsSync, lstatSync, realpathSync, writeFileSync } from 'node:fs';
+import { basename, dirname, isAbsolute, resolve, relative } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 const ENV_PREFIXES = ['NEXT_PUBLIC_', 'APPLE_', 'SETLISTFM_', 'ALLOWED_', 'API_'];
 
@@ -24,12 +22,22 @@ function envVarNamesPresent(): string[] {
   return names.sort();
 }
 
-/** Resolve --out path and ensure it is under cwd to avoid path traversal. */
-function resolveOutPath(raw: string): string | null {
-  const cwd = process.cwd();
+/** Resolve --out path and ensure its real parent stays under cwd. */
+export function resolveOutPath(raw: string, cwd = process.cwd()): string | null {
   const normalized = resolve(cwd, raw);
   const rel = relative(cwd, normalized);
-  return rel && !rel.startsWith('..') ? normalized : null;
+  if (!rel || rel.startsWith('..') || isAbsolute(rel)) return null;
+
+  try {
+    if (existsSync(normalized) && lstatSync(normalized).isSymbolicLink()) return null;
+    const realCwd = realpathSync(cwd);
+    const realParent = realpathSync(dirname(normalized));
+    const parentRel = relative(realCwd, realParent);
+    if (parentRel.startsWith('..') || isAbsolute(parentRel)) return null;
+    return resolve(realParent, basename(normalized));
+  } catch {
+    return null;
+  }
 }
 
 function main() {
@@ -45,8 +53,9 @@ function main() {
 
   const json = JSON.stringify(report, null, 2);
   const outArg = process.argv.indexOf('--out');
-  if (outArg !== -1 && process.argv[outArg + 1]) {
-    const outPath = resolveOutPath(process.argv[outArg + 1]);
+  const outValue = outArg === -1 ? undefined : process.argv[outArg + 1];
+  if (outValue) {
+    const outPath = resolveOutPath(outValue);
     if (outPath) {
       writeFileSync(outPath, json, 'utf-8');
       console.log(`Diagnostics written to ${outPath}`);
@@ -59,4 +68,6 @@ function main() {
   }
 }
 
-main();
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main();
+}

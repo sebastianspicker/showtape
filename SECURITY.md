@@ -14,4 +14,4 @@
 
 ## Reporting Vulnerabilities
 
-Please report security issues privately (e.g. via maintainer contact or a private security advisory). Do not open public issues for sensitive vulnerabilities.
+Please report security issues through a [private GitHub security advisory](https://github.com/sebastianspicker/setlist-to-playlist/security/advisories/new). Do not open public issues for sensitive vulnerabilities.

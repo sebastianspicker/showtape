@@ -1,9 +1,9 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import { Button } from '@repo/ui';
 import { FlowStepIndicator } from '@/components/FlowStepIndicator';
 import { ErrorAlert } from '@/components/ErrorAlert';
-import { LoadingButton } from '@/components/LoadingButton';
 import { SectionTitle } from '@/components/SectionTitle';
 import { StatusText } from '@/components/StatusText';
 import { ConnectAppleMusic } from '@/features/matching/ConnectAppleMusic';
@@ -54,6 +54,11 @@ export function SetlistImportView() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const ok = await loadSetlist(inputValue);
+    if (ok) goToPreview();
+  }
+
+  async function handleSelectHistoryItem(value: string) {
+    const ok = await selectHistoryItem(value);
     if (ok) goToPreview();
   }
 
@@ -152,7 +157,7 @@ export function SetlistImportView() {
             </p>
           )}
         </div>
-        <LoadingButton
+        <Button
           type="submit"
           loading={loading}
           loadingChildren="Fetching setlist…"
@@ -161,7 +166,7 @@ export function SetlistImportView() {
           title="Fetch setlist from setlist.fm"
         >
           Load setlist
-        </LoadingButton>
+        </Button>
       </form>
 
       {history.length > 0 && (
@@ -178,7 +183,9 @@ export function SetlistImportView() {
                 <button
                   type="button"
                   className="history-item-button"
-                  onClick={() => selectHistoryItem(item)}
+                  onClick={() => {
+                    void handleSelectHistoryItem(item);
+                  }}
                   title={item}
                 >
                   {item}

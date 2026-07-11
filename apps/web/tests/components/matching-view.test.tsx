@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { afterEach, describe, it, expect, vi, beforeEach } from 'vitest';
+import { cleanup, render, screen } from '@testing-library/react';
 import React from 'react';
 
 vi.mock('../../src/components/FlowStepIndicator', () => ({ FlowStepIndicator: () => null }));
@@ -15,8 +15,8 @@ vi.mock('../../src/components/StatusText', () => ({
   }: React.HTMLAttributes<HTMLElement> & { children: React.ReactNode }) =>
     React.createElement('p', p, children),
 }));
-vi.mock('../../src/components/LoadingButton', () => ({
-  LoadingButton: (props: React.ButtonHTMLAttributes<HTMLButtonElement>) =>
+vi.mock('@repo/ui', () => ({
+  Button: (props: React.ButtonHTMLAttributes<HTMLButtonElement>) =>
     React.createElement('button', props, props.children),
 }));
 vi.mock('../../src/features/matching/MatchRowItem', () => ({
@@ -79,6 +79,10 @@ describe('MatchingView', () => {
     });
   });
 
+  afterEach(() => {
+    cleanup();
+  });
+
   it('renders track list', () => {
     render(<MatchingView setlist={mockSetlist} onProceedToCreatePlaylist={vi.fn()} />);
     expect(screen.getByText('Song A')).toBeInTheDocument();
@@ -102,6 +106,32 @@ describe('MatchingView', () => {
     render(<MatchingView setlist={mockSetlist} onProceedToCreatePlaylist={vi.fn()} />);
     const buttons = screen.getAllByRole('button');
     const proceedBtn = buttons.find((b) => b.textContent?.includes('Create playlist'));
+    expect(proceedBtn).toBeDisabled();
+  });
+
+  it('does not count malformed Apple Music rows as matched or proceedable', () => {
+    mockUseMatchingSuggestions.mockReturnValue({
+      matches: [
+        {
+          setlistEntry: { name: 'Song A', artist: 'Test Artist' },
+          appleTrack: { id: '', name: 'Song A', artistName: 'Test Artist' },
+          status: 'matched',
+        },
+      ],
+      loadingSuggestions: false,
+      suggestionError: false,
+      setMatch: vi.fn(),
+      autoMatchAll: vi.fn(),
+      resetMatches: vi.fn(),
+      skipUnmatched: vi.fn(),
+    });
+
+    render(<MatchingView setlist={mockSetlist} onProceedToCreatePlaylist={vi.fn()} />);
+
+    expect(screen.getByText('0 of 1 songs matched')).toBeInTheDocument();
+    const proceedBtn = screen
+      .getAllByRole('button')
+      .find((b) => b.textContent?.includes('Create playlist'));
     expect(proceedBtn).toBeDisabled();
   });
 });

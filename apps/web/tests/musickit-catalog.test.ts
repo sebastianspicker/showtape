@@ -57,6 +57,43 @@ describe('searchCatalog', () => {
     expect(firstCallUrl).toContain('term=test+query');
   });
 
+  it('ignores catalog rows without a non-empty string track id', async () => {
+    mockApi.mockResolvedValueOnce({
+      results: {
+        songs: {
+          data: [
+            { attributes: { name: 'Missing ID', artistName: 'Artist A' } },
+            { id: '', attributes: { name: 'Blank ID', artistName: 'Artist B' } },
+            { id: '   ', attributes: { name: 'Whitespace ID', artistName: 'Artist C' } },
+            { id: 123, attributes: { name: 'Numeric ID', artistName: 'Artist D' } },
+            { id: 'valid-id', attributes: { name: 'Valid Song', artistName: 'Artist E' } },
+          ],
+        },
+      },
+    });
+
+    const searchCatalog = await loadModule();
+    const tracks = await searchCatalog('invalid ids', 5);
+
+    expect(tracks).toEqual([{ id: 'valid-id', name: 'Valid Song', artistName: 'Artist E' }]);
+  });
+
+  it('returns an empty result when every catalog row has an invalid id', async () => {
+    mockApi.mockResolvedValueOnce({
+      results: {
+        songs: {
+          data: [
+            { attributes: { name: 'Missing ID' } },
+            { id: '', attributes: { name: 'Blank ID' } },
+          ],
+        },
+      },
+    });
+
+    const searchCatalog = await loadModule();
+    await expect(searchCatalog('no valid ids', 5)).resolves.toEqual([]);
+  });
+
   it('cache hit returns cached data without API call', async () => {
     mockApi.mockResolvedValueOnce(songsResponse);
     const searchCatalog = await loadModule();

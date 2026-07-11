@@ -13,12 +13,16 @@ import type { Setlist } from '@repo/core';
 
 interface ResumeState {
   status: 'incomplete';
+  progress: 'exact' | 'unknown';
   id: string;
   url?: string;
   remainingIds: string[];
+  attemptedIds?: string[];
   selectionSignature: string;
   storedAt?: number;
 }
+
+const RESUME_STALE_AFTER_MS = 30 * 60 * 1000;
 
 function resumeKey(setlistId: string): string {
   return `playlist_resume_v1:${setlistId}`;
@@ -38,25 +42,45 @@ function readResume(setlistId: string): ResumeState | null {
     ) {
       return null;
     }
-    return parsed;
+    return {
+      ...parsed,
+      progress: parsed.progress === 'unknown' ? 'unknown' : 'exact',
+    };
   } catch {
     return null;
   }
 }
 
 function createSelectionSignature(songIds: string[], dedupeTracks: boolean): string {
+  // Resume applies only to the exact exported sequence; otherwise retrying could add wrong tracks.
   return JSON.stringify({ dedupeTracks, songIds });
 }
 
-function getRemainingIds(error: unknown, fallback: string[]): string[] {
+function isRemainingSubsetOfSelection(remainingIds: string[], songIds: string[]): boolean {
+  const available = new Map<string, number>();
+  for (const id of songIds) {
+    available.set(id, (available.get(id) ?? 0) + 1);
+  }
+  for (const id of remainingIds) {
+    const count = available.get(id) ?? 0;
+    if (count === 0) return false;
+    available.set(id, count - 1);
+  }
+  return true;
+}
+
+function getAddProgress(
+  error: unknown,
+  attemptedIds: string[]
+): Pick<ResumeState, 'progress' | 'remainingIds' | 'attemptedIds'> {
   const remainingIds = (error as { remainingIds?: unknown } | null)?.remainingIds;
   if (
     Array.isArray(remainingIds) &&
     remainingIds.every((id) => typeof id === 'string' && id.trim().length > 0)
   ) {
-    return remainingIds;
+    return { progress: 'exact', remainingIds };
   }
-  return fallback;
+  return { progress: 'unknown', remainingIds: [], attemptedIds };
 }
 
 function writeResume(setlistId: string, value: ResumeState | null): void {
@@ -124,11 +148,13 @@ export function useCreatePlaylistState({
   useEffect(() => {
     const stored = readResume(setlist.id);
     if (stored) {
-      const STALE_THRESHOLD_MS = 30 * 60 * 1000; // 30 minutes
       const storedAt = (stored as ResumeState & { storedAt?: number }).storedAt;
-      const isStale = typeof storedAt === 'number' && Date.now() - storedAt > STALE_THRESHOLD_MS;
+      const isStale = typeof storedAt === 'number' && Date.now() - storedAt > RESUME_STALE_AFTER_MS;
       const isMismatched = stored.selectionSignature !== selectionSignature;
-      if (isStale || isMismatched || stored.remainingIds.length === 0) {
+      const isEmptyExact = stored.progress === 'exact' && stored.remainingIds.length === 0;
+      const hasInvalidRemainingIds =
+        stored.progress === 'exact' && !isRemainingSubsetOfSelection(stored.remainingIds, songIds);
+      if (isStale || isMismatched || isEmptyExact || hasInvalidRemainingIds) {
         writeResume(setlist.id, null);
         setResumeState(null);
       } else {
@@ -137,7 +163,7 @@ export function useCreatePlaylistState({
     } else {
       setResumeState(null);
     }
-  }, [selectionSignature, setlist.id]);
+  }, [selectionSignature, setlist.id, songIds]);
 
   async function handleCreate() {
     setError(null);
@@ -165,11 +191,12 @@ export function useCreatePlaylistState({
         setResumeState(null);
         writeResume(setlist.id, null);
       } catch (addErr) {
+        const progress = getAddProgress(addErr, songIds);
         const resume: ResumeState = {
           status: 'incomplete',
           id,
           url,
-          remainingIds: getRemainingIds(addErr, songIds),
+          ...progress,
           selectionSignature,
           storedAt: Date.now(),
         };
@@ -185,7 +212,14 @@ export function useCreatePlaylistState({
   }
 
   async function handleAddRemainingTracks() {
-    if (!resumeState || resumeState.remainingIds.length === 0) return;
+    if (!resumeState) return;
+    if (resumeState.progress === 'unknown') {
+      setAddTracksError(
+        'Cannot safely resume because Apple Music did not report which tracks remain.'
+      );
+      return;
+    }
+    if (resumeState.remainingIds.length === 0) return;
 
     setAddTracksError(null);
     setLoading(true);
@@ -196,9 +230,10 @@ export function useCreatePlaylistState({
       writeResume(setlist.id, null);
       setAddTracksError(null);
     } catch (err) {
+      const progress = getAddProgress(err, resumeState.remainingIds);
       const nextResume: ResumeState = {
         ...resumeState,
-        remainingIds: getRemainingIds(err, resumeState.remainingIds),
+        ...progress,
         selectionSignature,
         storedAt: Date.now(),
       };

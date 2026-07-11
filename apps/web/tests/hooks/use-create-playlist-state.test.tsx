@@ -114,7 +114,49 @@ describe('useCreatePlaylistState', () => {
       url: 'https://music.apple.com/playlist/playlist-1',
     });
     expect(result.current.resumeState?.remainingIds).toEqual(['song-3']);
+    expect(result.current.resumeState?.progress).toBe('exact');
     expect(window.sessionStorage.getItem(resumeStorageKey(setlist.id))).toContain('song-3');
+  });
+
+  it('stores unknown progress when add-track failure has no exact remaining IDs', async () => {
+    mockAddTracksToLibraryPlaylist.mockRejectedValue(new Error('Adding tracks failed.'));
+
+    const { result } = renderHook(() => useCreatePlaylistState({ setlist, matchRows }));
+
+    await act(async () => {
+      await result.current.handleCreate();
+    });
+
+    expect(result.current.created).toEqual({
+      id: 'playlist-1',
+      url: 'https://music.apple.com/playlist/playlist-1',
+    });
+    expect(result.current.resumeState).toMatchObject({
+      progress: 'unknown',
+      remainingIds: [],
+      attemptedIds: ['song-1', 'song-2', 'song-3'],
+    });
+    expect(window.sessionStorage.getItem(resumeStorageKey(setlist.id))).toContain(
+      '"progress":"unknown"'
+    );
+  });
+
+  it('does not retry add-track calls when progress is unknown', async () => {
+    mockAddTracksToLibraryPlaylist.mockRejectedValue(new Error('Adding tracks failed.'));
+
+    const { result } = renderHook(() => useCreatePlaylistState({ setlist, matchRows }));
+
+    await act(async () => {
+      await result.current.handleCreate();
+    });
+    mockAddTracksToLibraryPlaylist.mockClear();
+
+    await act(async () => {
+      await result.current.handleAddRemainingTracks();
+    });
+
+    expect(mockAddTracksToLibraryPlaylist).not.toHaveBeenCalled();
+    expect(result.current.addTracksError).toMatch(/Cannot safely resume/);
   });
 
   it('restores resumable incomplete exports from session storage', async () => {
@@ -159,6 +201,56 @@ describe('useCreatePlaylistState', () => {
     const { result } = renderHook(() =>
       useCreatePlaylistState({ setlist, matchRows: changedMatchRows })
     );
+
+    await waitFor(() => {
+      expect(result.current.resumeState).toBeNull();
+    });
+    expect(window.sessionStorage.getItem(resumeStorageKey(setlist.id))).toBeNull();
+  });
+
+  it('discards stored resume data with remaining IDs outside the current selection', async () => {
+    const sig = JSON.stringify({
+      dedupeTracks: false,
+      songIds: ['song-1', 'song-2', 'song-3'],
+    });
+    window.sessionStorage.setItem(
+      resumeStorageKey(setlist.id),
+      JSON.stringify({
+        status: 'incomplete',
+        progress: 'exact',
+        id: 'playlist-1',
+        remainingIds: ['song-4'],
+        selectionSignature: sig,
+        storedAt: Date.now(),
+      })
+    );
+
+    const { result } = renderHook(() => useCreatePlaylistState({ setlist, matchRows }));
+
+    await waitFor(() => {
+      expect(result.current.resumeState).toBeNull();
+    });
+    expect(window.sessionStorage.getItem(resumeStorageKey(setlist.id))).toBeNull();
+  });
+
+  it('discards stored resume data with duplicate remaining IDs impossible for current selection', async () => {
+    const sig = JSON.stringify({
+      dedupeTracks: false,
+      songIds: ['song-1', 'song-2', 'song-3'],
+    });
+    window.sessionStorage.setItem(
+      resumeStorageKey(setlist.id),
+      JSON.stringify({
+        status: 'incomplete',
+        progress: 'exact',
+        id: 'playlist-1',
+        remainingIds: ['song-3', 'song-3'],
+        selectionSignature: sig,
+        storedAt: Date.now(),
+      })
+    );
+
+    const { result } = renderHook(() => useCreatePlaylistState({ setlist, matchRows }));
 
     await waitFor(() => {
       expect(result.current.resumeState).toBeNull();
@@ -308,6 +400,29 @@ describe('useCreatePlaylistState – additional paths', () => {
     });
 
     expect(result.current.resumeState?.remainingIds).toEqual(['song-3']);
+    expect(result.current.resumeState?.progress).toBe('exact');
+    expect(result.current.addTracksError).toBe('Fail again');
+  });
+
+  it('changes retry state to unknown when remaining-track retry fails without exact progress', async () => {
+    mockAddTracksToLibraryPlaylist
+      .mockRejectedValueOnce(createAddTracksError('Fail', ['song-2', 'song-3']))
+      .mockRejectedValueOnce(new Error('Fail again'));
+
+    const { result } = renderHook(() => useCreatePlaylistState({ setlist, matchRows }));
+
+    await act(async () => {
+      await result.current.handleCreate();
+    });
+    await act(async () => {
+      await result.current.handleAddRemainingTracks();
+    });
+
+    expect(result.current.resumeState).toMatchObject({
+      progress: 'unknown',
+      remainingIds: [],
+      attemptedIds: ['song-2', 'song-3'],
+    });
     expect(result.current.addTracksError).toBe('Fail again');
   });
 

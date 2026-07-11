@@ -1,6 +1,6 @@
 'use client';
 
-import { LoadingButton } from '@/components/LoadingButton';
+import { Button } from '@repo/ui';
 
 export interface MatchingBulkActionsProps {
   loading: boolean;
@@ -17,7 +17,7 @@ export function MatchingBulkActions({
 }: MatchingBulkActionsProps) {
   return (
     <div className="matching-actions">
-      <LoadingButton
+      <Button
         type="button"
         onClick={onAutoMatchAll}
         loading={loading}
@@ -25,13 +25,13 @@ export function MatchingBulkActions({
         variant="secondary"
       >
         Re-match all
-      </LoadingButton>
-      <LoadingButton type="button" onClick={onSkipUnmatched} variant="secondary">
+      </Button>
+      <Button type="button" onClick={onSkipUnmatched} variant="secondary">
         Skip unmatched songs
-      </LoadingButton>
-      <LoadingButton type="button" onClick={onReset} variant="secondary">
+      </Button>
+      <Button type="button" onClick={onReset} variant="secondary">
         Start over
-      </LoadingButton>
+      </Button>
     </div>
   );
 }
