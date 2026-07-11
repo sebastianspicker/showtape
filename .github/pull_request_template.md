@@ -13,6 +13,6 @@
 - [ ] `pnpm typecheck` passes
 - [ ] `pnpm test` passes
 - [ ] `pnpm build` succeeds
-- [ ] `pnpm audit --audit-level=high --prod` passes
+- [ ] `pnpm audit:security` passes
 - [ ] Manually verified in browser (if UI change)
 - [ ] Logs, screenshots, fixtures, and diagnostics contain no secrets or personal data
