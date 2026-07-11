@@ -8,11 +8,23 @@
  *   mkdir -p reports && npx tsx scripts/export-diagnostics.ts --out reports/diagnostics.json
  */
 
-import { existsSync, lstatSync, realpathSync, writeFileSync } from 'node:fs';
+import { lstatSync, realpathSync, writeFileSync } from 'node:fs';
 import { basename, dirname, isAbsolute, resolve, relative } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const ENV_PREFIXES = ['NEXT_PUBLIC_', 'APPLE_', 'SETLISTFM_', 'ALLOWED_', 'API_'];
+
+interface DiagnosticsFileAccess {
+  lstat: typeof lstatSync;
+  realpath: typeof realpathSync;
+  writeFile: typeof writeFileSync;
+}
+
+const NODE_FILE_ACCESS: DiagnosticsFileAccess = {
+  lstat: lstatSync,
+  realpath: realpathSync,
+  writeFile: writeFileSync,
+};
 
 function envVarNamesPresent(): string[] {
   const names: string[] = [];
@@ -29,9 +41,12 @@ export function resolveOutPath(raw: string, cwd = process.cwd()): string | null 
   if (!rel || rel.startsWith('..') || isAbsolute(rel)) return null;
 
   try {
-    if (existsSync(normalized) && lstatSync(normalized).isSymbolicLink()) return null;
-    const realCwd = realpathSync(cwd);
-    const realParent = realpathSync(dirname(normalized));
+    const outputEntry = NODE_FILE_ACCESS.lstat(normalized, { throwIfNoEntry: false });
+    if (outputEntry?.isSymbolicLink()) {
+      return null;
+    }
+    const realCwd = NODE_FILE_ACCESS.realpath(cwd);
+    const realParent = NODE_FILE_ACCESS.realpath(dirname(normalized));
     const parentRel = relative(realCwd, realParent);
     if (parentRel.startsWith('..') || isAbsolute(parentRel)) return null;
     return resolve(realParent, basename(normalized));
@@ -57,7 +72,7 @@ function main() {
   if (outValue) {
     const outPath = resolveOutPath(outValue);
     if (outPath) {
-      writeFileSync(outPath, json, 'utf-8');
+      NODE_FILE_ACCESS.writeFile(outPath, json, 'utf-8');
       console.log(`Diagnostics written to ${outPath}`);
     } else {
       console.error('Refused: --out path must resolve under current directory.');

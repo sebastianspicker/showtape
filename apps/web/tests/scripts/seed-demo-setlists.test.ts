@@ -80,4 +80,18 @@ describe('seedDemoSetlists', () => {
     expect(result.count).toBe(1);
     expect(JSON.parse(readFileSync(result.outPath, 'utf-8'))).toEqual({ demo: { id: 'demo' } });
   });
+
+  it('creates the requested fixture directory when it does not exist', async () => {
+    const fixturesDir = join(makeTempDir('seed-root-'), 'fixtures', 'nested');
+    const fetchImpl = vi.fn().mockResolvedValue(responseOk({ id: 'demo' }));
+
+    const result = await seedDemoSetlists({
+      apiKey: 'test-key',
+      ids: ['demo'],
+      fixturesDir,
+      fetchImpl,
+    });
+
+    expect(JSON.parse(readFileSync(result.outPath, 'utf-8'))).toEqual({ demo: { id: 'demo' } });
+  });
 });

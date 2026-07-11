@@ -222,4 +222,28 @@ describe('SetlistImportView', () => {
     });
     expect(mockGoToPreview).not.toHaveBeenCalled();
   });
+
+  it('shows a retryable error when a history import rejects unexpectedly', async () => {
+    mockSelectHistoryItem.mockRejectedValueOnce(new Error('Unexpected failure'));
+    mockUseSetlistImportState.mockReturnValue({
+      inputValue: '',
+      setInputValue: vi.fn(),
+      setlist: null,
+      loading: false,
+      error: null,
+      history: ['abc123'],
+      loadSetlist: mockLoadSetlist,
+      retryLast: vi.fn(),
+      selectHistoryItem: mockSelectHistoryItem,
+      clearHistory: vi.fn(),
+    });
+
+    render(<SetlistImportView />);
+    fireEvent.click(screen.getByRole('button', { name: 'abc123' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Unable to load the setlist. Please try again.'
+    );
+    expect(mockGoToPreview).not.toHaveBeenCalled();
+  });
 });

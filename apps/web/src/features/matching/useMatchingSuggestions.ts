@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { buildSearchQuery, flattenSetlistToEntries, getSetlistSignature } from '@repo/core';
 import type { Setlist } from '@repo/core';
-import type { AppleMusicTrack } from '@/lib/musickit';
 import { isValidAppleMusicTrack, searchCatalog } from '@/lib/musickit';
 import type { MatchRow } from './types';
 
@@ -11,7 +10,7 @@ export interface UseMatchingSuggestionsResult {
   matches: MatchRow[];
   loadingSuggestions: boolean;
   suggestionError: boolean;
-  setMatch: (index: number, appleTrack: AppleMusicTrack | null) => void;
+  setMatch: (_index: number, appleTrack: MatchRow['appleTrack']) => void;
   resetMatches: () => void;
   autoMatchAll: () => Promise<void>;
   skipUnmatched: () => void;
@@ -27,6 +26,10 @@ function toUnmatchedRows(entries: MatchRow['setlistEntry'][]): MatchRow[] {
     appleTrack: null,
     status: 'unmatched',
   }));
+}
+
+function findBestCatalogMatch(query: string) {
+  return searchCatalog(query, 1).then((tracks) => tracks.find(isValidAppleMusicTrack) ?? null);
 }
 
 export function useMatchingSuggestions(setlist: Setlist): UseMatchingSuggestionsResult {
@@ -52,7 +55,7 @@ export function useMatchingSuggestions(setlist: Setlist): UseMatchingSuggestions
 
     // Duplicate songs can produce the same Apple query. Share only within one run so each new
     // setlist still starts from fresh catalog data while avoiding duplicate concurrent calls.
-    const searchPromises = new Map<string, Promise<AppleMusicTrack | null>>();
+    const searchPromises = new Map<string, ReturnType<typeof findBestCatalogMatch>>();
 
     setSuggestionError(false);
     setLoadingSuggestions(true);
@@ -70,9 +73,7 @@ export function useMatchingSuggestions(setlist: Setlist): UseMatchingSuggestions
           if (!query) return Promise.resolve(null);
           const existingPromise = searchPromises.get(query);
           if (existingPromise) return existingPromise;
-          const searchPromise = searchCatalog(query, 1).then(
-            (tracks) => tracks.find(isValidAppleMusicTrack) ?? null
-          );
+          const searchPromise = findBestCatalogMatch(query);
           searchPromises.set(query, searchPromise);
           return searchPromise;
         })
@@ -82,14 +83,13 @@ export function useMatchingSuggestions(setlist: Setlist): UseMatchingSuggestions
 
       setMatches((prev) => {
         const next = [...prev];
-        for (let k = 0; k < batchIndices.length; k++) {
-          const i = batchIndices[k]!;
-          const result = results[k];
-          if (result?.status === 'fulfilled') {
+        for (const [k, result] of results.entries()) {
+          const i = batchStart + k;
+          if (result.status === 'fulfilled') {
             const track = result.value;
-            const existing = next[i];
+            const existing = next[i]!;
             // A user may manually choose a track while the batch is pending; never overwrite that.
-            if (existing?.status === 'unmatched' && existing.appleTrack === null) {
+            if (existing.status === 'unmatched' && existing.appleTrack === null) {
               next[i] = {
                 ...existing,
                 appleTrack: track,
@@ -124,7 +124,7 @@ export function useMatchingSuggestions(setlist: Setlist): UseMatchingSuggestions
     };
   }, [signature, autoMatchAll]);
 
-  const setMatch = useCallback((index: number, appleTrack: AppleMusicTrack | null) => {
+  const setMatch = useCallback((index: number, appleTrack: MatchRow['appleTrack']) => {
     setMatches((prev) => {
       const existing = prev[index];
       if (!existing) return prev;

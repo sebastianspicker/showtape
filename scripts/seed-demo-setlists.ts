@@ -16,6 +16,18 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const SETLIST_FM_BASE_URL = 'https://api.setlist.fm/rest/1.0';
 
+interface SeedFileAccess {
+  exists: typeof existsSync;
+  mkdir: typeof mkdirSync;
+  writeFile: typeof writeFileSync;
+}
+
+const NODE_FILE_ACCESS: SeedFileAccess = {
+  exists: existsSync,
+  mkdir: mkdirSync,
+  writeFile: writeFileSync,
+};
+
 /** Known setlist IDs used in docs and tests (e.g. 63de4613). */
 const DEMO_SETLIST_IDS = ['63de4613'];
 
@@ -80,10 +92,10 @@ export async function seedDemoSetlists({
     );
   }
 
-  if (!existsSync(fixturesDir)) {
-    mkdirSync(fixturesDir, { recursive: true });
+  if (!NODE_FILE_ACCESS.exists(fixturesDir)) {
+    NODE_FILE_ACCESS.mkdir(fixturesDir, { recursive: true });
   }
-  writeFileSync(outPath, JSON.stringify(out, null, 2), 'utf-8');
+  NODE_FILE_ACCESS.writeFile(outPath, JSON.stringify(out, null, 2), 'utf-8');
   console.log(`Wrote ${count} setlist(s) to ${outPath}`);
   return { count, outPath };
 }

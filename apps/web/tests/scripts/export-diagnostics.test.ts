@@ -37,4 +37,12 @@ describe('resolveOutPath', () => {
     expect(resolveOutPath('link/report.json', cwd)).toBeNull();
     expect(existsSync(join(outside, 'report.json'))).toBe(false);
   });
+
+  it('rejects a dangling symlink as the output file', () => {
+    const cwd = makeTempDir('diag-cwd-');
+    const outside = makeTempDir('diag-outside-');
+    symlinkSync(join(outside, 'report.json'), join(cwd, 'report.json'));
+
+    expect(resolveOutPath('report.json', cwd)).toBeNull();
+  });
 });
