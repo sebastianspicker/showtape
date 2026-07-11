@@ -10,7 +10,7 @@ export interface UseMatchingSuggestionsResult {
   matches: MatchRow[];
   loadingSuggestions: boolean;
   suggestionError: boolean;
-  setMatch: (_index: number, appleTrack: MatchRow['appleTrack']) => void;
+  setMatch(index: number, appleTrack: MatchRow['appleTrack']): void;
   resetMatches: () => void;
   autoMatchAll: () => Promise<void>;
   skipUnmatched: () => void;
@@ -87,14 +87,15 @@ export function useMatchingSuggestions(setlist: Setlist): UseMatchingSuggestions
           const i = batchStart + k;
           if (result.status === 'fulfilled') {
             const track = result.value;
-            const existing = next[i]!;
+            const existing = next.at(i);
+            if (!existing) continue;
             // A user may manually choose a track while the batch is pending; never overwrite that.
             if (existing.status === 'unmatched' && existing.appleTrack === null) {
-              next[i] = {
+              next.splice(i, 1, {
                 ...existing,
                 appleTrack: track,
                 status: track ? 'matched' : 'unmatched',
-              };
+              });
             }
           }
         }
