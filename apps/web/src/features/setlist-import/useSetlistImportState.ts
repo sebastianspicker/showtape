@@ -39,20 +39,7 @@ function pushHistory(prev: string[], value: string): string[] {
   return deduped.slice(0, MAX_HISTORY_ITEMS);
 }
 
-export interface UseSetlistImportState {
-  inputValue: string;
-  setInputValue: (value: string) => void;
-  setlist: Setlist | null;
-  loading: boolean;
-  error: string | null;
-  history: string[];
-  loadSetlist: (value: string) => Promise<boolean>;
-  retryLast: () => void;
-  selectHistoryItem(value: string): Promise<boolean>;
-  clearHistory: () => void;
-}
-
-export function useSetlistImportState(): UseSetlistImportState {
+export function useSetlistImportState() {
   const [inputValue, setInputValueState] = useState('');
   const [setlist, setSetlist] = useState<Setlist | null>(null);
   const [loading, setLoading] = useState(false);
