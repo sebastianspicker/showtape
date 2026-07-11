@@ -4,6 +4,13 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 
 vi.mock('../../src/lib/musickit', () => ({
   searchCatalog: vi.fn(),
+  isValidAppleMusicTrack: (track: unknown) =>
+    Boolean(
+      track &&
+      typeof track === 'object' &&
+      typeof (track as { id?: unknown }).id === 'string' &&
+      (track as { id: string }).id.trim().length > 0
+    ),
 }));
 
 import { searchCatalog } from '../../src/lib/musickit';
@@ -24,6 +31,31 @@ const mockSetlist: Setlist = {
     ],
   ],
 };
+
+const duplicateSetlist: Setlist = {
+  id: 'dupes',
+  artist: 'Test Artist',
+  sets: [
+    [
+      { name: 'Song A', artist: 'Test Artist' },
+      { name: 'Song A', artist: 'Test Artist' },
+    ],
+  ],
+};
+
+function createDeferred<T>(): {
+  promise: Promise<T>;
+  resolve: (value: T) => void;
+  reject: (reason?: unknown) => void;
+} {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
 
 describe('useMatchingSuggestions', () => {
   beforeEach(() => {
@@ -103,5 +135,72 @@ describe('useMatchingSuggestions', () => {
       expect(row.status).toBe('unmatched');
       expect(row.appleTrack).toBeNull();
     }
+  });
+
+  it('does not overwrite a manual match when auto-match finishes later', async () => {
+    const searches = [
+      createDeferred<{ id: string; name: string; artistName: string }[]>(),
+      createDeferred<{ id: string; name: string; artistName: string }[]>(),
+      createDeferred<{ id: string; name: string; artistName: string }[]>(),
+    ];
+    let nextSearch = 0;
+    mockSearchCatalog.mockImplementation(() => searches[nextSearch++]!.promise);
+
+    const { result } = renderHook(() => useMatchingSuggestions(mockSetlist));
+
+    await waitFor(() => {
+      expect(mockSearchCatalog).toHaveBeenCalledTimes(3);
+    });
+
+    const manualTrack = { id: 'manual-1', name: 'Manual Song A', artistName: 'Manual Artist' };
+    act(() => {
+      result.current.setMatch(0, manualTrack);
+    });
+
+    await act(async () => {
+      searches.forEach((search) => {
+        search.resolve([{ id: 'unused', name: 'Unused', artistName: 'Unused' }]);
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.loadingSuggestions).toBe(false);
+    });
+
+    expect(result.current.matches[0]?.appleTrack).toEqual(manualTrack);
+    expect(result.current.matches[0]?.status).toBe('matched');
+  });
+
+  it('shares in-flight duplicate queries within one auto-match run', async () => {
+    mockSearchCatalog.mockResolvedValue([{ id: '1', name: 'Song A', artistName: 'Test Artist' }]);
+
+    const { result } = renderHook(() => useMatchingSuggestions(duplicateSetlist));
+
+    await waitFor(() => {
+      expect(result.current.loadingSuggestions).toBe(false);
+    });
+
+    expect(mockSearchCatalog).toHaveBeenCalledTimes(1);
+    expect(result.current.matches[0]?.appleTrack?.id).toBe('1');
+    expect(result.current.matches[1]?.appleTrack?.id).toBe('1');
+  });
+
+  it('does not mark malformed Apple Music rows as matched', async () => {
+    mockSearchCatalog.mockResolvedValue([{ id: '', name: 'Song A', artistName: 'Test Artist' }]);
+
+    const oneSongSetlist: Setlist = {
+      id: 'invalid-track-id',
+      artist: 'Test Artist',
+      sets: [[{ name: 'Song A', artist: 'Test Artist' }]],
+    };
+
+    const { result } = renderHook(() => useMatchingSuggestions(oneSongSetlist));
+
+    await waitFor(() => {
+      expect(result.current.loadingSuggestions).toBe(false);
+    });
+
+    expect(result.current.matches[0]?.appleTrack).toBeNull();
+    expect(result.current.matches[0]?.status).toBe('unmatched');
   });
 });

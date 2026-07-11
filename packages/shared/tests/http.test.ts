@@ -12,10 +12,6 @@ function makeStreamingResponse(text: string): Response {
   return new Response(stream);
 }
 
-function makeNonStreamingResponse(text: string): Response {
-  return new Response(text, { body: text });
-}
-
 describe('readTextWithinLimit', () => {
   it('returns text when streaming response is within the limit', async () => {
     const res = makeStreamingResponse('hello world');

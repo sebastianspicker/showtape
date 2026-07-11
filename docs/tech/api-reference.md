@@ -46,7 +46,7 @@ Mint an Apple Developer Token (JWT) for MusicKit JS. The token is signed server-
 
 **Parameters:** None.
 
-**Rate limit:** 30 requests per 60 s per client IP (in-memory, fixed-window). Forwarded IP headers are only trusted when `TRUST_PROXY=1` is configured behind a trusted reverse proxy.
+**Rate limit:** 30 requests per 60 s per client IP (in-memory, fixed-window) when `TRUST_PROXY=1` is configured behind a trusted reverse proxy. Direct deployments with `TRUST_PROXY` unset do not trust forwarded IP headers, so per-client limiting is deliberately disabled unless a trusted client key is supplied by the runtime.
 
 **Success (200):**
 
@@ -56,11 +56,12 @@ Mint an Apple Developer Token (JWT) for MusicKit JS. The token is signed server-
 
 **Headers:**
 
-| Header                  | Value      |
-| ----------------------- | ---------- |
-| `Cache-Control`         | `no-store` |
-| `Pragma`                | `no-cache` |
-| `X-RateLimit-Remaining` | `<number>` |
+| Header                  | Value                                                                 |
+| ----------------------- | --------------------------------------------------------------------- |
+| `Cache-Control`         | `no-store`                                                            |
+| `Pragma`                | `no-cache`                                                            |
+| `X-RateLimit-Policy`    | `trusted-proxy` or `disabled-direct-no-trusted-client-key`            |
+| `X-RateLimit-Remaining` | `<number>` when per-client limiting is active; omitted in direct mode |
 
 **Error responses:**
 
@@ -93,7 +94,7 @@ Proxy to the setlist.fm API. The `SETLISTFM_API_KEY` stays server-side and is ne
 
 \* Exactly one of `id` or `url` is required. Max length: 2000 characters.
 
-**Rate limit:** 20 requests per 60 s per client IP (in-memory, fixed-window). Forwarded IP headers are only trusted when `TRUST_PROXY=1` is configured behind a trusted reverse proxy.
+**Rate limit:** 20 requests per 60 s per client IP (in-memory, fixed-window) when `TRUST_PROXY=1` is configured behind a trusted reverse proxy. Direct deployments with `TRUST_PROXY` unset do not trust forwarded IP headers, so per-client limiting is deliberately disabled unless a trusted client key is supplied by the runtime.
 
 **Success (200):**
 
@@ -101,9 +102,11 @@ Returns the setlist.fm API JSON for the requested setlist. Cached privately for 
 
 **Headers:**
 
-| Header          | Value (success)         | Value (error) |
-| --------------- | ----------------------- | ------------- |
-| `Cache-Control` | `private, max-age=3600` | `no-store`    |
+| Header                  | Value (success)                                                       | Value (error)                                                         |
+| ----------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `Cache-Control`         | `private, max-age=3600`                                               | `no-store`                                                            |
+| `X-RateLimit-Policy`    | `trusted-proxy` or `disabled-direct-no-trusted-client-key`            | `trusted-proxy` or `disabled-direct-no-trusted-client-key`            |
+| `X-RateLimit-Remaining` | `<number>` when per-client limiting is active; omitted in direct mode | `<number>` when per-client limiting is active; omitted in direct mode |
 
 **Error responses:**
 

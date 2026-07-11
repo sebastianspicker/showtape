@@ -3,6 +3,12 @@ import type { AppleTrack } from '@repo/core';
 /** Apple Music catalog track; single source of truth from @repo/core AppleTrack. */
 export type AppleMusicTrack = AppleTrack;
 
+export function isValidAppleMusicTrack(track: unknown): track is AppleMusicTrack {
+  if (!track || typeof track !== 'object') return false;
+  const id = (track as Record<string, unknown>).id;
+  return typeof id === 'string' && id.trim().length > 0;
+}
+
 export interface MusicKitGlobal {
   configure(options: MusicKitConfigureOptions): Promise<MusicKitInstance> | MusicKitInstance | void;
   getInstance(): MusicKitInstance;
@@ -52,7 +58,7 @@ export interface MusicKitSearchResponse {
   results?: {
     songs?: {
       data?: Array<{
-        id: string;
+        id?: unknown;
         attributes?: { name?: string; artistName?: string };
       }>;
     };

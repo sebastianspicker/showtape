@@ -1,6 +1,6 @@
 import { initMusicKit } from './client';
 import type { AppleMusicTrack, MusicKitSearchResponse } from './types';
-import { throwIfMusicKitError } from './types';
+import { isValidAppleMusicTrack, throwIfMusicKitError } from './types';
 
 const SEARCH_CACHE_TTL_MS = 5 * 60 * 1000;
 const SEARCH_CACHE_MAX_SIZE = 500;
@@ -49,11 +49,15 @@ export async function searchCatalog(term: string, limit = 5): Promise<AppleMusic
   const data = (await music.music.api(path)) as MusicKitSearchResponse;
   throwIfMusicKitError(data, 'Catalog search failed');
   const songs = data?.results?.songs?.data ?? [];
-  const tracks: AppleMusicTrack[] = songs.map((s) => ({
-    id: s.id,
-    name: s.attributes?.name ?? '',
-    artistName: s.attributes?.artistName,
-  }));
+  const tracks: AppleMusicTrack[] = [];
+  for (const song of songs) {
+    const track = {
+      id: song.id,
+      name: song.attributes?.name ?? '',
+      artistName: song.attributes?.artistName,
+    };
+    if (isValidAppleMusicTrack(track)) tracks.push(track);
+  }
   searchCache.set(cacheKey, { tracks, expires: Date.now() + SEARCH_CACHE_TTL_MS });
   return tracks;
 }

@@ -89,7 +89,7 @@ sequenceDiagram
 ## Matching Strategy
 
 - **Normalization:** Strip "feat.", "live", extra punctuation, ( … ) segments for search. Logic lives in `packages/core` (e.g. `normalizeTrackName`).
-- **Search:** "track name artist name" → Apple Music catalog search. First result or best match can be suggested; user can change. Auto-matching runs in batched parallel calls (groups of 5 via `Promise.allSettled`) to balance throughput and rate-limit headroom.
+- **Search:** "track name artist name" → Apple Music catalog search. First result or best match can be suggested; user can change. Auto-matching runs in batched parallel calls (groups of 5 via `Promise.allSettled`) to balance throughput and rate-limit headroom. Duplicate queries within one run share the same in-flight request, and late automatic results only fill rows that are still unmatched so manual corrections are preserved.
 - **Fallbacks:** No match → show "No match"; user can search manually or skip.
 
 ## Error Cases and Rate Limits
@@ -121,7 +121,7 @@ SetlistImportView
 ```
 
 - `useFlowState` is a minimal state machine; transitions are named (`goToPreview`, `goToExport`, etc.) so callers never set raw step values.
-- `useMatchingSuggestions` owns the match list and exposes `autoMatchAll`, which processes tracks in batches of 5 with stale-run guards (`runIdRef`).
-- `useTrackSearch` handles one-at-a-time manual search with its own run-ID guard and delegates selection back via `setMatch`.
-- `useCreatePlaylistState` persists partial progress to `sessionStorage` so a failed add-tracks call can be resumed without re-creating the playlist.
+- `useMatchingSuggestions` owns the match list and exposes `autoMatchAll`, which processes tracks in batches of 5 with stale-run guards (`runIdRef`) and in-run duplicate-query sharing.
+- `useTrackSearch` handles one-at-a-time manual search with its own run-ID guard and delegates selection back via `setMatch`; stale results are ignored when the user moves to another row.
+- `useCreatePlaylistState` persists partial progress to `sessionStorage` so a failed add-tracks call can be resumed without re-creating the playlist. Resume state is accepted only when the selected track IDs and duplicate-removal setting still match.
 - `MatchRowItem` is wrapped in `React.memo` to avoid re-renders when sibling rows change.

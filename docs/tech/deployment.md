@@ -9,11 +9,10 @@ The app is a single Next.js deployment — one process serves both the PWA and a
 ```bash
 pnpm install --frozen-lockfile
 pnpm build
-# From apps/web:
-node .next/standalone/apps/web/server.js
+pnpm --filter web start
 ```
 
-Requires Node >= 20 and all environment variables set in the process environment. Serve behind a reverse proxy (Traefik, nginx, or Caddy) with TLS. Set `TRUST_PROXY=1` only when that reverse proxy overwrites forwarded IP headers.
+Requires Node >= 20 and all environment variables set in the process environment. Serve behind a reverse proxy (Traefik, nginx, or Caddy) with TLS. Set `TRUST_PROXY=1` only when that reverse proxy overwrites forwarded IP headers. If `TRUST_PROXY` is unset, API responses expose `X-RateLimit-Policy: disabled-direct-no-trusted-client-key` and per-client rate limiting is deliberately disabled rather than trusting spoofable forwarded headers.
 
 | Variable                         | Value                                             |
 | -------------------------------- | ------------------------------------------------- |

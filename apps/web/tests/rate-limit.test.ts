@@ -142,7 +142,16 @@ describe('extractClientKeyFromHeaders', () => {
     expect(extractClientKeyFromHeaders(new Headers(), 'fallback-key')).toBe('fallback-key');
   });
 
-  it('ignores forwarded IP headers when TRUST_PROXY is unset', () => {
+  it('returns null when TRUST_PROXY is unset and no trusted fallback exists', () => {
+    vi.unstubAllEnvs();
+    const headers = new Headers({
+      'x-forwarded-for': '1.1.1.1, 2.2.2.2',
+      'x-real-ip': '3.3.3.3',
+    });
+    expect(extractClientKeyFromHeaders(headers)).toBeNull();
+  });
+
+  it('ignores forwarded IP headers when TRUST_PROXY is unset but keeps explicit trusted fallback', () => {
     vi.unstubAllEnvs();
     const headers = new Headers({
       'x-forwarded-for': '1.1.1.1, 2.2.2.2',

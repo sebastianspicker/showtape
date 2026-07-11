@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { fetchJson } from '../src/lib/fetch';
+import { fetchApiJson, fetchJson } from '../src/lib/fetch';
 
 function streamResponse(body: string, status = 200): Response {
   return new Response(
@@ -113,13 +113,24 @@ describe('fetchJson', () => {
     await expect(fetchJson('https://api.example.com/down')).rejects.toThrow('Failed to fetch');
   });
 
-  it('returns error when successful response body contains an error field', async () => {
+  it('allows successful generic JSON responses that contain an error field', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(fakeResponse({ error: 'Domain value' }, { status: 200 }))
+    );
+
+    const result = await fetchJson('https://api.example.com/data');
+
+    expect(result).toEqual({ ok: true, value: { error: 'Domain value' } });
+  });
+
+  it('returns error when internal API envelope response contains an error field', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(fakeResponse({ error: 'Something went wrong' }, { status: 200 }))
     );
 
-    const result = await fetchJson('https://api.example.com/data');
+    const result = await fetchApiJson('https://api.example.com/data');
 
     expect(result).toEqual({ ok: false, error: 'Something went wrong' });
   });

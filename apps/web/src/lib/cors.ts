@@ -8,10 +8,6 @@ import type { NextRequest } from 'next/server';
  */
 export function getAllowOrigin(origin: string | null): string | null {
   const configured = (process.env.ALLOWED_ORIGIN ?? '').trim();
-  const isLocalOrigin =
-    origin &&
-    origin !== 'null' &&
-    (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1'));
   if (configured) {
     const origins = configured
       .split(',')
@@ -21,7 +17,15 @@ export function getAllowOrigin(origin: string | null): string | null {
     if (origin && origins.includes(origin)) return origin;
     return null;
   }
-  return isLocalOrigin ? origin : null;
+  if (!origin || origin === 'null') return null;
+  try {
+    const parsed = new URL(origin);
+    if (parsed.origin !== origin) return null;
+    if (parsed.protocol !== 'http:') return null;
+    return parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1' ? origin : null;
+  } catch {
+    return null;
+  }
 }
 
 export function corsHeaders(request: NextRequest, contentType = 'application/json'): HeadersInit {

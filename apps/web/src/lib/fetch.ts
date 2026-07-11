@@ -21,7 +21,7 @@ function extractError(data: unknown, fallback: string): string {
 }
 
 /**
- * Fetch URL, parse JSON, and return a Result. Handles non-JSON and error bodies.
+ * Fetch URL, parse JSON, and return a Result. Handles non-JSON and HTTP error bodies.
  * Rejects responses exceeding MAX_JSON_RESPONSE_BYTES when Content-Length is present.
  */
 export async function fetchJson<T>(url: string, init?: RequestInit): Promise<Result<T, string>> {
@@ -46,8 +46,18 @@ export async function fetchJson<T>(url: string, init?: RequestInit): Promise<Res
   if (!res.ok) {
     return { ok: false, error: extractError(data, `Request failed (${res.status})`) };
   }
-  if (hasErrorString(data)) {
-    return { ok: false, error: data.error };
-  }
   return { ok: true, value: data as T };
+}
+
+/**
+ * Fetch one of this app's API routes and treat `{ error: string }` as the
+ * route error envelope, even when an intermediate layer returned HTTP 200.
+ */
+export async function fetchApiJson<T>(url: string, init?: RequestInit): Promise<Result<T, string>> {
+  const result = await fetchJson<T | { error: string }>(url, init);
+  if (!result.ok) return result;
+  if (hasErrorString(result.value)) {
+    return { ok: false, error: result.value.error };
+  }
+  return { ok: true, value: result.value as T };
 }

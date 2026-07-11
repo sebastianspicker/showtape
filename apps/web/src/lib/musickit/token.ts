@@ -1,6 +1,6 @@
 import { type DevTokenResponse, isDevTokenSuccess } from '@repo/shared';
 import { devTokenUrl } from '../api';
-import { fetchJson } from '../fetch';
+import { fetchApiJson } from '../fetch';
 
 const TOKEN_CACHE_TTL_MS = 55 * 60 * 1000; // 55 minutes
 let cachedToken: string | null = null;
@@ -25,7 +25,7 @@ export async function fetchDeveloperToken(): Promise<string> {
     try {
       cachedToken = null;
       tokenExpiresAt = 0;
-      const result = await fetchJson<DevTokenResponse>(devTokenUrl());
+      const result = await fetchApiJson<DevTokenResponse>(devTokenUrl());
       if (!result.ok) {
         throw new Error(result.error);
       }

@@ -1,9 +1,9 @@
 'use client';
 
 import { useMemo } from 'react';
+import { Button } from '@repo/ui';
 import type { MatchRow } from '@/features/matching/types';
 import { ErrorAlert } from '@/components/ErrorAlert';
-import { LoadingButton } from '@/components/LoadingButton';
 import { SectionTitle } from '@/components/SectionTitle';
 import { ConnectAppleMusic } from '@/features/matching/ConnectAppleMusic';
 import type { Setlist } from '@repo/core';
@@ -36,21 +36,34 @@ export function CreatePlaylistView({ setlist, matchRows }: CreatePlaylistViewPro
     () => selectedSongIds.length - songIds.length,
     [selectedSongIds, songIds]
   );
-  const incompleteState = resumeState && resumeState.remainingIds.length > 0 ? resumeState : null;
+  const incompleteState =
+    resumeState && (resumeState.progress === 'unknown' || resumeState.remainingIds.length > 0)
+      ? resumeState
+      : null;
 
   if (incompleteState) {
     const rawUrl = incompleteState.url?.trim();
-    const addedCount = Math.max(songIds.length - incompleteState.remainingIds.length, 0);
+    const hasUnknownProgress = incompleteState.progress === 'unknown';
+    const addedCount = hasUnknownProgress
+      ? null
+      : Math.max(songIds.length - incompleteState.remainingIds.length, 0);
     const remainingCount = incompleteState.remainingIds.length;
     const isSafeUrl = rawUrl && (rawUrl.startsWith('http://') || rawUrl.startsWith('https://'));
     return (
       <div role="status" className="glass-panel success-panel">
         <p className="success-title">Playlist created, but track import is incomplete.</p>
-        <p className="success-subtitle">
-          {addedCount} of {songIds.length} song{songIds.length !== 1 ? 's' : ''} were added to your
-          Apple Music library. {remainingCount} still need{remainingCount === 1 ? 's' : ''} to be
-          added.
-        </p>
+        {hasUnknownProgress ? (
+          <p className="success-subtitle">
+            Apple Music did not report which of the attempted songs were added. The playlist exists,
+            but this import cannot be resumed safely without risking duplicate add attempts.
+          </p>
+        ) : (
+          <p className="success-subtitle">
+            {addedCount} of {songIds.length} song{songIds.length !== 1 ? 's' : ''} were added to
+            your Apple Music library. {remainingCount} still need
+            {remainingCount === 1 ? 's' : ''} to be added.
+          </p>
+        )}
         {addTracksError ? (
           <p role="alert" className="error-text" style={{ marginTop: '0.5rem' }}>
             The playlist exists, but finishing the import failed: {addTracksError}
@@ -60,15 +73,17 @@ export function CreatePlaylistView({ setlist, matchRows }: CreatePlaylistViewPro
             Resume the import to finish adding the remaining songs.
           </p>
         )}
-        <LoadingButton
-          variant="secondary"
-          onClick={handleAddRemainingTracks}
-          loading={loading}
-          loadingChildren="Adding remaining songs…"
-          style={{ marginTop: '1rem' }}
-        >
-          Add remaining songs
-        </LoadingButton>
+        {!hasUnknownProgress && (
+          <Button
+            variant="secondary"
+            onClick={handleAddRemainingTracks}
+            loading={loading}
+            loadingChildren="Adding remaining songs…"
+            style={{ marginTop: '1rem' }}
+          >
+            Add remaining songs
+          </Button>
+        )}
         {isSafeUrl ? (
           <a
             href={rawUrl}
@@ -97,15 +112,15 @@ export function CreatePlaylistView({ setlist, matchRows }: CreatePlaylistViewPro
         <p className="success-title">Your playlist is ready!</p>
         <p className="success-subtitle">
           {setlist.artist}
-          {setlist.venue ? ` at ${setlist.venue}` : ''} — {count} song{count !== 1 ? 's' : ''} added
-          to your Apple Music library.
+          {setlist.venue ? ` at ${setlist.venue}` : ''} — {songIds.length} song
+          {songIds.length !== 1 ? 's' : ''} added to your Apple Music library.
         </p>
         {addTracksError ? (
           <>
             <p role="alert" className="error-text" style={{ marginTop: '0.5rem' }}>
               The playlist was created, but some tracks could not be added: {addTracksError}
             </p>
-            <LoadingButton
+            <Button
               variant="secondary"
               onClick={handleAddRemainingTracks}
               loading={loading}
@@ -113,7 +128,7 @@ export function CreatePlaylistView({ setlist, matchRows }: CreatePlaylistViewPro
               style={{ marginTop: '1rem' }}
             >
               Retry adding remaining songs
-            </LoadingButton>
+            </Button>
           </>
         ) : (
           <>
@@ -171,7 +186,7 @@ export function CreatePlaylistView({ setlist, matchRows }: CreatePlaylistViewPro
       )}
 
       {!needsAuth && (
-        <LoadingButton
+        <Button
           onClick={handleCreate}
           disabled={count === 0}
           loading={loading}
@@ -180,7 +195,7 @@ export function CreatePlaylistView({ setlist, matchRows }: CreatePlaylistViewPro
           title="Create a new playlist in your Apple Music library with the matched tracks"
         >
           Create playlist
-        </LoadingButton>
+        </Button>
       )}
 
       {error && (
