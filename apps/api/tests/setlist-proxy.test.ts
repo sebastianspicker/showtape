@@ -18,6 +18,20 @@ describe('parseSetlistIdFromInput', () => {
     expect(parseSetlistIdFromInput(url)).toBe('63de4613');
   });
 
+  it('accepts representative setlist.fm URL variants used by the proxy', () => {
+    expect(
+      parseSetlistIdFromInput(
+        'http://www.setlist.fm/setlist/the-beatles/1964/hollywood-bowl-ABCDEF12.html?view=1#songs'
+      )
+    ).toBe('ABCDEF12');
+    expect(parseSetlistIdFromInput('www.setlist.fm/setlist/artist/venue-dead1f.html')).toBe(
+      'dead1f'
+    );
+    expect(parseSetlistIdFromInput('https://www.setlist.fm/setlist/63de4613.html')).toBe(
+      '63de4613'
+    );
+  });
+
   it('extracts short ID (4-5 hex chars) from URL (DCI-005)', () => {
     expect(
       parseSetlistIdFromInput('https://www.setlist.fm/setlist/artist/2024/venue-abc1.html')
@@ -37,6 +51,13 @@ describe('parseSetlistIdFromInput', () => {
     expect(parseSetlistIdFromInput('https://setlist.fm.evil.com/setlist/a/b-c1.html')).toBeNull();
     expect(parseSetlistIdFromInput('https://evilsetlist.fm/setlist/a/b-c1.html')).toBeNull();
     expect(parseSetlistIdFromInput('https://setlist.fm@evil.com/setlist/a/b-c1.html')).toBeNull();
+  });
+
+  it('returns null for malformed setlist.fm URLs without valid ID suffixes', () => {
+    expect(parseSetlistIdFromInput('https://www.setlist.fm/setlist/artist/venue.html')).toBeNull();
+    expect(
+      parseSetlistIdFromInput('https://www.setlist.fm/setlist/artist/venue-xyz.html')
+    ).toBeNull();
   });
 });
 

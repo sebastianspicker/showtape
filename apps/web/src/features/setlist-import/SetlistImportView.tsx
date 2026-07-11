@@ -1,9 +1,10 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import { useState } from 'react';
+import { Button } from '@repo/ui';
 import { FlowStepIndicator } from '@/components/FlowStepIndicator';
 import { ErrorAlert } from '@/components/ErrorAlert';
-import { LoadingButton } from '@/components/LoadingButton';
 import { SectionTitle } from '@/components/SectionTitle';
 import { StatusText } from '@/components/StatusText';
 import { ConnectAppleMusic } from '@/features/matching/ConnectAppleMusic';
@@ -28,6 +29,7 @@ const CreatePlaylistView = dynamic(
 );
 
 export function SetlistImportView() {
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
   const {
     inputValue,
     setInputValue,
@@ -51,11 +53,30 @@ export function SetlistImportView() {
     goBackToMatching,
   } = useFlowState();
 
-  async function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent): void {
     e.preventDefault();
-    const ok = await loadSetlist(inputValue);
-    if (ok) goToPreview();
+    setSubmissionError(null);
+    void loadSetlist(inputValue)
+      .then((ok) => {
+        if (ok) goToPreview();
+      })
+      .catch(() => {
+        setSubmissionError('Unable to load the setlist. Please try again.');
+      });
   }
+
+  function handleSelectHistoryItem(value: string): void {
+    setSubmissionError(null);
+    void selectHistoryItem(value)
+      .then((ok) => {
+        if (ok) goToPreview();
+      })
+      .catch(() => {
+        setSubmissionError('Unable to load the setlist. Please try again.');
+      });
+  }
+
+  const displayedError = error ?? submissionError;
 
   if (step === 'matching' && setlist) {
     return (
@@ -139,10 +160,10 @@ export function SetlistImportView() {
             onChange={(e) => setInputValue(e.target.value)}
             placeholder="https://www.setlist.fm/setlist/..."
             disabled={loading}
-            aria-invalid={!!error}
-            aria-describedby={error ? 'setlist-error' : 'setlist-hint'}
+            aria-invalid={!!displayedError}
+            aria-describedby={displayedError ? 'setlist-error' : 'setlist-hint'}
           />
-          {!error && (
+          {!displayedError && (
             <p id="setlist-hint" className="input-hint">
               Example:{' '}
               <code className="accent-inline">
@@ -152,7 +173,7 @@ export function SetlistImportView() {
             </p>
           )}
         </div>
-        <LoadingButton
+        <Button
           type="submit"
           loading={loading}
           loadingChildren="Fetching setlist…"
@@ -161,7 +182,7 @@ export function SetlistImportView() {
           title="Fetch setlist from setlist.fm"
         >
           Load setlist
-        </LoadingButton>
+        </Button>
       </form>
 
       {history.length > 0 && (
@@ -178,7 +199,9 @@ export function SetlistImportView() {
                 <button
                   type="button"
                   className="history-item-button"
-                  onClick={() => selectHistoryItem(item)}
+                  onClick={() => {
+                    handleSelectHistoryItem(item);
+                  }}
                   title={item}
                 >
                   {item}
@@ -197,9 +220,13 @@ export function SetlistImportView() {
         </StatusText>
       )}
 
-      {error && (
+      {displayedError && (
         <div id="setlist-error">
-          <ErrorAlert message={error} onRetry={retryLast} retryLabel="Retry load setlist" />
+          <ErrorAlert
+            message={displayedError}
+            onRetry={retryLast}
+            retryLabel="Retry load setlist"
+          />
         </div>
       )}
 

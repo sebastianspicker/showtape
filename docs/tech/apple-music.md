@@ -34,5 +34,5 @@ See [Apple’s Music Kit documentation](https://developer.apple.com/documentatio
 ## Security Notes
 
 - Developer Token must be generated server-side only. The dev-token endpoint is CORS-restricted to the configured frontend origin.
-- Rate limiting: the dev-token endpoint applies an in-memory fixed-window limiter (30 requests per 60 s, keyed by client IP via `x-forwarded-for`). Responds with `429` and `Retry-After` when exceeded.
+- Rate limiting: the dev-token endpoint applies an in-memory fixed-window limiter (30 requests per 60 s) only when `TRUST_PROXY=1` is configured behind a trusted reverse proxy. With `TRUST_PROXY` unset, forwarded IP headers are ignored and direct-deployment responses use `X-RateLimit-Policy: disabled-direct-no-trusted-client-key`; rate-limited responses use `429` with `Retry-After`.
 - User token is in the client only; our API never sees it.

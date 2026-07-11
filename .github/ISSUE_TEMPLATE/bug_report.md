@@ -22,8 +22,12 @@ labels: bug
 
 - Browser + version:
 - OS:
-- setlist.fm URL or ID used (if applicable):
+- Public sample setlist.fm URL or ID used (if applicable):
 
 **Relevant errors or screenshots**
 
-<!-- Console errors, network tab output, or screenshots. -->
+<!--
+Console errors, network output, or screenshots. Before posting, redact tokens,
+authorization headers, environment values, account identifiers, playlist URLs,
+and unrelated browser or personal data.
+-->

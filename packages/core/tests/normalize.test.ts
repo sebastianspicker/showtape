@@ -40,4 +40,17 @@ describe('normalizeTrackName', () => {
     expect(normalizeTrackName('Song feat. Artist A (live)')).toBe('Song');
     expect(normalizeTrackName('Song feat. Artist A - Radio Edit')).toBe('Song Radio Edit');
   });
+
+  it('documents active release metadata compatibility fixtures', () => {
+    expect(normalizeTrackName('Song (2011 Remastered Version)')).toBe('Song');
+    expect(normalizeTrackName('Song (Live Version)')).toBe('Song');
+    expect(normalizeTrackName('Song - 2019 Remaster')).toBe('Song');
+    expect(normalizeTrackName('Song - Radio Edit')).toBe('Song');
+    expect(normalizeTrackName('Song - Bonus Track')).toBe('Song');
+  });
+
+  it('preserves Unicode names while stripping compatibility metadata', () => {
+    expect(normalizeTrackName('Café (Live)')).toBe('Café');
+    expect(normalizeTrackName('花火 - Radio Edit')).toBe('花火');
+  });
 });

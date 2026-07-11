@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 
 // Mock sub-components to avoid deep dependency chains
@@ -11,8 +11,8 @@ vi.mock('../../src/components/ErrorAlert', () => ({
   ErrorAlert: ({ message }: { message: string }) =>
     React.createElement('div', { role: 'alert' }, message),
 }));
-vi.mock('../../src/components/LoadingButton', () => ({
-  LoadingButton: ({
+vi.mock('@repo/ui', () => ({
+  Button: ({
     loading,
     loadingChildren,
     children,
@@ -47,6 +47,7 @@ vi.mock('../../src/features/setlist-import/SetlistPreview', () => ({
 }));
 
 const mockLoadSetlist = vi.fn().mockResolvedValue(false);
+const mockSelectHistoryItem = vi.fn().mockResolvedValue(false);
 const mockGoToPreview = vi.fn();
 const mockGoToMatching = vi.fn();
 
@@ -60,7 +61,7 @@ vi.mock('../../src/features/setlist-import/useSetlistImportState', () => ({
     history: [],
     loadSetlist: mockLoadSetlist,
     retryLast: vi.fn(),
-    selectHistoryItem: vi.fn(),
+    selectHistoryItem: mockSelectHistoryItem,
     clearHistory: vi.fn(),
   })),
 }));
@@ -96,6 +97,11 @@ describe('SetlistImportView', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockLoadSetlist.mockResolvedValue(false);
+    mockSelectHistoryItem.mockResolvedValue(false);
+  });
+
+  afterEach(() => {
+    cleanup();
   });
 
   it('renders input field and load button', () => {
@@ -122,7 +128,7 @@ describe('SetlistImportView', () => {
       history: [],
       loadSetlist: mockLoadSetlist,
       retryLast: vi.fn(),
-      selectHistoryItem: vi.fn(),
+      selectHistoryItem: mockSelectHistoryItem,
       clearHistory: vi.fn(),
     });
 
@@ -140,7 +146,7 @@ describe('SetlistImportView', () => {
       history: [],
       loadSetlist: mockLoadSetlist,
       retryLast: vi.fn(),
-      selectHistoryItem: vi.fn(),
+      selectHistoryItem: mockSelectHistoryItem,
       clearHistory: vi.fn(),
     });
 
@@ -158,12 +164,86 @@ describe('SetlistImportView', () => {
       history: ['abc123', 'def456'],
       loadSetlist: mockLoadSetlist,
       retryLast: vi.fn(),
-      selectHistoryItem: vi.fn(),
+      selectHistoryItem: mockSelectHistoryItem,
       clearHistory: vi.fn(),
     });
 
     render(<SetlistImportView />);
     expect(screen.getByText('abc123')).toBeInTheDocument();
     expect(screen.getByText('def456')).toBeInTheDocument();
+  });
+
+  it('advances to preview after a history item loads successfully', async () => {
+    mockSelectHistoryItem.mockResolvedValueOnce(true);
+    mockUseSetlistImportState.mockReturnValue({
+      inputValue: '',
+      setInputValue: vi.fn(),
+      setlist: null,
+      loading: false,
+      error: null,
+      history: ['abc123'],
+      loadSetlist: mockLoadSetlist,
+      retryLast: vi.fn(),
+      selectHistoryItem: mockSelectHistoryItem,
+      clearHistory: vi.fn(),
+    });
+
+    render(<SetlistImportView />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'abc123' }));
+
+    await waitFor(() => {
+      expect(mockSelectHistoryItem).toHaveBeenCalledWith('abc123');
+      expect(mockGoToPreview).toHaveBeenCalledOnce();
+    });
+  });
+
+  it('stays on import after a history item fails to load', async () => {
+    mockSelectHistoryItem.mockResolvedValueOnce(false);
+    mockUseSetlistImportState.mockReturnValue({
+      inputValue: '',
+      setInputValue: vi.fn(),
+      setlist: null,
+      loading: false,
+      error: null,
+      history: ['abc123'],
+      loadSetlist: mockLoadSetlist,
+      retryLast: vi.fn(),
+      selectHistoryItem: mockSelectHistoryItem,
+      clearHistory: vi.fn(),
+    });
+
+    render(<SetlistImportView />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'abc123' }));
+
+    await waitFor(() => {
+      expect(mockSelectHistoryItem).toHaveBeenCalledWith('abc123');
+    });
+    expect(mockGoToPreview).not.toHaveBeenCalled();
+  });
+
+  it('shows a retryable error when a history import rejects unexpectedly', async () => {
+    mockSelectHistoryItem.mockRejectedValueOnce(new Error('Unexpected failure'));
+    mockUseSetlistImportState.mockReturnValue({
+      inputValue: '',
+      setInputValue: vi.fn(),
+      setlist: null,
+      loading: false,
+      error: null,
+      history: ['abc123'],
+      loadSetlist: mockLoadSetlist,
+      retryLast: vi.fn(),
+      selectHistoryItem: mockSelectHistoryItem,
+      clearHistory: vi.fn(),
+    });
+
+    render(<SetlistImportView />);
+    fireEvent.click(screen.getByRole('button', { name: 'abc123' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Unable to load the setlist. Please try again.'
+    );
+    expect(mockGoToPreview).not.toHaveBeenCalled();
   });
 });

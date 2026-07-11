@@ -25,9 +25,6 @@ Paste a [setlist.fm](https://www.setlist.fm) link, preview the tracks, fix any m
 - Fully accessible (keyboard navigation, screen reader support, WCAG touch targets)
 - Dark glass-morphism UI optimized for mobile and desktop
 
-> **About this project**
-> This repository was built with AI-assisted development (Cursor, Codex, Kilo Code). From structure and docs to implementation and tests — all created with AI support. The approach follows the methodology documented in [Harness Engineering](https://openai.com/index/harness-engineering/).
-
 ## Prerequisites
 
 - **Node.js** ≥ 20 (see `engines` in root `package.json`)
@@ -41,7 +38,7 @@ Copy `.env.example` to `.env` in the repo root and set:
 - **setlist.fm:** `SETLISTFM_API_KEY` (used only by the server-side proxy; never sent to the client). See [docs/tech/setlistfm.md](docs/tech/setlistfm.md).
 - **Optional:** `NEXT_PUBLIC_API_URL` – base URL for API calls. Leave unset for same-origin (default when the app and API run together). Set only when the API is served from a different origin.
 - **Production CORS:** `ALLOWED_ORIGIN` – required when the app is deployed; see [docs/tech/security.md](docs/tech/security.md) and `.env.example`.
-- **Proxy deployments:** `TRUST_PROXY=1` only when a trusted reverse proxy sets `X-Forwarded-For` / `X-Real-IP` on your behalf. Leave it unset for direct deployments.
+- **Proxy deployments:** `TRUST_PROXY=1` only when a trusted reverse proxy sets `X-Forwarded-For` / `X-Real-IP` on your behalf. Leave it unset for direct deployments; per-client API rate limiting is then deliberately disabled and responses expose `X-RateLimit-Policy: disabled-direct-no-trusted-client-key`.
 
 ## Quick Start
 
@@ -82,18 +79,27 @@ Then open the web app at `http://localhost:3000`. The same process runs both the
 | `apps/api`        | Shared serverless logic (JWT signing, setlist proxy handler). Used by the web app's API routes; not run as a standalone server in this repo. |
 | `packages/core`   | Domain logic: setlist parsing, track matching, normalization (no UI).                                                                        |
 | `packages/shared` | Shared types, utils, constants.                                                                                                              |
-| `packages/ui`     | Optional design system (placeholder).                                                                                                        |
-| `docs/`           | Consolidated product spec (PRD), focused design docs, tech docs, and ADRs.                                                                   |
-| `deprecated/`     | Archived audit and inspection reports kept for historical reference.                                                                         |
+| `packages/ui`     | Shared React UI primitives used by the web app.                                                                                              |
+| `docs/`           | Product specifications, focused design documents, technical documentation, and ADRs.                                                         |
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for data flow and [docs/index.md](docs/index.md) for the docs map.
+
+## Reading Map
+
+For a first code read, follow the active product flow in this order:
+
+1. `apps/web/src/app/page.tsx` mounts the main app shell and `SetlistImportView`.
+2. `apps/web/src/features/setlist-import/SetlistImportView.tsx` renders the four visible steps: import, preview, matching, export.
+3. `useSetlistImportState.ts` fetches `/api/setlist/proxy` and maps setlist.fm JSON through `mapSetlistFmToSetlist`.
+4. `MatchingView.tsx` combines automatic suggestions from `useMatchingSuggestions.ts` with manual Apple Music search from `useTrackSearch.ts`.
+5. `CreatePlaylistView.tsx` uses `useCreatePlaylistState.ts` to create the Apple Music playlist and resume interrupted track adds.
+6. `apps/web/src/app/api/*/route.ts` contains the HTTP layer; those route handlers delegate reusable logic to `apps/api/src/routes/`.
 
 ## Project Structure
 
 ```
 .
 ├── README.md
-├── AGENTS.md
 ├── ARCHITECTURE.md
 ├── CONTRIBUTING.md
 ├── CHANGELOG.md
@@ -126,8 +132,8 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for data flow and [docs/index.md](docs/in
 │   │   │   │   ├── matching/
 │   │   │   │   └── playlist-export/
 │   │   │   ├── lib/
-│   │   │   ├── styles/
-│   │   │   └── types/
+│   │   │   └── styles/
+│   │   ├── middleware.ts          # CSP and browser security headers
 │   │   ├── public/
 │   │   │   ├── manifest.webmanifest
 │   │   │   └── icons/
@@ -139,7 +145,6 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for data flow and [docs/index.md](docs/in
 │       │   │   ├── apple/dev-token.ts
 │       │   │   ├── setlist/proxy.ts
 │       │   │   └── health.ts
-│       │   ├── middleware/
 │       │   └── lib/
 │       ├── tests/
 │       └── package.json
@@ -148,7 +153,6 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for data flow and [docs/index.md](docs/in
 │   │   ├── src/
 │   │   │   ├── setlist/
 │   │   │   ├── matching/
-│   │   │   ├── apple/
 │   │   │   └── index.ts
 │   │   └── tests/
 │   ├── shared/
@@ -157,7 +161,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for data flow and [docs/index.md](docs/in
 │   │   │   ├── utils/
 │   │   │   └── index.ts
 │   │   └── tests/
-│   └── ui/                       # Design system (optional)
+│   └── ui/                       # Shared React UI primitives
 │       └── src/
 ├── docs/
 │   ├── index.md
@@ -166,9 +170,8 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for data flow and [docs/index.md](docs/in
 │   ├── design-system/
 │   ├── tech/
 │   └── adr/
-├── deprecated/
-│   └── *.md                    # Archived audits and inspection reports
 └── scripts/
+    ├── cleanup-repo.sh
     ├── seed-demo-setlists.ts
     └── export-diagnostics.ts
 ```
@@ -185,11 +188,12 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for data flow and [docs/index.md](docs/in
 | `pnpm test`         | Run tests in all packages.                               |
 | `pnpm format`       | Format code with Prettier.                               |
 | `pnpm format:check` | Check formatting without writing.                        |
+| `pnpm cleanup:repo` | Remove local generated artifacts and caches.             |
 
 Optional (run from repo root with `npx tsx`):
 
 - **seed-demo-setlists:** `SETLISTFM_API_KEY=your_key npx tsx scripts/seed-demo-setlists.ts` – fetches demo setlists and writes `scripts/fixtures/demo-setlists.json` for local dev or tests.
-- **export-diagnostics:** `npx tsx scripts/export-diagnostics.ts` or `npx tsx scripts/export-diagnostics.ts --out report.json` – exports non-sensitive env/config info for support or debugging (no secrets).
+- **export-diagnostics:** `npx tsx scripts/export-diagnostics.ts` or `mkdir -p reports && npx tsx scripts/export-diagnostics.ts --out reports/diagnostics.json` – exports support metadata without secret values. Reports stay ignored locally; review API URLs, environment-variable names, platform, and runtime metadata before sharing.
 - **cleanup-repo:** `bash scripts/cleanup-repo.sh` – removes local non-source artifacts (logs, `.DS_Store`, build caches) without touching tracked source files.
 
 ## Deployment
@@ -205,11 +209,12 @@ See [docs/tech/deployment.md](docs/tech/deployment.md) for full self-hosted depl
 Run the repo checks from the root:
 
 ```bash
+pnpm format:check
+pnpm lint
 pnpm typecheck
 pnpm build
 pnpm test
-pnpm lint
-pnpm format:check
+pnpm audit --audit-level=high --prod
 ```
 
 ## Behavior Notes

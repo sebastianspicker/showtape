@@ -11,9 +11,26 @@ find . -name ".DS_Store" -type f -delete || true
 find . -name "Thumbs.db" -type f -delete || true
 
 # Known local runtime logs
-rm -f docs/audit/run.log docs/audit/events.log docs/fixes/run.log docs/fixes/events.log || true
+rm -rf docs/audit docs/fixes reports || true
+rm -f report.json diagnostics*.json support-report*.json || true
 
 # Build/test caches (safe to regenerate)
-rm -rf apps/web/.next apps/api/dist packages/core/dist packages/shared/dist coverage .turbo || true
+rm -rf \
+  apps/web/.next \
+  apps/web/tsconfig.tsbuildinfo \
+  apps/web/coverage \
+  apps/api/dist \
+  apps/api/coverage \
+  packages/core/dist \
+  packages/core/coverage \
+  packages/shared/dist \
+  packages/shared/coverage \
+  packages/ui/coverage \
+  coverage \
+  .turbo \
+  playwright-report \
+  test-results \
+  blob-report \
+  .playwright || true
 
 echo "Cleanup complete."

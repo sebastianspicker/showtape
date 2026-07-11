@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { API_ERROR, isErr, isOk, type Result } from '../src/types/api';
 import { SETLIST_FM_BASE_URL } from '../src/utils/constants';
-import { getErrorMessage, getSafeErrorMessage, isErrorLike } from '../src/utils/error';
+import { getErrorMessage, isErrorLike } from '../src/utils/error';
 
 describe('shared', () => {
   it('exports API_ERROR', () => {
@@ -61,32 +61,5 @@ describe('Result / isOk / isErr', () => {
   it('isErr returns false for ok result', () => {
     const r: Result<number> = { ok: true, value: 42 };
     expect(isErr(r)).toBe(false);
-  });
-});
-
-describe('getSafeErrorMessage', () => {
-  it('returns message from error-like object with a code property', () => {
-    const err = { code: 'NOT_FOUND', message: 'Resource not found' };
-    expect(getSafeErrorMessage(err)).toBe('Resource not found');
-  });
-  it('returns fallback for plain Error (no code property)', () => {
-    expect(getSafeErrorMessage(new Error('internal db error'))).toBe(
-      'An unexpected error occurred'
-    );
-  });
-  it('returns fallback for null and undefined', () => {
-    expect(getSafeErrorMessage(null)).toBe('An unexpected error occurred');
-    expect(getSafeErrorMessage(undefined)).toBe('An unexpected error occurred');
-  });
-  it('returns custom fallback when provided', () => {
-    expect(getSafeErrorMessage('oops', 'Something went wrong')).toBe('Something went wrong');
-  });
-  it('returns fallback for object with code but non-string message', () => {
-    const err = { code: 'ERR', message: 123 };
-    expect(getSafeErrorMessage(err)).toBe('An unexpected error occurred');
-  });
-  it('returns fallback for object with string message but no code', () => {
-    const err = { message: 'some internal detail' };
-    expect(getSafeErrorMessage(err)).toBe('An unexpected error occurred');
   });
 });

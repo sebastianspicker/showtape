@@ -14,7 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Platform & Tooling
 
-- Upgraded `apps/web` to Next.js `16.x` and moved app-level edge logic from deprecated `middleware.ts` to `src/proxy.ts`.
+- Upgraded `apps/web` to Next.js `16.x` and kept app-level security headers in `apps/web/middleware.ts`.
 - Migrated web lint script from `next lint` to ESLint CLI.
 - Added `@repo/ui` as a web dependency and unified button primitive usage.
 

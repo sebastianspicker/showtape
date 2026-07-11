@@ -33,6 +33,17 @@ describe('getAllowOrigin', () => {
     expect(getAllowOrigin('http://127.0.0.1:3000')).toBe('http://127.0.0.1:3000');
   });
 
+  it('rejects localhost lookalike origins when ALLOWED_ORIGIN is unset', () => {
+    vi.stubEnv('ALLOWED_ORIGIN', '');
+    expect(getAllowOrigin('http://localhost.evil.example')).toBeNull();
+    expect(getAllowOrigin('http://127.0.0.1.evil.example')).toBeNull();
+  });
+
+  it('rejects malformed local-looking origins when ALLOWED_ORIGIN is unset', () => {
+    vi.stubEnv('ALLOWED_ORIGIN', '');
+    expect(getAllowOrigin('http://localhost:3000\\@evil.example')).toBeNull();
+  });
+
   it('returns null for external origin when ALLOWED_ORIGIN is unset', () => {
     vi.stubEnv('ALLOWED_ORIGIN', '');
     expect(getAllowOrigin('https://evil.com')).toBeNull();

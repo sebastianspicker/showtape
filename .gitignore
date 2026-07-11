@@ -34,12 +34,27 @@ Thumbs.db
 .Trashes
 .cursor/
 
-# AI agent artifacts
+# Local automation and audit artifacts
 .claude/
 .kilo/
+.agents/
+.codex/
+.codacy/
+.codegraph/
+.serena/
+AGENTS.md
+AGENT_*.md
 AGENT_AUDIT_REPORT.md
-AUDIT.md
+AUDIT*.md
+FINDINGS*.md
+REVIEW*.md
+Plan.md
+reports/
+scratch/
 deprecated/
+/report.json
+/diagnostics*.json
+/support-report*.json
 
 # Logs and debug
 *.log
@@ -59,6 +74,7 @@ blob-report/
 
 # Caches
 .turbo/
+.vite/
 .eslintcache
 .stylelintcache
 .parcel-cache
@@ -81,20 +97,7 @@ temp/
 # PWA / optional
 *.webmanifest.bak
 
-# Ralph Audit / Fixes (moved under docs/audit, docs/fixes)
-docs/audit/*.log
-docs/fixes/*.log
-docs/audit/.last-message.md
-docs/audit/.last-story
-docs/audit/.model-check.log
-docs/audit/.prompt.md
-docs/audit/.story-attempts
-docs/audit/run.log
-docs/audit/events.log
-docs/fixes/.last-message.md
-docs/fixes/.last-story
-docs/fixes/.model-check.log
-docs/fixes/.prompt.md
-docs/fixes/.story-attempts
-docs/fixes/run.log
-docs/fixes/events.log
+# Local audit/fix runner outputs
+docs/audit/
+docs/fixes/
+docs/archive/
