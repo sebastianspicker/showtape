@@ -6,16 +6,6 @@ import type { Setlist } from '@repo/core';
 import { isValidAppleMusicTrack, searchCatalog } from '@/lib/musickit';
 import type { MatchRow } from './types';
 
-export interface UseMatchingSuggestionsResult {
-  matches: MatchRow[];
-  loadingSuggestions: boolean;
-  suggestionError: boolean;
-  setMatch(index: number, appleTrack: MatchRow['appleTrack']): void;
-  resetMatches: () => void;
-  autoMatchAll: () => Promise<void>;
-  skipUnmatched: () => void;
-}
-
 function toInitialMatches(setlist: Setlist): MatchRow[] {
   return toUnmatchedRows(flattenSetlistToEntries(setlist));
 }
@@ -32,7 +22,7 @@ function findBestCatalogMatch(query: string) {
   return searchCatalog(query, 1).then((tracks) => tracks.find(isValidAppleMusicTrack) ?? null);
 }
 
-export function useMatchingSuggestions(setlist: Setlist): UseMatchingSuggestionsResult {
+export function useMatchingSuggestions(setlist: Setlist) {
   const [matches, setMatches] = useState<MatchRow[]>(() => toInitialMatches(setlist));
   const [loadingSuggestions, setLoadingSuggestions] = useState(true);
   const [suggestionError, setSuggestionError] = useState(false);
