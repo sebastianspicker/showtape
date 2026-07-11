@@ -1,9 +1,8 @@
 'use client';
 
+import { useEffect } from 'react';
 import { Button } from '@repo/ui';
 import type { Setlist } from '@repo/core';
-import { FlowStepIndicator } from '@/components/FlowStepIndicator';
-import { SectionTitle } from '@/components/SectionTitle';
 import { StatusText } from '@/components/StatusText';
 import { isValidAppleMusicTrack } from '@/lib/musickit';
 import { MatchRowItem } from './MatchRowItem';
@@ -15,47 +14,55 @@ import { useTrackSearch } from './useTrackSearch';
 export interface MatchingViewProps {
   setlist: Setlist;
   onProceedToCreatePlaylist: (matches: MatchRow[]) => void;
+  initialDraft?: MatchRow[] | null;
+  onMatchesChange?: (matches: MatchRow[]) => void;
 }
 
-export function MatchingView({ setlist, onProceedToCreatePlaylist }: MatchingViewProps) {
-  const {
-    matches,
-    loadingSuggestions,
-    suggestionError,
-    setMatch,
-    autoMatchAll,
-    resetMatches,
-    skipUnmatched,
-  } = useMatchingSuggestions(setlist);
+export function MatchingView({
+  setlist,
+  onProceedToCreatePlaylist,
+  initialDraft,
+  onMatchesChange,
+}: MatchingViewProps) {
+  const { matches, loadingSuggestions, suggestionError, setMatch, autoMatchAll, skipUnmatched } =
+    useMatchingSuggestions(setlist, initialDraft);
 
-  const { searchContext, setSearchQuery, openSearch, runSearch, chooseTrack, skipTrack } =
-    useTrackSearch({ matches, setMatch });
+  const {
+    searchContext,
+    setSearchQuery,
+    openSearch,
+    runSearch,
+    chooseTrack,
+    skipTrack,
+    closeSearch,
+  } = useTrackSearch({ matches, setMatch });
 
   const matchedCount = matches.filter((m) => isValidAppleMusicTrack(m.appleTrack)).length;
-  const canProceed = matchedCount > 0;
+  const settledCount = matches.filter((m) => m.status !== 'pending').length;
+  const isSettled = settledCount === matches.length && !loadingSuggestions;
+  const canProceed = matchedCount > 0 && isSettled;
+
+  useEffect(() => {
+    onMatchesChange?.(matches);
+  }, [matches, onMatchesChange]);
 
   return (
     <section aria-label="Match tracks" className="matching-section">
-      <FlowStepIndicator step={3} total={4} label="Match songs" />
-      <SectionTitle>Match songs</SectionTitle>
       <p className="muted-block">
-        We found Apple Music tracks for each song. Review the matches below — tap{' '}
-        <strong>Change</strong> to pick a different version, or <strong>Skip</strong> songs you do
-        not want in the playlist.
+        Review each result. Change unusual versions or skip songs you do not want in the playlist.
       </p>
 
       <MatchingBulkActions
         loading={loadingSuggestions}
         onAutoMatchAll={() => void autoMatchAll()}
         onSkipUnmatched={skipUnmatched}
-        onReset={resetMatches}
       />
 
-      {loadingSuggestions && (
-        <StatusText style={{ marginBottom: '1rem', color: 'var(--accent-primary)' }}>
-          Searching Apple Music for matching songs…
-        </StatusText>
-      )}
+      <StatusText className="matching-progress">
+        {isSettled
+          ? `${matchedCount} of ${matches.length} songs matched`
+          : `Searching Apple Music: ${settledCount} of ${matches.length} songs checked`}
+      </StatusText>
 
       {suggestionError && !loadingSuggestions && (
         <p role="alert" className="warning-banner">
@@ -77,31 +84,22 @@ export function MatchingView({ setlist, onProceedToCreatePlaylist }: MatchingVie
             onSearchQueryChange={setSearchQuery}
             onSearch={runSearch}
             onChoose={chooseTrack}
+            onCancelSearch={closeSearch}
           />
         ))}
       </ul>
-
-      {matches.length > 0 && !loadingSuggestions && (
-        <div className="matching-summary">
-          <p className="muted-block" style={{ margin: 0 }}>
-            {matchedCount} of {matches.length} songs matched
-          </p>
-        </div>
-      )}
 
       <div className="matching-proceed">
         <Button
           onClick={() => onProceedToCreatePlaylist(matches)}
           disabled={!canProceed}
-          title="Continue to create the playlist in Apple Music"
+          title="Review the selected songs before creating the Apple Music playlist"
           className="proceed-button"
         >
-          Create playlist
+          Review playlist
         </Button>
-        {!canProceed && (
-          <p className="muted-block" style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
-            Match at least one song to continue.
-          </p>
+        {!canProceed && isSettled && (
+          <p className="support-text matching-help">Match at least one song to continue.</p>
         )}
       </div>
     </section>

@@ -2,12 +2,17 @@
   "name": "setlist-to-playlist",
   "private": true,
   "scripts": {
-    "build": "pnpm -r run build",
-    "dev": "pnpm --filter web run dev",
-    "lint": "pnpm -r run lint",
-    "typecheck": "pnpm --filter @repo/shared run build && pnpm --filter @repo/core run build && pnpm --filter api run build && pnpm --filter web exec tsc --noEmit",
-    "test": "pnpm -r run test",
-    "audit:security": "pnpm audit --audit-level=moderate --prod",
+    "build": "corepack pnpm@9.15.3 -r run build",
+    "dev": "corepack pnpm@9.15.3 --filter web run dev",
+    "lint": "corepack pnpm@9.15.3 -r run lint",
+    "typecheck": "corepack pnpm@9.15.3 --filter @repo/shared run build && corepack pnpm@9.15.3 --filter @repo/core run build && corepack pnpm@9.15.3 --filter api run build && corepack pnpm@9.15.3 --filter web exec tsc --noEmit",
+    "test": "corepack pnpm@9.15.3 -r run test",
+    "test:e2e": "corepack pnpm@9.15.3 --filter web exec playwright test --config=../../playwright.config.ts",
+    "test:e2e:screenshots": "corepack pnpm@9.15.3 --filter web exec playwright test --config=../../playwright.config.ts --grep @screenshots",
+    "test:e2e:performance": "PLAYWRIGHT_PRODUCTION=1 corepack pnpm@9.15.3 --filter web exec playwright test --config=../../playwright.config.ts --grep @performance",
+    "bundle:report": "node scripts/report-web-bundle.mjs",
+    "hygiene:check": "node scripts/check-public-boundary.mjs",
+    "audit:security": "corepack pnpm@9.15.3 audit --audit-level=moderate --prod",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
     "cleanup:repo": "bash scripts/cleanup-repo.sh"
@@ -18,6 +23,7 @@
       "postcss": "8.5.10"
     }
   },
+  "packageManager": "pnpm@9.15.3",
   "devDependencies": {
     "@eslint/js": "^9.16.0",
     "prettier": "^3.4.2",

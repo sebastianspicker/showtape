@@ -13,6 +13,7 @@ export interface TrackSearchPanelProps {
   onSearchQueryChange: (value: string) => void;
   onSearch: () => void;
   onChoose: (track: AppleMusicTrack) => void;
+  onCancel: () => void;
 }
 
 export function TrackSearchPanel({
@@ -25,29 +26,38 @@ export function TrackSearchPanel({
   onSearchQueryChange,
   onSearch,
   onChoose,
+  onCancel,
 }: TrackSearchPanelProps) {
   return (
-    <div className="track-search-panel">
-      <input
-        id={`search-track-${index}`}
-        type="text"
-        value={searchQuery}
-        onChange={(e) => onSearchQueryChange(e.target.value)}
-        placeholder="Song name, artist…"
-        onKeyDown={(e) => e.key === 'Enter' && onSearch()}
-        aria-label="Search Apple Music for this track"
-        className="premium-input search-input"
-      />
-      <button
-        type="button"
-        onClick={onSearch}
-        disabled={searching}
-        aria-label="Search Apple Music"
-        aria-busy={searching}
-        className="premium-button secondary"
-      >
-        {searching ? 'Searching…' : 'Search'}
-      </button>
+    <div className="track-search-panel" onKeyDown={(event) => event.key === 'Escape' && onCancel()}>
+      <label htmlFor={`search-track-${index}`} className="input-label">
+        Search Apple Music
+      </label>
+      <div className="track-search-controls">
+        <input
+          id={`search-track-${index}`}
+          type="text"
+          value={searchQuery}
+          onChange={(e) => onSearchQueryChange(e.target.value)}
+          placeholder="Song name, artist…"
+          onKeyDown={(e) => e.key === 'Enter' && onSearch()}
+          autoFocus
+          className="input search-input"
+        />
+        <button
+          type="button"
+          onClick={onSearch}
+          disabled={searching}
+          aria-label="Search Apple Music"
+          aria-busy={searching}
+          className="button button--secondary"
+        >
+          {searching ? 'Searching…' : 'Search'}
+        </button>
+        <button type="button" onClick={onCancel} className="button button--quiet">
+          Cancel
+        </button>
+      </div>
       {searching && <StatusText className="inline-status">Searching…</StatusText>}
       {searchError && !searching && (
         <p role="alert" className="error-text">
@@ -72,7 +82,7 @@ export function TrackSearchPanel({
         </ul>
       )}
       {hasSearched && !searching && !searchError && searchResults.length === 0 && (
-        <p className="muted-block" style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
+        <p className="support-text search-empty">
           No songs found. Try different keywords or check the spelling.
         </p>
       )}

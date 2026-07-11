@@ -7,14 +7,14 @@ import { isValidAppleMusicTrack, searchCatalog } from '@/lib/musickit';
 import type { MatchRow } from './types';
 
 function toInitialMatches(setlist: Setlist): MatchRow[] {
-  return toUnmatchedRows(flattenSetlistToEntries(setlist));
+  return toPendingRows(flattenSetlistToEntries(setlist));
 }
 
-function toUnmatchedRows(entries: MatchRow['setlistEntry'][]): MatchRow[] {
+function toPendingRows(entries: MatchRow['setlistEntry'][]): MatchRow[] {
   return entries.map((setlistEntry) => ({
     setlistEntry,
     appleTrack: null,
-    status: 'unmatched',
+    status: 'pending',
   }));
 }
 
@@ -22,14 +22,23 @@ function findBestCatalogMatch(query: string) {
   return searchCatalog(query, 1).then((tracks) => tracks.find(isValidAppleMusicTrack) ?? null);
 }
 
-export function useMatchingSuggestions(setlist: Setlist) {
-  const [matches, setMatches] = useState<MatchRow[]>(() => toInitialMatches(setlist));
-  const [loadingSuggestions, setLoadingSuggestions] = useState(true);
+export function useMatchingSuggestions(setlist: Setlist, initialDraft?: MatchRow[] | null) {
+  const [restoredDraft] = useState<MatchRow[] | null>(() => initialDraft ?? null);
+  const hasInitialDraft = restoredDraft !== null;
+  const [matches, setMatches] = useState<MatchRow[]>(
+    () => restoredDraft ?? toInitialMatches(setlist)
+  );
+  const [loadingSuggestions, setLoadingSuggestions] = useState(!hasInitialDraft);
   const [suggestionError, setSuggestionError] = useState(false);
   // Every auto-match run gets its own ID so late batches from older runs cannot update rows.
   const runIdRef = useRef(0);
   const runIdCounter = useRef(0);
   const scheduledSignatureRef = useRef<string | null>(null);
+  const invalidateAutoMatch = useCallback(() => {
+    const nextRunId = runIdCounter.current + 1;
+    runIdCounter.current = nextRunId;
+    runIdRef.current = nextRunId;
+  }, []);
 
   const signature = useMemo(() => getSetlistSignature(setlist), [setlist]);
 
@@ -49,7 +58,7 @@ export function useMatchingSuggestions(setlist: Setlist) {
 
     setSuggestionError(false);
     setLoadingSuggestions(true);
-    setMatches(toUnmatchedRows(entriesFlat));
+    setMatches(toPendingRows(entriesFlat));
     const BATCH_SIZE = 5;
     for (let batchStart = 0; batchStart < entriesFlat.length; batchStart += BATCH_SIZE) {
       if (runIdRef.current !== localRunId) return;
@@ -80,12 +89,17 @@ export function useMatchingSuggestions(setlist: Setlist) {
             const existing = next.at(i);
             if (!existing) continue;
             // A user may manually choose a track while the batch is pending; never overwrite that.
-            if (existing.status === 'unmatched' && existing.appleTrack === null) {
+            if (existing.status === 'pending' && existing.appleTrack === null) {
               next.splice(i, 1, {
                 ...existing,
                 appleTrack: track,
                 status: track ? 'matched' : 'unmatched',
               });
+            }
+          } else {
+            const existing = next.at(i);
+            if (existing?.status === 'pending') {
+              next.splice(i, 1, { ...existing, appleTrack: null, status: 'unmatched' });
             }
           }
         }
@@ -101,19 +115,25 @@ export function useMatchingSuggestions(setlist: Setlist) {
   }, [setlist]);
 
   useEffect(() => {
+    if (hasInitialDraft) return;
     if (scheduledSignatureRef.current === signature) {
       return;
     }
-    scheduledSignatureRef.current = signature;
-
+    let started = false;
     const timeoutId = window.setTimeout(() => {
+      started = true;
+      scheduledSignatureRef.current = signature;
       void autoMatchAll();
     }, 0);
 
     return () => {
       window.clearTimeout(timeoutId);
+      if (!started && scheduledSignatureRef.current === signature) {
+        scheduledSignatureRef.current = null;
+      }
+      invalidateAutoMatch();
     };
-  }, [signature, autoMatchAll]);
+  }, [signature, autoMatchAll, hasInitialDraft, invalidateAutoMatch]);
 
   const setMatch = useCallback((index: number, appleTrack: MatchRow['appleTrack']) => {
     setMatches((prev) => {
@@ -130,16 +150,11 @@ export function useMatchingSuggestions(setlist: Setlist) {
     });
   }, []);
 
-  const resetMatches = useCallback(() => {
-    runIdRef.current = ++runIdCounter.current;
-    setMatches(toInitialMatches(setlist));
-    setSuggestionError(false);
-    setLoadingSuggestions(false);
-  }, [setlist]);
-
   const skipUnmatched = useCallback(() => {
     setMatches((prev) =>
-      prev.map((row) => (row.appleTrack ? row : { ...row, appleTrack: null, status: 'skipped' }))
+      prev.map((row) =>
+        row.status === 'unmatched' ? { ...row, appleTrack: null, status: 'skipped' } : row
+      )
     );
   }, []);
 
@@ -148,7 +163,6 @@ export function useMatchingSuggestions(setlist: Setlist) {
     loadingSuggestions,
     suggestionError,
     setMatch,
-    resetMatches,
     autoMatchAll,
     skipUnmatched,
   };

@@ -6,14 +6,12 @@ export interface MatchingBulkActionsProps {
   loading: boolean;
   onAutoMatchAll: () => void;
   onSkipUnmatched: () => void;
-  onReset: () => void;
 }
 
 export function MatchingBulkActions({
   loading,
   onAutoMatchAll,
   onSkipUnmatched,
-  onReset,
 }: MatchingBulkActionsProps) {
   return (
     <div className="matching-actions">
@@ -26,11 +24,8 @@ export function MatchingBulkActions({
       >
         Re-match all
       </Button>
-      <Button type="button" onClick={onSkipUnmatched} variant="secondary">
-        Skip unmatched songs
-      </Button>
-      <Button type="button" onClick={onReset} variant="secondary">
-        Start over
+      <Button type="button" onClick={onSkipUnmatched} variant="secondary" disabled={loading}>
+        Skip remaining
       </Button>
     </div>
   );

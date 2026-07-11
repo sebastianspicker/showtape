@@ -2,19 +2,38 @@
 
 import { useMemo } from 'react';
 import { Button } from '@repo/ui';
+import type { Setlist } from '@repo/core';
 import type { MatchRow } from '@/features/matching/types';
 import { ErrorAlert } from '@/components/ErrorAlert';
-import { SectionTitle } from '@/components/SectionTitle';
 import { ConnectAppleMusic } from '@/features/matching/ConnectAppleMusic';
-import type { Setlist } from '@repo/core';
 import { useCreatePlaylistState } from './useCreatePlaylistState';
 
 export interface CreatePlaylistViewProps {
   setlist: Setlist;
   matchRows: MatchRow[];
+  onBack?: () => void;
+  onStartAnother?: () => void;
 }
 
-export function CreatePlaylistView({ setlist, matchRows }: CreatePlaylistViewProps) {
+function isSafeAppleUrl(value: string | undefined): value is string {
+  if (!value) return false;
+  try {
+    const url = new URL(value);
+    return (
+      url.protocol === 'https:' &&
+      (url.hostname === 'music.apple.com' || url.hostname.endsWith('.music.apple.com'))
+    );
+  } catch {
+    return false;
+  }
+}
+
+export function CreatePlaylistView({
+  setlist,
+  matchRows,
+  onBack,
+  onStartAnother,
+}: CreatePlaylistViewProps) {
   const {
     loading,
     error,
@@ -31,182 +50,151 @@ export function CreatePlaylistView({ setlist, matchRows }: CreatePlaylistViewPro
     handleAuthorized,
   } = useCreatePlaylistState({ setlist, matchRows });
 
-  const count = useMemo(() => matchRows.filter((m) => m.appleTrack !== null).length, [matchRows]);
-  const dedupeSavings = useMemo(
-    () => selectedSongIds.length - songIds.length,
-    [selectedSongIds, songIds]
-  );
+  const count = useMemo(() => matchRows.filter((match) => match.appleTrack).length, [matchRows]);
+  const dedupeSavings = selectedSongIds.length - songIds.length;
   const incompleteState =
     resumeState && (resumeState.progress === 'unknown' || resumeState.remainingIds.length > 0)
       ? resumeState
       : null;
 
   if (incompleteState) {
-    const rawUrl = incompleteState.url?.trim();
     const hasUnknownProgress = incompleteState.progress === 'unknown';
-    const addedCount = hasUnknownProgress
-      ? null
-      : Math.max(songIds.length - incompleteState.remainingIds.length, 0);
     const remainingCount = incompleteState.remainingIds.length;
-    const isSafeUrl = rawUrl && (rawUrl.startsWith('http://') || rawUrl.startsWith('https://'));
+    const addedCount = hasUnknownProgress ? null : Math.max(songIds.length - remainingCount, 0);
     return (
-      <div role="status" className="glass-panel success-panel">
-        <p className="success-title">Playlist created, but track import is incomplete.</p>
+      <section className="terminal-state terminal-state--warning" aria-labelledby="partial-title">
+        <h3 id="partial-title">Playlist created; import incomplete</h3>
         {hasUnknownProgress ? (
-          <p className="success-subtitle">
-            Apple Music did not report which of the attempted songs were added. The playlist exists,
-            but this import cannot be resumed safely without risking duplicate add attempts.
+          <p>
+            Apple Music did not report which songs were added. Automatic resume is unavailable
+            because retrying could create duplicates.
           </p>
         ) : (
-          <p className="success-subtitle">
-            {addedCount} of {songIds.length} song{songIds.length !== 1 ? 's' : ''} were added to
-            your Apple Music library. {remainingCount} still need
-            {remainingCount === 1 ? 's' : ''} to be added.
+          <p>
+            {addedCount} of {songIds.length} songs were added. {remainingCount} remain.
           </p>
         )}
         {addTracksError ? (
-          <p role="alert" className="error-text" style={{ marginTop: '0.5rem' }}>
-            The playlist exists, but finishing the import failed: {addTracksError}
+          <p role="alert" className="error-text">
+            Finishing the import failed: {addTracksError}
           </p>
-        ) : (
-          <p className="muted-block" style={{ marginTop: '0.5rem' }}>
-            Resume the import to finish adding the remaining songs.
-          </p>
-        )}
-        {!hasUnknownProgress && (
-          <Button
-            variant="secondary"
-            onClick={handleAddRemainingTracks}
-            loading={loading}
-            loadingChildren="Adding remaining songs…"
-            style={{ marginTop: '1rem' }}
-          >
-            Add remaining songs
-          </Button>
-        )}
-        {isSafeUrl ? (
-          <a
-            href={rawUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="premium-button open-playlist-link"
-            style={{ display: 'inline-flex', marginTop: '1rem', textDecoration: 'none' }}
-          >
-            Open in Apple Music
-          </a>
-        ) : (
-          <p className="muted-block" style={{ marginTop: '0.75rem' }}>
-            Open the Apple Music app to find your playlist while the remaining songs finish
-            importing.
-          </p>
-        )}
-      </div>
-    );
-  }
-
-  if (created) {
-    const rawUrl = created.url?.trim();
-    const isSafeUrl = rawUrl && (rawUrl.startsWith('http://') || rawUrl.startsWith('https://'));
-    return (
-      <div role="status" className="glass-panel success-panel">
-        <p className="success-title">Your playlist is ready!</p>
-        <p className="success-subtitle">
-          {setlist.artist}
-          {setlist.venue ? ` at ${setlist.venue}` : ''} — {songIds.length} song
-          {songIds.length !== 1 ? 's' : ''} added to your Apple Music library.
-        </p>
-        {addTracksError ? (
-          <>
-            <p role="alert" className="error-text" style={{ marginTop: '0.5rem' }}>
-              The playlist was created, but some tracks could not be added: {addTracksError}
-            </p>
+        ) : null}
+        <div className="step-actions">
+          {!hasUnknownProgress ? (
             <Button
               variant="secondary"
               onClick={handleAddRemainingTracks}
               loading={loading}
               loadingChildren="Adding remaining songs…"
-              style={{ marginTop: '1rem' }}
             >
-              Retry adding remaining songs
+              Add remaining songs
             </Button>
-          </>
-        ) : (
-          <>
-            {isSafeUrl ? (
-              <a
-                href={rawUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="premium-button open-playlist-link"
-                style={{ display: 'inline-flex', marginTop: '1rem', textDecoration: 'none' }}
-              >
-                Open in Apple Music
-              </a>
-            ) : (
-              <p className="muted-block" style={{ marginTop: '0.75rem' }}>
-                Open the Apple Music app to find your new playlist.
-              </p>
-            )}
-          </>
-        )}
-      </div>
+          ) : null}
+          {isSafeAppleUrl(incompleteState.url) ? (
+            <a
+              href={incompleteState.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="button button--primary"
+            >
+              Open in Apple Music
+            </a>
+          ) : null}
+          {onStartAnother ? (
+            <Button variant="secondary" onClick={onStartAnother}>
+              Start another setlist
+            </Button>
+          ) : null}
+        </div>
+      </section>
+    );
+  }
+
+  if (created) {
+    return (
+      <section className="terminal-state terminal-state--success" aria-labelledby="success-title">
+        <h3 id="success-title">Playlist ready</h3>
+        <p>
+          {setlist.artist}
+          {setlist.venue ? ` at ${setlist.venue}` : ''} · {songIds.length} song
+          {songIds.length === 1 ? '' : 's'} added
+        </p>
+        <div className="step-actions">
+          {isSafeAppleUrl(created.url) ? (
+            <a
+              href={created.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="button button--primary"
+            >
+              Open in Apple Music
+            </a>
+          ) : (
+            <p className="support-text">Open Apple Music to find the new playlist.</p>
+          )}
+          {onStartAnother ? (
+            <Button variant="secondary" onClick={onStartAnother}>
+              Start another setlist
+            </Button>
+          ) : null}
+        </div>
+      </section>
     );
   }
 
   return (
-    <section aria-label="Create playlist" className="glass-panel" style={{ marginTop: '2rem' }}>
-      <SectionTitle>Save to Apple Music</SectionTitle>
-      <p className="export-ready-text">
-        Ready to create a playlist with <strong className="accent-inline">{count}</strong> song
-        {count !== 1 ? 's' : ''} from <strong>{setlist.artist}</strong>
-        {setlist.venue ? ` at ${setlist.venue}` : ''}.
+    <div className="export-form">
+      <p>
+        Create a playlist with <strong>{count}</strong> selected song{count === 1 ? '' : 's'} from{' '}
+        <strong>{setlist.artist}</strong>.
       </p>
-
       <label className="checkbox-row">
         <input
           type="checkbox"
           checked={dedupeTracks}
-          onChange={(e) => setDedupeTracks(e.target.checked)}
+          onChange={(event) => setDedupeTracks(event.target.checked)}
         />
         Remove duplicate songs
       </label>
-      {dedupeTracks && dedupeSavings > 0 && (
-        <p className="muted-caption">
-          {dedupeSavings} duplicate song{dedupeSavings !== 1 ? 's' : ''} will be removed.
+      {dedupeTracks && dedupeSavings > 0 ? (
+        <p className="support-text">
+          {dedupeSavings} duplicate song{dedupeSavings === 1 ? '' : 's'} will be removed.
         </p>
-      )}
+      ) : null}
 
-      {needsAuth && (
-        <div className="auth-prompt" style={{ marginTop: '1.5rem' }}>
-          <p className="auth-prompt-text">
-            Sign in with Apple Music to save this playlist to your library.
-          </p>
-          <ConnectAppleMusic onAuthorized={handleAuthorized} label="Connect Apple Music" />
+      {needsAuth ? (
+        <div className="auth-prompt">
+          <p>Apple Music authorization is required to create this playlist in your library.</p>
+          <ConnectAppleMusic
+            onAuthorized={handleAuthorized}
+            label="Connect Apple Music and create playlist"
+          />
+        </div>
+      ) : (
+        <div className="step-actions">
+          {onBack ? (
+            <Button variant="secondary" onClick={onBack} disabled={loading}>
+              Back to matching
+            </Button>
+          ) : null}
+          <Button
+            onClick={handleCreate}
+            disabled={count === 0}
+            loading={loading}
+            loadingChildren="Creating playlist…"
+          >
+            Create playlist
+          </Button>
         </div>
       )}
 
-      {!needsAuth && (
-        <Button
-          onClick={handleCreate}
-          disabled={count === 0}
-          loading={loading}
-          loadingChildren="Creating playlist…"
-          style={{ marginTop: '1.5rem', fontSize: '1.05rem', padding: '0.85rem 2rem' }}
-          title="Create a new playlist in your Apple Music library with the matched tracks"
-        >
-          Create playlist
-        </Button>
-      )}
-
-      {error && (
+      {error ? (
         <ErrorAlert
           message={error}
-          onRetry={() => {
-            void handleCreate();
-          }}
+          onRetry={() => void handleCreate()}
           retryLabel="Retry create playlist"
         />
-      )}
-    </section>
+      ) : null}
+    </div>
   );
 }

@@ -14,7 +14,7 @@ See [Apple’s Music Kit documentation](https://developer.apple.com/documentatio
 ## Token Strategy
 
 - **Developer Token (JWT):** Issued by our backend. Signed with Apple private key (ES256); claims: `iss` = Team ID, `iat`, `exp` (e.g. 1 hour). Never logged or exposed in repo. Client fetches it from our API when initializing MusicKit.
-- **User Token:** Obtained in the browser via MusicKit after user authorizes. Used for playlist create and catalog search on behalf of the user. We do not store or transmit it to our servers.
+- **User Token:** Obtained in the browser via MusicKit when export requires authorization. Used for personalized playlist creation and track additions. We do not store or transmit it to our servers.
 
 ## Endpoints (our side)
 

@@ -27,6 +27,7 @@ export interface UseTrackSearchResult {
   runSearch: (index: number) => Promise<void>;
   chooseTrack: (index: number, track: AppleMusicTrack) => void;
   skipTrack: (index: number) => void;
+  closeSearch: () => void;
 }
 
 export function useTrackSearch({ matches, setMatch }: UseTrackSearchParams): UseTrackSearchResult {
@@ -51,13 +52,25 @@ export function useTrackSearch({ matches, setMatch }: UseTrackSearchParams): Use
     (index: number) => {
       invalidateCurrentSearch();
       setSearchingIndex(index);
-      setSearchQuery('');
+      const row = matches[index];
+      setSearchQuery(
+        row?.setlistEntry ? buildSearchQuery(row.setlistEntry.name, row.setlistEntry.artist) : ''
+      );
       setSearchResults([]);
       setSearchError(false);
       setHasSearched(false);
     },
-    [invalidateCurrentSearch]
+    [invalidateCurrentSearch, matches]
   );
+
+  const closeSearch = useCallback(() => {
+    invalidateCurrentSearch();
+    setSearchingIndex(null);
+    setSearchQuery('');
+    setSearchResults([]);
+    setSearchError(false);
+    setHasSearched(false);
+  }, [invalidateCurrentSearch]);
 
   const runSearch = useCallback(
     async (index: number) => {
@@ -131,5 +144,6 @@ export function useTrackSearch({ matches, setMatch }: UseTrackSearchParams): Use
     runSearch,
     chooseTrack,
     skipTrack,
+    closeSearch,
   };
 }

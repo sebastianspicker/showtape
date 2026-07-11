@@ -95,8 +95,8 @@ describe('useSetlistImportState', () => {
     let firstPromise!: Promise<boolean>;
     let secondPromise!: Promise<boolean>;
     await act(async () => {
-      firstPromise = result.current.loadSetlist('first-id');
-      secondPromise = result.current.loadSetlist('second-id');
+      firstPromise = result.current.loadSetlist('63de4613');
+      secondPromise = result.current.loadSetlist('53d6a489');
       await Promise.all([firstPromise, secondPromise]);
     });
 
@@ -147,11 +147,17 @@ describe('useSetlistImportState', () => {
     const { result } = renderHook(() => useSetlistImportState());
 
     await waitFor(() => {
-      expect(result.current.history).toEqual(['63de4613']);
+      expect(result.current.history).toEqual([
+        {
+          input: '63de4613',
+          setlistId: '63de4613',
+          artist: 'Previously imported setlist',
+        },
+      ]);
     });
 
     await act(async () => {
-      await result.current.selectHistoryItem('63de4613');
+      await result.current.selectHistoryItem(result.current.history[0]!);
     });
 
     await waitFor(() => {
@@ -168,16 +174,74 @@ describe('useSetlistImportState', () => {
     const { result } = renderHook(() => useSetlistImportState());
 
     await waitFor(() => {
-      expect(result.current.history).toEqual(['63de4613']);
+      expect(result.current.history[0]?.input).toBe('63de4613');
     });
 
     let ok!: boolean;
     await act(async () => {
-      ok = await result.current.selectHistoryItem('63de4613');
+      ok = await result.current.selectHistoryItem(result.current.history[0]!);
     });
 
     expect(ok).toBe(false);
-    expect(result.current.error).toBe('Setlist not found.');
+    expect(result.current.error).toEqual({
+      message: 'Setlist not found.',
+      code: 'not-found',
+      retryable: false,
+    });
     expect(result.current.setlist).toBeNull();
+  });
+
+  it('rejects malformed input without making a request', async () => {
+    const { result } = renderHook(() => useSetlistImportState());
+    let ok!: boolean;
+    await act(async () => {
+      ok = await result.current.loadSetlist('https://example.com/not-a-setlist');
+    });
+    expect(ok).toBe(false);
+    expect(mockFetchApiJson).not.toHaveBeenCalled();
+    expect(result.current.error).toMatchObject({ code: 'invalid-input', retryable: false });
+  });
+
+  it('ignores corrupt history storage', async () => {
+    window.localStorage.setItem('setlist_import_history_v2', '{not-json');
+    const { result } = renderHook(() => useSetlistImportState());
+    await waitFor(() => expect(result.current.history).toEqual([]));
+  });
+
+  it('deduplicates recent imports and keeps at most eight records', async () => {
+    const { result } = renderHook(() => useSetlistImportState());
+    const ids = ['aaa1', 'aaa2', 'aaa3', 'aaa4', 'aaa5', 'aaa6', 'aaa7', 'aaa8', 'aaa9'];
+    for (const id of ids) {
+      mockFetchApiJson.mockResolvedValueOnce({
+        ok: true,
+        value: { ...firstSetlist, id, artist: { name: `Artist ${id}` } },
+      });
+      await act(async () => {
+        await result.current.loadSetlist(id);
+      });
+    }
+    mockFetchApiJson.mockResolvedValueOnce({ ok: true, value: { ...firstSetlist, id: 'aaa9' } });
+    await act(async () => {
+      await result.current.loadSetlist('aaa9');
+    });
+
+    expect(result.current.history).toHaveLength(8);
+    expect(result.current.history[0]?.setlistId).toBe('aaa9');
+    expect(result.current.history.filter((item) => item.setlistId === 'aaa9')).toHaveLength(1);
+  });
+
+  it('continues successfully when history storage is unavailable', async () => {
+    const storage = createStorageMock();
+    storage.setItem = () => {
+      throw new DOMException('Quota exceeded', 'QuotaExceededError');
+    };
+    Object.defineProperty(window, 'localStorage', { value: storage, configurable: true });
+    mockFetchApiJson.mockResolvedValueOnce({ ok: true, value: firstSetlist });
+    const { result } = renderHook(() => useSetlistImportState());
+
+    await act(async () => {
+      await expect(result.current.loadSetlist('63de4613')).resolves.toBe(true);
+    });
+    expect(result.current.setlist?.id).toBe('63de4613');
   });
 });

@@ -439,4 +439,31 @@ describe('useCreatePlaylistState – additional paths', () => {
     expect(result.current.created).toBeNull();
     expect(result.current.needsAuth).toBe(false);
   });
+
+  it('guards playlist creation against synchronous re-entry', async () => {
+    let resolveCreate!: (value: { id: string; url: string }) => void;
+    mockCreateLibraryPlaylist.mockReturnValue(
+      new Promise((resolve) => {
+        resolveCreate = resolve;
+      })
+    );
+    mockAddTracksToLibraryPlaylist.mockResolvedValue({ addedIds: ['song-1'], remainingIds: [] });
+    const { result } = renderHook(() => useCreatePlaylistState({ setlist, matchRows }));
+
+    let first!: Promise<void>;
+    let second!: Promise<void>;
+    act(() => {
+      first = result.current.handleCreate();
+      second = result.current.handleCreate();
+    });
+
+    await waitFor(() => expect(mockCreateLibraryPlaylist).toHaveBeenCalledOnce());
+    await expect(second).resolves.toBeUndefined();
+
+    await act(async () => {
+      resolveCreate({ id: 'playlist-1', url: 'https://music.apple.com/playlist/playlist-1' });
+      await first;
+    });
+    expect(mockCreateLibraryPlaylist).toHaveBeenCalledOnce();
+  });
 });

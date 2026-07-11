@@ -3,12 +3,24 @@ node_modules/
 .pnpm-store/
 
 # Env and secrets
-.env
-.env.local
-.env.*.local
-.env.development
-.env.test
-.env.production
+.env*
+!/.env.example
+.envrc
+.direnv/
+*.pem
+*.key
+*.p8
+*.p12
+*.pfx
+*.cer
+*.crt
+*.der
+*.mobileprovision
+*.jks
+*.keystore
+credentials/
+secrets/
+private/
 
 # Build outputs
 .next/
@@ -52,9 +64,19 @@ Plan.md
 reports/
 scratch/
 deprecated/
+/local/
 /report.json
 /diagnostics*.json
 /support-report*.json
+*-ledger.md
+*-report.md
+docs/local/
+docs/private/
+docs/internal/
+docs/status/
+docs/audit/
+docs/fixes/
+docs/archive/
 
 # Logs and debug
 *.log
@@ -71,6 +93,12 @@ test-results/
 playwright-report/
 blob-report/
 .playwright/
+playwright/.auth/
+storage-state*.json
+*.har
+*.trace
+*.cpuprofile
+*.heapprofile
 
 # Caches
 .turbo/
@@ -96,8 +124,3 @@ temp/
 
 # PWA / optional
 *.webmanifest.bak
-
-# Local audit/fix runner outputs
-docs/audit/
-docs/fixes/
-docs/archive/
