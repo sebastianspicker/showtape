@@ -55,21 +55,29 @@ export function SetlistImportView() {
       return;
     }
     void loadSetlist(inputValue)
-      .then((ok) => ok && goToPreview())
-      .catch(() => setSubmissionError('Unable to load the setlist. Please try again.'));
+      .then((ok) => {
+        if (ok) goToPreview();
+      })
+      .catch(() => {
+        setSubmissionError('Unable to load the setlist. Please try again.');
+      });
   }
 
   function handleSelectHistoryItem(item: ImportHistoryItem): void {
     setSubmissionError(null);
     void selectHistoryItem(item)
-      .then((ok) => ok && goToPreview())
-      .catch(() => setSubmissionError('Unable to load the setlist. Please try again.'));
+      .then((ok) => {
+        if (ok) goToPreview();
+      })
+      .catch(() => {
+        setSubmissionError('Unable to load the setlist. Please try again.');
+      });
   }
 
-  function handleStartAnother(): void {
+  const handleStartAnother = (): void => {
     resetForAnother();
     startAnotherSetlist();
-  }
+  };
 
   if (step === 'matching' && setlist) {
     return (
@@ -124,7 +132,7 @@ export function SetlistImportView() {
         />
         <SetlistPreview setlist={setlist} />
         <div className="step-actions">
-          <Button variant="secondary" onClick={() => startAnotherSetlist()}>
+          <Button variant="secondary" onClick={startAnotherSetlist}>
             Change setlist
           </Button>
           <Button onClick={goToMatching} disabled={songCount === 0}>
@@ -164,7 +172,9 @@ export function SetlistImportView() {
             type="text"
             className="input"
             value={inputValue}
-            onChange={(event) => setInputValue(event.target.value)}
+            onChange={(event) => {
+              setInputValue(event.target.value);
+            }}
             onBlur={() => inputValue.trim() && validateInput()}
             placeholder="setlist.fm URL or 63de4613"
             disabled={loading}
@@ -197,7 +207,9 @@ export function SetlistImportView() {
             onRetry={
               retryable
                 ? () => {
-                    void retryLast().then((ok) => ok && goToPreview());
+                    void retryLast().then((ok) => {
+                      if (ok) goToPreview();
+                    });
                   }
                 : undefined
             }
@@ -227,7 +239,9 @@ export function SetlistImportView() {
                 <button
                   type="button"
                   className="history-item-button"
-                  onClick={() => handleSelectHistoryItem(item)}
+                  onClick={() => {
+                    handleSelectHistoryItem(item);
+                  }}
                 >
                   <strong>{item.artist}</strong>
                   <span>

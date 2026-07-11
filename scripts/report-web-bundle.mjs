@@ -3,10 +3,17 @@ import { resolve } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { runInNewContext } from 'node:vm';
 
+const FILE_ACCESS = {
+  readFile: readFileSync,
+  stat: statSync,
+};
+
 const root = process.cwd();
 const nextDir = resolve(root, 'apps/web/.next');
-const buildManifest = JSON.parse(readFileSync(resolve(nextDir, 'build-manifest.json'), 'utf8'));
-const clientManifestSource = readFileSync(
+const buildManifest = JSON.parse(
+  FILE_ACCESS.readFile(resolve(nextDir, 'build-manifest.json'), 'utf8')
+);
+const clientManifestSource = FILE_ACCESS.readFile(
   resolve(nextDir, 'server/app/page_client-reference-manifest.js'),
   'utf8'
 );
@@ -27,19 +34,20 @@ const jsFiles = new Set([
   ...(entryJs['[project]/apps/web/src/app/page'] ?? []),
 ]);
 const cssFiles = new Set(
-  [...(entryCss['[project]/apps/web/src/app/layout'] ?? []), ...(entryCss['[project]/apps/web/src/app/page'] ?? [])].map(
-    (entry) => entry.path
-  )
+  [
+    ...(entryCss['[project]/apps/web/src/app/layout'] ?? []),
+    ...(entryCss['[project]/apps/web/src/app/page'] ?? []),
+  ].map((entry) => entry.path)
 );
 
 function measure(files) {
   const sortedFiles = [...files].sort();
   const assets = sortedFiles.map((file) => {
     const absolute = resolve(nextDir, file);
-    const contents = readFileSync(absolute);
+    const contents = FILE_ACCESS.readFile(absolute);
     return {
       file,
-      rawBytes: statSync(absolute).size,
+      rawBytes: FILE_ACCESS.stat(absolute).size,
       gzipBytes: gzipSync(contents).length,
     };
   });

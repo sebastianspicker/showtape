@@ -125,8 +125,12 @@ export const MatchRowItem = React.memo(function MatchRowItem({
           hasSearched={searchContext.hasSearched}
           onSearchQueryChange={onSearchQueryChange}
           onSearch={() => onSearch(index)}
-          onChoose={(track) => restoreFocus(() => onChoose(index, track))}
-          onCancel={() => restoreFocus(onCancelSearch)}
+          onChoose={(track) => {
+            restoreFocus(() => onChoose(index, track));
+          }}
+          onCancel={() => {
+            restoreFocus(onCancelSearch);
+          }}
         />
       )}
     </li>

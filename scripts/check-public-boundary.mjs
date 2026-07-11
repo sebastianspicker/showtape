@@ -1,13 +1,18 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync, statSync } from 'node:fs';
 
+const FILE_ACCESS = {
+  readFile: readFileSync,
+  stat: statSync,
+};
+
 const files = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z'])
   .toString('utf8')
   .split('\0')
   .filter(Boolean)
   .filter((file) => {
     try {
-      return statSync(file).isFile();
+      return FILE_ACCESS.stat(file).isFile();
     } catch {
       return false;
     }
@@ -37,7 +42,7 @@ for (const file of files) {
 
   let content;
   try {
-    content = readFileSync(file, 'utf8');
+    content = FILE_ACCESS.readFile(file, 'utf8');
   } catch {
     continue;
   }

@@ -24,7 +24,8 @@ files, private/local documentation lanes, tool state, generated reports,
 absolute home paths, and private-key markers from the publishable tree. The
 repository keeps `.env.example` as a placeholder-only template; real values,
 browser storage state, live fixtures, traces, and diagnostics stay ignored and
-must still be reviewed before sharing outside the repository.
+should be reviewed before sharing outside the repository; ask the repository
+owner to confirm when a report or fixture is requested for publication.
 
 ## Reporting Vulnerabilities
 

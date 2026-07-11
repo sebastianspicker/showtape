@@ -29,7 +29,12 @@ export function TrackSearchPanel({
   onCancel,
 }: TrackSearchPanelProps) {
   return (
-    <div className="track-search-panel" onKeyDown={(event) => event.key === 'Escape' && onCancel()}>
+    <div
+      className="track-search-panel"
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') onCancel();
+      }}
+    >
       <label htmlFor={`search-track-${index}`} className="input-label">
         Search Apple Music
       </label>
@@ -40,7 +45,9 @@ export function TrackSearchPanel({
           value={searchQuery}
           onChange={(e) => onSearchQueryChange(e.target.value)}
           placeholder="Song name, artist…"
-          onKeyDown={(e) => e.key === 'Enter' && onSearch()}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') onSearch();
+          }}
           autoFocus
           className="input search-input"
         />

@@ -10,7 +10,7 @@ interface StepHeaderProps {
 export function StepHeader({ step, title, context, headingRef }: StepHeaderProps) {
   return (
     <header className="step-header">
-      <p className="step-indicator">Step {step} of 4</p>
+      <p className="step-indicator">{`Step ${step} of 4`}</p>
       <h2 ref={headingRef as RefObject<HTMLHeadingElement | null>} tabIndex={-1}>
         {title}
       </h2>

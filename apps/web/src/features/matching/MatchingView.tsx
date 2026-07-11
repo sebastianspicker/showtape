@@ -13,9 +13,9 @@ import { useTrackSearch } from './useTrackSearch';
 
 export interface MatchingViewProps {
   setlist: Setlist;
-  onProceedToCreatePlaylist: (matches: MatchRow[]) => void;
+  onProceedToCreatePlaylist: (_matches: MatchRow[]) => void;
   initialDraft?: MatchRow[] | null;
-  onMatchesChange?: (matches: MatchRow[]) => void;
+  onMatchesChange?: (_matches: MatchRow[]) => void;
 }
 
 export function MatchingView({

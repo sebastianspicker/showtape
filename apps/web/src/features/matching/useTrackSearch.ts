@@ -30,6 +30,11 @@ export interface UseTrackSearchResult {
   closeSearch: () => void;
 }
 
+function initialSearchQuery(row: MatchRow | undefined): string {
+  if (row === undefined || row.setlistEntry === undefined) return '';
+  return buildSearchQuery(row.setlistEntry.name, row.setlistEntry.artist);
+}
+
 export function useTrackSearch({ matches, setMatch }: UseTrackSearchParams): UseTrackSearchResult {
   const [searchingIndex, setSearchingIndex] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -52,10 +57,7 @@ export function useTrackSearch({ matches, setMatch }: UseTrackSearchParams): Use
     (index: number) => {
       invalidateCurrentSearch();
       setSearchingIndex(index);
-      const row = matches[index];
-      setSearchQuery(
-        row?.setlistEntry ? buildSearchQuery(row.setlistEntry.name, row.setlistEntry.artist) : ''
-      );
+      setSearchQuery(initialSearchQuery(matches[index]));
       setSearchResults([]);
       setSearchError(false);
       setHasSearched(false);

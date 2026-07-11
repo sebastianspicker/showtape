@@ -62,40 +62,52 @@ export async function installExternalMocks(
         { id: 'song-1', attributes: { name: "Can't Buy Me Love", artistName: 'The Beatles' } },
         { id: 'song-2', attributes: { name: "A Hard Day's Night", artistName: 'The Beatles' } },
         { id: 'song-3', attributes: { name: 'Things We Said Today', artistName: 'The Beatles' } },
-      ];
+      ] as const;
+      const findSearchTrack = (path: string) =>
+        (
+          [
+            ['Hard', tracks[1]],
+            ['Things', tracks[2]],
+          ] as ReadonlyArray<readonly [string, (typeof tracks)[number]]>
+        ).find(([query]) => path.includes(query))?.[1] ?? tracks[0];
+      const searchCatalog = async (path: string) => {
+        if (delayMs > 0) await new Promise((resolve) => setTimeout(resolve, delayMs));
+        return { results: { songs: { data: [findSearchTrack(path)] } } };
+      };
+      const createPlaylist = () => ({
+        data: [
+          {
+            id: 'playlist-e2e',
+            attributes: { url: 'https://music.apple.com/library/playlist/playlist-e2e' },
+          },
+        ],
+      });
+      const addTracks = () => {
+        if (mode === 'partial') throw new Error('Mocked Apple Music add failure');
+        return { data: [] };
+      };
       const instance = {
         isAuthorized: true,
         storefrontId: 'us',
-        authorize: async () => 'e2e-user-token',
-        unauthorize: async () => {
+        authorize: () => Promise.resolve('e2e-user-token'),
+        unauthorize: () => {
           instance.isAuthorized = false;
+          return Promise.resolve();
         },
         music: {
-          api: async (path: string, options?: { method?: string }) => {
-            if (path.includes('/search?')) {
-              if (delayMs > 0) await new Promise((resolve) => setTimeout(resolve, delayMs));
-              const matchingTrack = path.includes('Hard')
-                ? tracks[1]
-                : path.includes('Things')
-                  ? tracks[2]
-                  : tracks[0];
-              return { results: { songs: { data: [matchingTrack] } } };
-            }
-            if (path === '/v1/me/library/playlists' && options?.method === 'POST') {
-              return {
-                data: [
-                  {
-                    id: 'playlist-e2e',
-                    attributes: { url: 'https://music.apple.com/library/playlist/playlist-e2e' },
-                  },
-                ],
-              };
-            }
-            if (path.includes('/tracks') && options?.method === 'POST') {
-              if (mode === 'partial') throw new Error('Mocked Apple Music add failure');
-              return { data: [] };
-            }
-            return { data: [] };
+          api: (path: string, options?: { method?: string }) => {
+            const handler = [
+              { matches: path.includes('/search?'), handle: () => searchCatalog(path) },
+              {
+                matches: path === '/v1/me/library/playlists' && options?.method === 'POST',
+                handle: createPlaylist,
+              },
+              {
+                matches: path.includes('/tracks') && options?.method === 'POST',
+                handle: addTracks,
+              },
+            ].find((candidate) => candidate.matches);
+            return Promise.resolve(handler ? handler.handle() : { data: [] });
           },
         },
       };

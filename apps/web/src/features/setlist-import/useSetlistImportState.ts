@@ -82,12 +82,16 @@ function pushHistory(prev: ImportHistoryItem[], item: ImportHistoryItem): Import
   return deduped.slice(0, MAX_HISTORY_ITEMS);
 }
 
+function includesAny(value: string, terms: readonly string[]): boolean {
+  return terms.some((term) => value.includes(term));
+}
+
 function classifyError(message: string): ImportError {
   const lower = message.toLowerCase();
-  if (lower.includes('not found') || lower.includes('404')) {
+  if (includesAny(lower, ['not found', '404'])) {
     return { message, code: 'not-found', retryable: false };
   }
-  if (lower.includes('rate') || lower.includes('429')) {
+  if (includesAny(lower, ['rate', '429'])) {
     const retryAfter = lower.match(/(\d+)\s*(?:seconds?|s)\b/)?.[1];
     return {
       message,
@@ -96,14 +100,10 @@ function classifyError(message: string): ImportError {
       retryAfterSeconds: retryAfter ? Number(retryAfter) : undefined,
     };
   }
-  if (lower.includes('unavailable') || lower.includes('503') || lower.includes('502')) {
+  if (includesAny(lower, ['unavailable', '503', '502'])) {
     return { message, code: 'service', retryable: true };
   }
-  if (
-    lower.includes('network') ||
-    lower.includes('failed to fetch') ||
-    lower.includes('load failed')
-  ) {
+  if (includesAny(lower, ['network', 'failed to fetch', 'load failed'])) {
     return { message, code: 'network', retryable: true };
   }
   return { message, code: 'unknown', retryable: false };
@@ -141,16 +141,18 @@ export function useSetlistImportState() {
   const requestCounterRef = useRef(0);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  useEffect(() => setHistory(readHistory()), []);
+  useEffect(() => {
+    setHistory(readHistory());
+  }, []);
   useEffect(() => () => abortControllerRef.current?.abort(), []);
 
-  function validateInput(value = inputValue): boolean {
+  const validateInput = (value = inputValue): boolean => {
     const validationError = invalidInputError(value);
     setError(validationError);
     return validationError === null;
-  }
+  };
 
-  async function loadSetlist(rawValue: string): Promise<boolean> {
+  const loadSetlist = async (rawValue: string): Promise<boolean> => {
     const trimmed = rawValue.trim();
     const validationError = invalidInputError(trimmed);
     setError(validationError);
@@ -167,63 +169,73 @@ export function useSetlistImportState() {
       const result = await fetchApiJson<SetlistFmResponse>(url, { signal: abortController.signal });
       if (currentRequestRef.current !== requestId) return false;
 
-      if (isOk(result)) {
-        const mapped = mapSetlistFmToSetlist(result.value);
-        setSetlist(mapped);
-        const item: ImportHistoryItem = {
-          input: trimmed,
-          setlistId: mapped.id,
-          artist: mapped.artist,
-          venue: mapped.venue,
-          date: mapped.eventDate,
-        };
-        setHistory((prev) => {
-          const next = pushHistory(prev, item);
-          writeHistory(next);
-          return next;
-        });
-        return true;
-      }
-      setError(classifyError(result.error));
-      setSetlist(null);
-      return false;
-    } catch (caught) {
-      if (caught instanceof DOMException && caught.name === 'AbortError') return false;
-      if (currentRequestRef.current !== requestId) return false;
-      setError(classifyError(getErrorMessage(caught, 'Network error.')));
-      setSetlist(null);
-      return false;
-    } finally {
-      if (currentRequestRef.current === requestId) {
-        setLoading(false);
-        currentRequestRef.current = 0;
-        abortControllerRef.current = null;
-      }
-    }
-  }
+      if (!isOk(result)) return handleLoadError(result.error);
 
-  function cancelLoad() {
+      const mapped = mapSetlistFmToSetlist(result.value);
+      setSetlist(mapped);
+      const item: ImportHistoryItem = {
+        input: trimmed,
+        setlistId: mapped.id,
+        artist: mapped.artist,
+        venue: mapped.venue,
+        date: mapped.eventDate,
+      };
+      setHistory((prev) => {
+        const next = pushHistory(prev, item);
+        writeHistory(next);
+        return next;
+      });
+      return true;
+    } catch (caught) {
+      if (shouldIgnoreLoadFailure(caught, requestId)) return false;
+      return handleLoadError(getErrorMessage(caught, 'Network error.'));
+    } finally {
+      finishLoad(requestId);
+    }
+  };
+
+  const handleLoadError = (message: string): false => {
+    setError(classifyError(message));
+    setSetlist(null);
+    return false;
+  };
+
+  const shouldIgnoreLoadFailure = (caught: unknown, requestId: number): boolean => {
+    return (
+      (caught instanceof DOMException && caught.name === 'AbortError') ||
+      currentRequestRef.current !== requestId
+    );
+  };
+
+  const finishLoad = (requestId: number): void => {
+    if (currentRequestRef.current !== requestId) return;
+    setLoading(false);
+    currentRequestRef.current = 0;
+    abortControllerRef.current = null;
+  };
+
+  const cancelLoad = () => {
     currentRequestRef.current = 0;
     abortControllerRef.current?.abort();
     abortControllerRef.current = null;
     setLoading(false);
-  }
+  };
 
-  function retryLast(): Promise<boolean> {
+  const retryLast = (): Promise<boolean> => {
     return loadSetlist(inputValue);
-  }
+  };
 
-  function setInputValue(value: string) {
+  const setInputValue = (value: string) => {
     setInputValueState(value);
     setError(null);
-  }
+  };
 
-  async function selectHistoryItem(item: ImportHistoryItem): Promise<boolean> {
+  const selectHistoryItem = async (item: ImportHistoryItem): Promise<boolean> => {
     setInputValueState(item.input);
     return loadSetlist(item.input);
-  }
+  };
 
-  function clearHistory() {
+  const clearHistory = () => {
     setHistory([]);
     try {
       window.localStorage.removeItem(HISTORY_V1_KEY);
@@ -231,14 +243,14 @@ export function useSetlistImportState() {
     } catch {
       // Clearing history is best effort when storage access is blocked.
     }
-  }
+  };
 
-  function resetForAnother() {
+  const resetForAnother = () => {
     cancelLoad();
     setInputValueState('');
     setSetlist(null);
     setError(null);
-  }
+  };
 
   return {
     inputValue,
