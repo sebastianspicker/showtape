@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, type Dispatch } from 'react';
 import { Button } from '@repo/ui';
 import type { Setlist } from '@repo/core';
 import type { MatchRow } from '@/features/matching/types';
@@ -150,7 +150,7 @@ interface PlaylistOptionsProps {
   setlist: Setlist;
   dedupeTracks: boolean;
   dedupeSavings: number;
-  onDedupeChange: (enabled: boolean) => void;
+  onDedupeChange: Dispatch<boolean>;
 }
 
 function PlaylistOptions({
@@ -192,7 +192,7 @@ interface PlaylistCreationActionsProps {
   error: string | null;
   onBack?: () => void;
   onAuthorized: () => void;
-  onCreate: () => Promise<void>;
+  onCreate: () => void;
 }
 
 function PlaylistCreationActions({
@@ -235,7 +235,7 @@ function PlaylistCreationActions({
         <ErrorAlert
           message={error}
           onRetry={() => {
-            void onCreate();
+            onCreate();
           }}
           retryLabel="Retry create playlist"
         />
@@ -270,7 +270,9 @@ function EditablePlaylistState({ state, setlist, matchRows, onBack }: EditablePl
         error={state.error}
         onBack={onBack}
         onAuthorized={state.handleAuthorized}
-        onCreate={state.handleCreate}
+        onCreate={() => {
+          void state.handleCreate();
+        }}
       />
     </div>
   );

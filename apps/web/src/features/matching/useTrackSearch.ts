@@ -57,7 +57,8 @@ export function useTrackSearch({ matches, setMatch }: UseTrackSearchParams): Use
     (index: number) => {
       invalidateCurrentSearch();
       setSearchingIndex(index);
-      setSearchQuery(initialSearchQuery(matches[index]));
+      const row = index < 0 ? undefined : matches.at(index);
+      setSearchQuery(initialSearchQuery(row));
       setSearchResults([]);
       setSearchError(false);
       setHasSearched(false);

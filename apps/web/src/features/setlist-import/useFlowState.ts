@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type Dispatch } from 'react';
 import type { MatchRow } from '@/features/matching/types';
 
 export type FlowStep = 'import' | 'preview' | 'matching' | 'export';
@@ -10,10 +10,10 @@ export interface UseFlowStateResult {
   stepContainerRef: React.RefObject<HTMLElement | null>;
   goToPreview: () => void;
   goToMatching: () => void;
-  goToExport: (rows: MatchRow[]) => void;
+  goToExport: Dispatch<MatchRow[]>;
   goBackToPreview: () => void;
   goBackToMatching: () => void;
-  updateMatchDraft: (rows: MatchRow[]) => void;
+  updateMatchDraft: Dispatch<MatchRow[]>;
   startAnotherSetlist: () => void;
 }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, type Dispatch } from 'react';
 import { Button } from '@repo/ui';
 import type { Setlist } from '@repo/core';
 import { StatusText } from '@/components/StatusText';
@@ -13,9 +13,9 @@ import { useTrackSearch } from './useTrackSearch';
 
 export interface MatchingViewProps {
   setlist: Setlist;
-  onProceedToCreatePlaylist: (_matches: MatchRow[]) => void;
+  onProceedToCreatePlaylist: Dispatch<MatchRow[]>;
   initialDraft?: MatchRow[] | null;
-  onMatchesChange?: (_matches: MatchRow[]) => void;
+  onMatchesChange?: Dispatch<MatchRow[]>;
 }
 
 export function MatchingView({
