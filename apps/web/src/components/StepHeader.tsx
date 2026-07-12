@@ -7,7 +7,7 @@ interface StepHeaderProps {
   headingRef?: RefObject<HTMLElement | null>;
 }
 
-function renderStepHeader({ step, title, context, headingRef }: StepHeaderProps) {
+function StepHeaderAsHtml({ step, title, context, headingRef }: StepHeaderProps) {
   return (
     <header className="step-header">
       <p className="step-indicator">{`Step ${step} of 4`}</p>
@@ -19,4 +19,4 @@ function renderStepHeader({ step, title, context, headingRef }: StepHeaderProps)
   );
 }
 
-export const StepHeader = renderStepHeader;
+export const StepHeader = StepHeaderAsHtml;
