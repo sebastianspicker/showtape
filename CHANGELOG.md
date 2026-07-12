@@ -6,10 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Public alpha documentation
+
+- Documented the single workflow route (`/`) and supporting `/privacy` and
+  `/terms` routes; removed public documentation for `/demo`.
+- Added deterministic real-workflow screenshots plus mocked Chromium,
+  responsive-overflow, and serious/critical axe checks. Live Apple Music
+  authorization remains an owner-run release check.
+- Documented the network-only delivery model: the manifest is linked, but no
+  service worker or offline guarantee is provided.
+- Documented browser-only history v2 records (`input`, `setlistId`, `artist`,
+  `venue`, `date`) and the one-time valid-v1 input-only migration contract.
+
 ### Documentation & Cleanup
 
-- Product docs consolidated: PRD is now the single source for problem, scope, stories, onboarding and success metrics.
-- Redundant docs removed from `docs/product-specs` and `docs/design-docs`.
+- Product intent and interface requirements are canonical in root `PRODUCT.md`
+  and `DESIGN.md`; the PRD remains the requirements source for scope, stories,
+  onboarding, and success metrics.
+- Removed redundant design-doc pointers and obsolete static demo screenshots;
+  release screenshots now live only under `docs/screenshots/workflow`.
+- Hardened `.gitignore` for credentials, key material, browser traces, local
+  reports, and private documentation lanes; added a CI public-boundary check.
+- Made Playwright prepare workspace library outputs so browser checks work from
+  a fresh or cleaned checkout.
 - Added `scripts/cleanup-repo.sh` and root script `pnpm cleanup:repo` for local artifact cleanup.
 
 ### Platform & Tooling

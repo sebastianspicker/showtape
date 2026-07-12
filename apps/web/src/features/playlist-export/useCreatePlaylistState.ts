@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { buildPlaylistName, dedupeTrackIdsOrdered } from '@repo/core';
 import { getErrorMessage } from '@repo/shared';
 import type { MatchRow } from '@/features/matching/types';
@@ -152,6 +152,7 @@ export function useCreatePlaylistState({
   const [addTracksError, setAddTracksError] = useState<string | null>(null);
   const [dedupeTracks, setDedupeTracks] = useState(false);
   const [resumeState, setResumeState] = useState<ResumeState | null>(null);
+  const mutationInFlightRef = useRef(false);
 
   const selectedSongIds = useMemo(
     () => matchRows.map((r) => r.appleTrack?.id).filter(Boolean) as string[],
@@ -185,6 +186,8 @@ export function useCreatePlaylistState({
   }, [selectionSignature, setlist.id, songIds]);
 
   async function handleCreate() {
+    if (mutationInFlightRef.current) return;
+    mutationInFlightRef.current = true;
     setError(null);
     setAddTracksError(null);
     setNeedsAuth(false);
@@ -227,10 +230,12 @@ export function useCreatePlaylistState({
       setError(getErrorMessage(err, 'Failed to create playlist.'));
     } finally {
       setLoading(false);
+      mutationInFlightRef.current = false;
     }
   }
 
   async function handleAddRemainingTracks() {
+    if (mutationInFlightRef.current) return;
     if (!resumeState) return;
     if (resumeState.progress === 'unknown') {
       setAddTracksError(
@@ -240,6 +245,7 @@ export function useCreatePlaylistState({
     }
     if (resumeState.remainingIds.length === 0) return;
 
+    mutationInFlightRef.current = true;
     setAddTracksError(null);
     setLoading(true);
     try {
@@ -261,6 +267,7 @@ export function useCreatePlaylistState({
       setAddTracksError(getErrorMessage(err, 'Adding tracks failed.'));
     } finally {
       setLoading(false);
+      mutationInFlightRef.current = false;
     }
   }
 

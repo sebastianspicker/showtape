@@ -3,14 +3,15 @@ import type { NextRequest } from 'next/server';
 
 const isDev = process.env.NODE_ENV === 'development';
 
-function buildCsp(nonce: string): string {
+export function buildCsp(nonce: string, development = isDev): string {
+  const liveOrigin = development ? ' http://localhost:8400' : '';
   const cspDirectives = [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' https://js-cdn.music.apple.com${isDev ? " 'unsafe-eval'" : ''}`,
+    `script-src 'self' 'nonce-${nonce}' https://js-cdn.music.apple.com${development ? " 'unsafe-eval'" : ''}${liveOrigin}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",
     "font-src 'self'",
-    "connect-src 'self' https://api.music.apple.com",
+    `connect-src 'self' https://api.music.apple.com${liveOrigin}`,
     "frame-src 'none'",
     "object-src 'none'",
     "base-uri 'self'",
