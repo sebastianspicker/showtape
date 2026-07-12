@@ -19,4 +19,4 @@ function StepHeaderAsHtml({ step, title, context, headingRef }: StepHeaderProps)
   );
 }
 
-export const StepHeader = StepHeaderAsHtml;
+export { StepHeaderAsHtml as StepHeader };
