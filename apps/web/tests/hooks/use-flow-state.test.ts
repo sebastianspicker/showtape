@@ -50,5 +50,25 @@ describe('useFlowState', () => {
     act(() => result.current.goToExport(mockRows));
     act(() => result.current.goBackToMatching());
     expect(result.current.step).toBe('matching');
+    expect(result.current.matchRows).toEqual(mockRows);
+  });
+
+  it('preserves an updated matching draft until a new import starts', () => {
+    const { result } = renderHook(() => useFlowState());
+    act(() => result.current.updateMatchDraft(mockRows));
+    act(() => result.current.goToExport(mockRows));
+    act(() => result.current.goBackToMatching());
+    expect(result.current.matchRows).toEqual(mockRows);
+
+    act(() => result.current.goToPreview());
+    expect(result.current.matchRows).toBeNull();
+  });
+
+  it('startAnotherSetlist returns to import and clears the draft', () => {
+    const { result } = renderHook(() => useFlowState());
+    act(() => result.current.goToExport(mockRows));
+    act(() => result.current.startAnotherSetlist());
+    expect(result.current.step).toBe('import');
+    expect(result.current.matchRows).toBeNull();
   });
 });

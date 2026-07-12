@@ -1,6 +1,5 @@
 import { memo } from 'react';
 import { flattenSetlistToEntries, type Setlist } from '@repo/core';
-import { SectionTitle } from '@/components/SectionTitle';
 
 interface SetlistPreviewProps {
   setlist: Setlist;
@@ -11,7 +10,7 @@ export const SetlistPreview = memo(function SetlistPreview({ setlist }: SetlistP
 
   return (
     <section aria-label="Setlist preview" className="setlist-preview">
-      <SectionTitle>{setlist.artist}</SectionTitle>
+      <h3>{setlist.artist}</h3>
       <div className="preview-meta">
         {setlist.venue && (
           <span className="preview-meta-item">
@@ -28,9 +27,7 @@ export const SetlistPreview = memo(function SetlistPreview({ setlist }: SetlistP
         </span>
       </div>
       {tracks.length === 0 ? (
-        <p className="muted-block" style={{ marginTop: '1rem' }}>
-          This setlist has no songs listed. Try a different setlist.
-        </p>
+        <p className="empty-state">This setlist has no songs listed. Try a different setlist.</p>
       ) : (
         <ol className="preview-track-list">
           {tracks.map((t, i) => (

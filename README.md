@@ -2,7 +2,8 @@
 
 [![CI](https://github.com/sebastianspicker/setlist-to-playlist/actions/workflows/ci.yml/badge.svg)](https://github.com/sebastianspicker/setlist-to-playlist/actions/workflows/ci.yml)
 
-Turn any concert setlist into an Apple Music playlist in seconds.
+Turn one concert setlist into an Apple Music playlist through a focused,
+four-step workflow.
 
 Paste a [setlist.fm](https://www.setlist.fm) link, preview the tracks, fix any mismatches, and save the playlist straight to your Apple Music library.
 
@@ -20,10 +21,11 @@ Paste a [setlist.fm](https://www.setlist.fm) link, preview the tracks, fix any m
 - Search Apple Music to fix unmatched or incorrect tracks
 - Duplicate track removal before export
 - Resumable playlist creation if adding tracks is interrupted
-- Recent imports history for quick re-access
-- Progressive Web App — installable on mobile and desktop
-- Fully accessible (keyboard navigation, screen reader support, WCAG touch targets)
-- Dark glass-morphism UI optimized for mobile and desktop
+- Recent imports, stored only in the browser, for quick re-access
+- Network-only public alpha: importing, matching, authorization, and export all require connectivity
+- Privacy and terms pages at `/privacy` and `/terms`
+- Accessibility target: WCAG 2.2 AA, keyboard-complete operation, visible focus, and 44px normal controls
+- Calm, phone-first "Working Setlist" interface; see [DESIGN.md](DESIGN.md)
 
 ## Prerequisites
 
@@ -51,36 +53,25 @@ pnpm dev
 
 Then open the web app at `http://localhost:3000`. The same process runs both the Next.js frontend and the API routes (Developer Token, setlist proxy, health); no separate API server is required for local development.
 
-## Demo
-
-- Live local demo route: `http://localhost:3000/demo`
-- The `/demo` page is a **static, no-API-key-required** screen that renders a fixed setlist preview. It is used for reproducible screenshots, CI smoke tests, and GitHub social previews. No real setlist.fm or Apple Music calls are made.
-- To update the demo data, edit the fixture in `apps/web/src/app/demo/`. Update the screenshots in `docs/screenshots/github/` after any significant UI change.
-
 ### Screenshots
 
-#### App Home
-
-![App Home](docs/screenshots/github/app-home.png)
-
-#### Demo Flow (Desktop)
-
-![Demo Desktop](docs/screenshots/github/demo-desktop.png)
-
-#### Demo Flow (Mobile)
-
-![Demo Mobile](docs/screenshots/github/demo-mobile.png)
+Screenshots for public surfaces must be captured from the real import → preview
+→ match → export flow using deterministic fixtures or controlled upstream
+responses. They must not use a separate `/demo` route. See the
+[screenshot capture notes](docs/screenshots/README.md). Mocked Chromium,
+responsive overflow, and serious/critical axe checks are automated; live Apple
+Music authorization remains an owner-run release check.
 
 ## Monorepo Overview
 
-| Path              | Description                                                                                                                                  |
-| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/web`        | Next.js PWA: Import → Preview → Matching → Export. Hosts API routes at `/api/*` (dev-token, setlist proxy, health).                          |
-| `apps/api`        | Shared serverless logic (JWT signing, setlist proxy handler). Used by the web app's API routes; not run as a standalone server in this repo. |
-| `packages/core`   | Domain logic: setlist parsing, track matching, normalization (no UI).                                                                        |
-| `packages/shared` | Shared types, utils, constants.                                                                                                              |
-| `packages/ui`     | Shared React UI primitives used by the web app.                                                                                              |
-| `docs/`           | Product specifications, focused design documents, technical documentation, and ADRs.                                                         |
+| Path              | Description                                                                                                                                           |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/web`        | Next.js web app: Import → Preview → Matching → Export, plus `/privacy` and `/terms`. Hosts API routes at `/api/*` (dev-token, setlist proxy, health). |
+| `apps/api`        | Shared serverless logic (JWT signing, setlist proxy handler). Used by the web app's API routes; not run as a standalone server in this repo.          |
+| `packages/core`   | Domain logic: setlist parsing, track matching, normalization (no UI).                                                                                 |
+| `packages/shared` | Shared types, utils, constants.                                                                                                                       |
+| `packages/ui`     | Shared React UI primitives used by the web app.                                                                                                       |
+| `docs/`           | Product requirements, technical documentation, ADRs, and deterministic release evidence.                                                              |
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for data flow and [docs/index.md](docs/index.md) for the docs map.
 
@@ -101,6 +92,8 @@ For a first code read, follow the active product flow in this order:
 .
 ├── README.md
 ├── ARCHITECTURE.md
+├── PRODUCT.md                 # product intent and audience
+├── DESIGN.md                  # canonical interface requirements
 ├── CONTRIBUTING.md
 ├── CHANGELOG.md
 ├── LICENSE
@@ -116,7 +109,7 @@ For a first code read, follow the active product flow in this order:
 ├── pnpm-workspace.yaml
 ├── turbo.json
 ├── apps/
-│   ├── web/                     # Next.js PWA + API routes
+│   ├── web/                     # Next.js app + API routes
 │   │   ├── src/
 │   │   │   ├── app/
 │   │   │   │   ├── api/          # Next.js API routes
@@ -138,6 +131,7 @@ For a first code read, follow the active product flow in this order:
 │   │   │   ├── manifest.webmanifest
 │   │   │   └── icons/
 │   │   ├── tests/
+│   │   ├── e2e/                 # mocked browser workflow and accessibility checks
 │   │   └── package.json
 │   └── api/                      # Shared API logic (used by web's routes)
 │       ├── src/
@@ -166,33 +160,34 @@ For a first code read, follow the active product flow in this order:
 ├── docs/
 │   ├── index.md
 │   ├── product-specs/          # PRD as single source
-│   ├── design-docs/            # UX flows + pointers to design system master
-│   ├── design-system/
 │   ├── tech/
+│   ├── screenshots/workflow/   # deterministic real-flow captures
+│   ├── performance-public-alpha.json
 │   └── adr/
 └── scripts/
     ├── cleanup-repo.sh
-    ├── seed-demo-setlists.ts
+    ├── seed-demo-setlists.ts     # controlled data for local development or tests
     └── export-diagnostics.ts
 ```
 
 ## Scripts
 
-| Command             | Description                                              |
-| ------------------- | -------------------------------------------------------- |
-| `pnpm install`      | Install dependencies for all workspace packages.         |
-| `pnpm build`        | Build all packages (Turbo: core, shared, api, then web). |
-| `pnpm dev`          | Start the Next.js dev server (web app and API routes).   |
-| `pnpm lint`         | Run ESLint in all packages.                              |
-| `pnpm typecheck`    | Run TypeScript checks across typed workspace packages.   |
-| `pnpm test`         | Run tests in all packages.                               |
-| `pnpm format`       | Format code with Prettier.                               |
-| `pnpm format:check` | Check formatting without writing.                        |
-| `pnpm cleanup:repo` | Remove local generated artifacts and caches.             |
+| Command              | Description                                               |
+| -------------------- | --------------------------------------------------------- |
+| `pnpm install`       | Install dependencies for all workspace packages.          |
+| `pnpm build`         | Build all workspace packages in dependency order.         |
+| `pnpm dev`           | Start the Next.js dev server (web app and API routes).    |
+| `pnpm lint`          | Run ESLint in all packages.                               |
+| `pnpm typecheck`     | Run TypeScript checks across typed workspace packages.    |
+| `pnpm test`          | Run tests in all packages.                                |
+| `pnpm format`        | Format code with Prettier.                                |
+| `pnpm format:check`  | Check formatting without writing.                         |
+| `pnpm hygiene:check` | Reject private and local-only files from the public tree. |
+| `pnpm cleanup:repo`  | Remove local generated artifacts and caches.              |
 
 Optional (run from repo root with `npx tsx`):
 
-- **seed-demo-setlists:** `SETLISTFM_API_KEY=your_key npx tsx scripts/seed-demo-setlists.ts` – fetches demo setlists and writes `scripts/fixtures/demo-setlists.json` for local dev or tests.
+- **seed-demo-setlists:** `SETLISTFM_API_KEY=your_key npx tsx scripts/seed-demo-setlists.ts` – fetches controlled setlist data and writes `scripts/fixtures/demo-setlists.json` for local development or tests. It does not create a public `/demo` route.
 - **export-diagnostics:** `npx tsx scripts/export-diagnostics.ts` or `mkdir -p reports && npx tsx scripts/export-diagnostics.ts --out reports/diagnostics.json` – exports support metadata without secret values. Reports stay ignored locally; review API URLs, environment-variable names, platform, and runtime metadata before sharing.
 - **cleanup-repo:** `bash scripts/cleanup-repo.sh` – removes local non-source artifacts (logs, `.DS_Store`, build caches) without touching tracked source files.
 
@@ -210,17 +205,27 @@ Run the repo checks from the root:
 
 ```bash
 pnpm format:check
+pnpm hygiene:check
 pnpm lint
 pnpm typecheck
 pnpm build
 pnpm test
-pnpm audit --audit-level=high --prod
+pnpm audit:security
 ```
+
+Local verification on 2026-07-11 passed formatting, public-boundary, lint,
+TypeScript, production build, all workspace tests (including 192 web tests),
+the production dependency audit, and the mocked Chromium workflow (6 passed,
+1 production-only case skipped). The separate production lab check passed at
+LCP 136 ms and CLS 0.0000. These local measurements do not replace the pending
+credential-backed Apple Music check, Safari/VoiceOver pass, or deployed field
+performance data.
 
 ## Behavior Notes
 
 - **Setlist IDs:** raw IDs and URL-derived IDs are validated as `4-12` hexadecimal characters.
 - **Tape entries:** setlist.fm songs marked with `tape: true` are excluded from playlist mapping.
+- **Network-only alpha:** the linked web manifest does not imply offline support or a service worker. All user workflow stages require network access.
 - **Interrupted exports:** if playlist creation succeeds but adding tracks stops partway through, the app stores only the remaining Apple Music song IDs in `sessionStorage` and resumes only those tracks. Resume data is ignored if the current matched tracks or duplicate-removal setting no longer match the stored export.
 
 ## License

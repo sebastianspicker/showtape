@@ -44,6 +44,20 @@ describe('Button', () => {
     expect(screen.getByRole('button', { name: 'Disabled' })).toBeDisabled();
   });
 
+  it('loading disables the button even when disabled is explicitly false', () => {
+    render(
+      <Button loading disabled={false}>
+        Saving
+      </Button>
+    );
+    expect(screen.getByRole('button', { name: 'Loading…' })).toBeDisabled();
+  });
+
+  it('merges caller classes with its variant classes', () => {
+    render(<Button className="wide">Save</Button>);
+    expect(screen.getByRole('button', { name: 'Save' })).toHaveClass('button--primary', 'wide');
+  });
+
   it('fires onClick when not disabled or loading', async () => {
     const onClick = vi.fn();
     render(<Button onClick={onClick}>Go</Button>);

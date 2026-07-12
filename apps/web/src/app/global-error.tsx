@@ -14,7 +14,7 @@ export default function GlobalError({
 
   return (
     <html lang="en">
-      <body style={{ fontFamily: 'system-ui, sans-serif' }}>
+      <body>
         <ErrorBoundaryView message={message} onReset={reset} />
       </body>
     </html>

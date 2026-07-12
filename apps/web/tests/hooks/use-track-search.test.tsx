@@ -57,6 +57,9 @@ describe('useTrackSearch', () => {
 
     act(() => {
       result.current.openSearch(0);
+    });
+    expect(result.current.searchContext.searchQuery).toBe('Song A Artist A');
+    act(() => {
       result.current.setSearchQuery('Custom Song Query');
     });
     await act(async () => {

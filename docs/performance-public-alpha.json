@@ -1,0 +1,27 @@
+{
+  "route": "/",
+  "baselineKind": "post-overhaul public-alpha",
+  "source": "Next.js 16.2.6 production manifests after pnpm build",
+  "javascript": {
+    "rawBytes": 670266,
+    "gzipBytes": 199760
+  },
+  "css": {
+    "rawBytes": 8671,
+    "gzipBytes": 2523
+  },
+  "localLab": {
+    "command": "pnpm test:e2e:performance",
+    "server": "Next.js production server",
+    "browser": "headless Chrome for Testing",
+    "lcpMs": 136,
+    "cls": 0,
+    "targets": {
+      "lcpMsMaximum": 2500,
+      "clsMaximum": 0.1
+    },
+    "note": "Credential-free local measurement with mocked public-alpha configuration; not field data."
+  },
+  "scope": "Initial route assets; excludes HTML, RSC payloads, and network protocol overhead.",
+  "regressionComparison": "No trustworthy pre-overhaul production manifest was retained, so this is the baseline for future comparisons rather than a claimed percentage improvement."
+}

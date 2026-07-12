@@ -12,7 +12,7 @@ function isLikelyNetworkError(message: string): boolean {
 
 export interface ErrorAlertProps {
   message: string;
-  onRetry: () => void;
+  onRetry?: () => void;
   /** Accessible label for the retry button. Default: "Try again" */
   retryLabel?: string;
 }
@@ -20,35 +20,21 @@ export interface ErrorAlertProps {
 export function ErrorAlert({ message, onRetry, retryLabel = 'Try again' }: ErrorAlertProps) {
   const showOfflineHint = isLikelyNetworkError(message);
   return (
-    <div
-      role="alert"
-      style={{
-        marginTop: '0.75rem',
-        padding: '0.75rem',
-        background: 'rgba(239, 68, 68, 0.1)',
-        border: '1px solid rgba(239, 68, 68, 0.3)',
-        borderRadius: '4px',
-        color: '#fca5a5',
-      }}
-    >
-      <p style={{ margin: 0 }}>{message}</p>
+    <div role="alert" className="error-alert">
+      <p>{message}</p>
       {showOfflineHint && (
-        <p style={{ margin: '0.35rem 0 0', fontSize: '0.9em', opacity: 0.9 }}>
-          Offline? Check your connection and try again.
-        </p>
+        <p className="error-alert__hint">Offline? Check your connection and try again.</p>
       )}
-      <button
-        type="button"
-        onClick={onRetry}
-        aria-label={retryLabel}
-        style={{
-          marginTop: '0.5rem',
-          padding: '0.25rem 0.75rem',
-          cursor: 'pointer',
-        }}
-      >
-        {retryLabel}
-      </button>
+      {onRetry ? (
+        <button
+          type="button"
+          onClick={onRetry}
+          aria-label={retryLabel}
+          className="button button--secondary button--compact"
+        >
+          {retryLabel}
+        </button>
+      ) : null}
     </div>
   );
 }

@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
-import { headers } from 'next/headers';
-import Script from 'next/script';
+import Link from 'next/link';
 import '../styles/globals.css';
 
 export const metadata: Metadata = {
@@ -29,30 +28,33 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const nonce = (await headers()).get('x-nonce') ?? undefined;
-
   return (
     <html lang="en">
       <head>
-        <meta name="theme-color" content="#0f172a" />
+        <meta name="theme-color" content="#0B0E14" />
       </head>
       <body>
         <a href="#main" className="skip-link">
           Skip to main content
         </a>
-        {/* crossOrigin for future SRI; SRI not added because Apple does not publish a stable integrity hash. */}
-        <Script
-          src="https://js-cdn.music.apple.com/musickit/v3/musickit.js"
-          strategy="afterInteractive"
-          crossOrigin="anonymous"
-          nonce={nonce}
-        />
-        {children}
+        <header className="site-header">
+          <Link href="/" className="product-link" aria-label="Setlist to Playlist home">
+            Setlist to Playlist
+          </Link>
+        </header>
+        <div className="site-content">{children}</div>
+        <footer className="site-footer">
+          <p>Public alpha · Network connection and Apple Music subscription required.</p>
+          <nav aria-label="Legal">
+            <Link href="/privacy">Privacy</Link>
+            <Link href="/terms">Terms</Link>
+          </nav>
+        </footer>
       </body>
     </html>
   );

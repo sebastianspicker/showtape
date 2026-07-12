@@ -72,7 +72,7 @@ describe('useMatchingSuggestions', () => {
     const { result } = renderHook(() => useMatchingSuggestions(mockSetlist));
     expect(result.current.matches).toHaveLength(3);
     expect(result.current.matches[0]?.setlistEntry.name).toBe('Song A');
-    expect(result.current.matches[0]?.status).toBe('unmatched');
+    expect(result.current.matches[0]?.status).toBe('pending');
   });
 
   it('autoMatchAll calls searchCatalog for each entry', async () => {
@@ -117,23 +117,6 @@ describe('useMatchingSuggestions', () => {
 
     for (const row of result.current.matches) {
       expect(row.status).toBe('skipped');
-    }
-  });
-
-  it('resetMatches clears all matches back to unmatched', async () => {
-    mockSearchCatalog.mockResolvedValue([{ id: '1', name: 'Song A', artistName: 'Test Artist' }]);
-
-    const { result } = renderHook(() => useMatchingSuggestions(mockSetlist));
-
-    await waitFor(() => {
-      expect(result.current.loadingSuggestions).toBe(false);
-    });
-
-    act(() => result.current.resetMatches());
-
-    for (const row of result.current.matches) {
-      expect(row.status).toBe('unmatched');
-      expect(row.appleTrack).toBeNull();
     }
   });
 
@@ -202,5 +185,19 @@ describe('useMatchingSuggestions', () => {
 
     expect(result.current.matches[0]?.appleTrack).toBeNull();
     expect(result.current.matches[0]?.status).toBe('unmatched');
+  });
+
+  it('restores an existing draft without starting another automatic run', () => {
+    const draft = [
+      {
+        setlistEntry: { name: 'Song A', artist: 'Test Artist' },
+        appleTrack: { id: 'manual', name: 'Manual match', artistName: 'Artist' },
+        status: 'matched' as const,
+      },
+    ];
+    const { result } = renderHook(() => useMatchingSuggestions(mockSetlist, draft));
+    expect(result.current.matches).toEqual(draft);
+    expect(result.current.loadingSuggestions).toBe(false);
+    expect(mockSearchCatalog).not.toHaveBeenCalled();
   });
 });

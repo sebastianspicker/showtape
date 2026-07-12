@@ -16,6 +16,7 @@ export interface MatchRowItemProps {
   onSearchQueryChange: (value: string) => void;
   onSearch: (index: number) => void;
   onChoose: (index: number, track: AppleMusicTrack) => void;
+  onCancelSearch: () => void;
 }
 
 export const MatchRowItem = React.memo(function MatchRowItem({
@@ -28,13 +29,22 @@ export const MatchRowItem = React.memo(function MatchRowItem({
   onSearchQueryChange,
   onSearch,
   onChoose,
+  onCancelSearch,
 }: MatchRowItemProps) {
+  const changeButtonRef = React.useRef<HTMLButtonElement>(null);
   const statusClass =
     row.status === 'matched'
       ? 'matching-row--matched'
       : row.status === 'skipped'
         ? 'matching-row--skipped'
-        : 'matching-row--unmatched';
+        : row.status === 'pending'
+          ? 'matching-row--pending'
+          : 'matching-row--unmatched';
+
+  function restoreFocus(action: () => void) {
+    action();
+    window.requestAnimationFrame(() => changeButtonRef.current?.focus());
+  }
 
   return (
     <li className={`matching-row ${statusClass}`}>
@@ -64,6 +74,13 @@ export const MatchRowItem = React.memo(function MatchRowItem({
               </span>
               Skipped
             </span>
+          ) : row.status === 'pending' ? (
+            <span className="match-pending">
+              <span className="match-indicator" aria-hidden="true">
+                …
+              </span>
+              Searching
+            </span>
           ) : (
             <span className="match-missing">
               <span className="match-indicator match-indicator--missing" aria-hidden="true">
@@ -75,10 +92,12 @@ export const MatchRowItem = React.memo(function MatchRowItem({
         </div>
         <div className="matching-row-actions">
           <button
+            ref={changeButtonRef}
             type="button"
             onClick={() => onOpenSearch(index)}
             aria-label={`Change match for ${row.setlistEntry?.name ?? 'track'}`}
-            className="premium-button secondary mini"
+            className="button button--secondary button--compact"
+            disabled={row.status === 'pending'}
           >
             {row.appleTrack ? 'Change' : 'Search'}
           </button>
@@ -86,8 +105,9 @@ export const MatchRowItem = React.memo(function MatchRowItem({
             <button
               type="button"
               onClick={() => onSkip(index)}
-              aria-label="Skip track"
-              className="premium-button secondary mini"
+              aria-label={`Skip ${row.setlistEntry?.name ?? 'track'}`}
+              className="button button--quiet button--compact"
+              disabled={row.status === 'pending'}
             >
               Skip
             </button>
@@ -104,8 +124,17 @@ export const MatchRowItem = React.memo(function MatchRowItem({
           searchResults={searchContext.searchResults}
           hasSearched={searchContext.hasSearched}
           onSearchQueryChange={onSearchQueryChange}
-          onSearch={() => onSearch(index)}
-          onChoose={(track) => onChoose(index, track)}
+          onSearch={() => {
+            onSearch(index);
+          }}
+          onChoose={(track) => {
+            restoreFocus(() => {
+              onChoose(index, track);
+            });
+          }}
+          onCancel={() => {
+            restoreFocus(onCancelSearch);
+          }}
         />
       )}
     </li>

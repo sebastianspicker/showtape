@@ -2,7 +2,10 @@
 
 ## Overview
 
-The app is a single Next.js deployment — one process serves both the PWA and all API routes (`/api/apple/dev-token`, `/api/setlist/proxy`, `/api/health`). No separate API server is required.
+The app is a single Next.js deployment — one process serves the browser workflow
+and all API routes (`/api/apple/dev-token`, `/api/setlist/proxy`,
+`/api/health`). No separate API server is required. The public alpha is
+network-only and does not register a service worker.
 
 ## Self-Hosted Node.js
 

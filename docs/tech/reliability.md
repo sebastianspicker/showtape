@@ -6,4 +6,6 @@
 - **Manual search:** `useTrackSearch.ts` keeps one active row at a time. Opening another row, choosing a track, or skipping the current row invalidates pending search results before they can update shared panel state.
 - **Playlist export resume:** `useCreatePlaylistState.ts` stores only the remaining Apple Music song IDs in `sessionStorage`. Resume state is accepted only when the current selected IDs and duplicate-removal setting match the stored signature, and stale resume state is discarded after 30 minutes.
 - **setlist.fm proxy:** The proxy caches successful responses, rate-limits callers, retries 429 responses with jitter, and returns structured errors without exposing stack traces.
-- **PWA:** Offline export is intentionally unsupported because playlist creation requires network access and Apple Music authorization.
+- **Network-only delivery:** No service worker is registered. Importing, matching,
+  Apple Music authorization, and playlist creation require network access; the
+  web manifest does not provide an offline guarantee.

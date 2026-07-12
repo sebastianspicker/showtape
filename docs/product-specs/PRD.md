@@ -1,13 +1,19 @@
 # Product Requirements Document – Setlist to Playlist
 
-**Version:** 1.0  
-**Date:** 2025-02
+**Version:** 1.1 (public alpha)
+
+**Updated:** 2026-07-11
 
 ---
 
 ## Overview / Vision
 
-Setlist to Playlist is a PWA that turns a setlist from [setlist.fm](https://www.setlist.fm) (by URL or setlist ID) into an **Apple Music** playlist in the user's account. The user pastes a link, reviews and optionally corrects track matches, then creates the playlist in one flow—no account on our side, no manual copy-paste into Apple Music.
+Setlist to Playlist is a network-only public-alpha web app that turns one
+setlist from [setlist.fm](https://www.setlist.fm) (by URL or setlist ID) into an
+**Apple Music** playlist in the user's account. The workflow route is `/`, with
+`/privacy` and `/terms` available as supporting public pages. The user pastes a
+link, reviews and optionally corrects track matches, then creates a playlist in
+one flow—no account on our side and no manual copy-paste into Apple Music.
 
 ---
 
@@ -30,12 +36,17 @@ Concert-goers and fans want to listen to the exact setlist of a show. setlist.fm
 - One URL or setlist ID in; preview of artist, venue, date, and ordered tracks.
 - For each track, suggest an Apple Music match; user can confirm or manually correct/search.
 - On confirmation, create an Apple Music playlist and add the selected tracks in order.
+- Keep a browser-only, recognizable history of recent imports. A history v2
+  record has `input`, `setlistId`, `artist`, `venue`, and `date`. Valid v1
+  string entries migrate once with their `input`; their metadata is filled only
+  after re-import.
 
 **Out of scope (MVP):**
 
 - Multiple setlists in one session, merge setlists, or batch import.
 - Persisting setlists or playlists on our side; no user accounts on our platform.
-- Offline creation of playlists (export requires network and Apple Music auth).
+- Offline use: this alpha has no service worker and all workflow stages require network access.
+- A separate `/demo` route or static showcase workflow.
 
 ---
 
@@ -45,6 +56,7 @@ Concert-goers and fans want to listen to the exact setlist of a show. setlist.fm
 - As a user, I can see suggested Apple Music matches for each track and correct or search for a different track.
 - As a user, I can create an Apple Music playlist with the matched tracks in setlist order.
 - As a user, I am not required to create an account on our service; I use my Apple Music account only.
+- As a repeat user, I can recognize a recent import from its locally stored metadata and re-import it without creating a service account.
 
 ## New User Onboarding (first-session expectations)
 
@@ -65,14 +77,27 @@ Concert-goers and fans want to listen to the exact setlist of a show. setlist.fm
 
 **Error handling:** Invalid URL/ID or setlist not found → clear message. No match for a track → user can search manually or skip. Apple Music auth failed or revoked → prompt to re-authorize.
 
+The import, preview, matching, and export states are the same real workflow
+used for release screenshots. Public screenshots must use deterministic fixtures
+or controlled upstream responses; they must not represent a fabricated demo
+route. Live Apple Music authorization and end-to-end accessibility verification
+remain pending until executed and recorded.
+
 ---
 
 ## Success Criteria
 
 - User can complete the flow (import → preview → match → export) for a typical setlist in under a few minutes.
 - No secrets (API keys, Apple private key) exposed to the client.
+- Public-alpha screenshots are deterministic captures of real workflow states.
+- Accessibility target is WCAG 2.2 AA. Mocked Chromium keyboard, reflow, and
+  serious/critical axe checks pass locally; Safari/VoiceOver and credential-backed
+  end-to-end checks remain owner-run release evidence.
 
-### Success Metrics
+### Evaluation Signals
+
+The local public alpha does not include analytics. If privacy-reviewed
+measurement is added later, evaluate:
 
 - **Completion rate:** % of users who start (enter URL) and finish (playlist created).
 - **Time to playlist:** Median time from URL entry to playlist created.

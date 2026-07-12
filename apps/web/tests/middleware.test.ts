@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { middleware } from '../middleware';
+import { buildCsp, middleware } from '../middleware';
 import { mockNextRequest } from './helpers/mock-request';
 
 describe('CSP middleware', () => {
@@ -56,5 +56,16 @@ describe('CSP middleware', () => {
 
   it('sets Referrer-Policy', () => {
     expect(getHeaders().get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
+  });
+
+  it('allows the live design server only in development CSP', () => {
+    const developmentCsp = buildCsp('nonce', true);
+    expect(developmentCsp).toContain('script-src');
+    expect(developmentCsp).toContain('connect-src');
+    expect(developmentCsp.match(/http:\/\/localhost:8400/g)).toHaveLength(2);
+  });
+
+  it('keeps the production CSP free of the live design server', () => {
+    expect(buildCsp('nonce', false)).not.toContain('http://localhost:8400');
   });
 });

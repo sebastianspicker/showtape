@@ -5,9 +5,8 @@
   "description": "Turn any concert setlist into an Apple Music playlist. Paste a setlist.fm link, preview the songs, and save the playlist to your library.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#0f172a",
-  "orientation": "portrait-primary",
+  "background_color": "#0B0E14",
+  "theme_color": "#0B0E14",
   "categories": ["music", "entertainment"],
   "icons": [
     {

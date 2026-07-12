@@ -16,7 +16,7 @@ export interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement
 
 /**
  * Design-system button with primary/secondary variant and optional loading state.
- * Use for consistent CTAs; consumer can pass className (e.g. "premium-button") and style overrides.
+ * Use for consistent CTAs; consumer classes are merged with the component classes.
  */
 export function Button({
   variant = 'primary',
@@ -28,12 +28,14 @@ export function Button({
   type = 'button',
   ...rest
 }: ButtonProps) {
-  const variantClass = variant === 'secondary' ? 'premium-button secondary' : 'premium-button';
+  const variantClass =
+    variant === 'secondary' ? 'button button--secondary' : 'button button--primary';
+  const mergedClassName = [variantClass, className].filter(Boolean).join(' ');
   return (
     <button
       type={type}
-      className={className ?? variantClass}
-      disabled={disabled ?? loading}
+      className={mergedClassName}
+      disabled={loading || disabled === true}
       aria-busy={loading}
       {...rest}
     >

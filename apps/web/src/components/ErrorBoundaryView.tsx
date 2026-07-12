@@ -13,21 +13,16 @@ export function ErrorBoundaryView({
   resetLabel = 'Try again',
 }: ErrorBoundaryViewProps) {
   return (
-    <main id="main" style={{ padding: '2rem', maxWidth: '40rem', margin: '0 auto' }}>
+    <main id="main" className="main-content prose-page" tabIndex={-1}>
       <h1>Something went wrong</h1>
-      <p role="alert" style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+      <p role="alert" className="support-text">
         {message || 'An error occurred. You can try again.'}
       </p>
       <button
         type="button"
         onClick={onReset}
         aria-label={resetLabel}
-        style={{
-          marginTop: '1rem',
-          padding: '0.5rem 1rem',
-          fontSize: '1rem',
-          cursor: 'pointer',
-        }}
+        className="button button--primary"
       >
         {resetLabel}
       </button>
