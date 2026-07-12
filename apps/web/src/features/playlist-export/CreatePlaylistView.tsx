@@ -74,7 +74,9 @@ function IncompletePlaylistState({
         {!hasUnknownProgress ? (
           <Button
             variant="secondary"
-            onClick={onAddRemainingTracks}
+            onClick={() => {
+              void onAddRemainingTracks();
+            }}
             loading={loading}
             loadingChildren="Adding remaining songs…"
           >
@@ -269,7 +271,9 @@ function EditablePlaylistState({ state, setlist, matchRows, onBack }: EditablePl
         count={count}
         error={state.error}
         onBack={onBack}
-        onAuthorized={state.handleAuthorized}
+        onAuthorized={() => {
+          void state.handleAuthorized();
+        }}
         onCreate={() => {
           void state.handleCreate();
         }}
