@@ -1,31 +1,41 @@
-# Backend
+# Server Handlers
 
-## Current setup (Option B)
+## Process model
 
-The API is served by the **Next.js app** (`apps/web`) via API Routes. One deployment serves both frontend and API; no separate API server.
+The Next.js application in `apps/web` serves pages and HTTP routes. `packages/api`
+exports reusable handlers and does not listen on a port.
 
-| Route                                         | Purpose                                                                                                                                                                            |
-| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /api/health`                             | Liveness check. Returns `{ status: "ok", timestamp: "..." }`. Use for load balancers and deployment health checks.                                                                 |
-| `GET /api/apple/dev-token`                    | Apple Developer Token (JWT) for MusicKit. Returns `{ token: "..." }` or structured errors (including `code`). Includes lightweight in-memory rate limiting (`429`, `Retry-After`). |
-| `GET /api/setlist/proxy?id=...` or `?url=...` | setlist.fm proxy. Returns setlist JSON or structured errors `{ error, code? }`. API key stays server-side.                                                                         |
+| Route                      | Responsibility                                                   |
+| -------------------------- | ---------------------------------------------------------------- |
+| `GET /api/health`          | Return process liveness and a timestamp.                         |
+| `GET /api/apple/dev-token` | Sign an Apple developer token using server credentials.          |
+| `GET /api/setlist/proxy`   | Validate input and fetch a setlist with the server-side API key. |
 
-Business logic lives in the `api` package (`apps/api`); the Next.js routes import from `api` and return HTTP responses (with CORS where needed).
+Route Handlers under `apps/web/src/app/api` own request parsing, CORS, rate
+limits, cache headers, and JSON responses. The `packages/api` package owns token
+signing, upstream setlist access, response validation, and upstream error
+mapping.
 
-## How to run locally
+## Local operation
 
-- **Full stack:** From the repo root run `pnpm dev`. This starts the Next.js app (web), which serves the app and the API routes. Open `http://localhost:3000`.
-- **No separate API process:** The API is not a standalone server. Building the `api` package is done automatically when building the web app (`api` is a dependency and listed in `transpilePackages`). To build only the API package: `pnpm --filter api build`.
+Start the full application:
 
-## Base URL
+```bash
+corepack pnpm@9.15.3 dev
+```
 
-- **Same-origin:** When the web app is served from the same host (e.g. `http://localhost:3000`), the frontend calls `/api/...` (relative). No `NEXT_PUBLIC_API_URL` needed.
-- **Separate API (optional):** If you later run the API as a standalone server, set `NEXT_PUBLIC_API_URL` to that origin (e.g. `http://localhost:3001`). The frontend uses it for dev-token and setlist proxy requests (see `apps/web/src/lib/config.ts` and `api.ts`).
+Build only the reusable handler package:
 
-## Deployment
+```bash
+corepack pnpm@9.15.3 --filter @repo/api build
+```
 
-Deploy the Next.js app as one self-hosted Node.js service behind a reverse proxy. The same deployment serves pages and API routes. Set env vars (`APPLE_*`, `SETLISTFM_API_KEY`, `ALLOWED_ORIGIN`, etc.) in the deployment environment.
+There is no command for starting `packages/api` as a separate service.
 
----
+## API base URL
 
-**Option A (alternative):** A standalone `apps/api` server could expose the same routes and be deployed separately (e.g. serverless functions or a Node server). The `api` package is built for that; only the HTTP layer would live in a separate app. Document which option is in use when switching.
+The browser uses same-origin `/api` routes when `NEXT_PUBLIC_API_URL` is unset.
+The optional setting can redirect browser API requests, but this repository
+does not provide a separate HTTP server for that deployment model.
+
+See [API reference](api-reference.md) and [deployment](deployment.md).

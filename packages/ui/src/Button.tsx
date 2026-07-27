@@ -35,7 +35,7 @@ export function Button({
     <button
       type={type}
       className={mergedClassName}
-      disabled={loading || disabled === true}
+      disabled={Boolean(disabled || loading)}
       aria-busy={loading}
       {...rest}
     >

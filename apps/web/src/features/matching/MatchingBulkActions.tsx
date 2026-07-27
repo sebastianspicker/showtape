@@ -14,7 +14,7 @@ export function MatchingBulkActions({
   onSkipUnmatched,
 }: MatchingBulkActionsProps) {
   return (
-    <div className="matching-actions">
+    <div className="matching-actions" role="group" aria-label="Bulk matching actions">
       <Button
         type="button"
         onClick={onAutoMatchAll}

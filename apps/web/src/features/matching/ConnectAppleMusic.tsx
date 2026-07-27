@@ -67,6 +67,7 @@ export function ConnectAppleMusic({
         loadingChildren="Connecting…"
         aria-label={loading ? 'Connecting to Apple Music' : label}
         title="Sign in with Apple Music to create playlists in your library"
+        className="proceed-button"
       >
         {label}
       </Button>

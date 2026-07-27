@@ -28,28 +28,32 @@ export function TrackSearchPanel({
   onChoose,
   onCancel,
 }: TrackSearchPanelProps) {
+  const inputId = `search-track-${index}`;
+  const resultsId = `search-results-${index}`;
+
   return (
     <div
       className="track-search-panel"
-      onKeyDown={(event) => {
-        if (event.key === 'Escape') onCancel();
-      }}
+      role="search"
+      aria-label="Search Apple Music for a catalog track"
+      onKeyDown={(event) => event.key === 'Escape' && onCancel()}
     >
-      <label htmlFor={`search-track-${index}`} className="input-label">
+      <label htmlFor={inputId} className="input-label">
         Search Apple Music
       </label>
       <div className="track-search-controls">
         <input
-          id={`search-track-${index}`}
-          type="text"
+          id={inputId}
+          type="search"
           value={searchQuery}
           onChange={(e) => onSearchQueryChange(e.target.value)}
           placeholder="Song name, artist…"
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') onSearch();
-          }}
+          onKeyDown={(e) => e.key === 'Enter' && onSearch()}
           autoFocus
           className="input search-input"
+          aria-controls={resultsId}
+          autoComplete="off"
+          enterKeyHint="search"
         />
         <button
           type="button"
@@ -72,7 +76,7 @@ export function TrackSearchPanel({
         </p>
       )}
       {searchResults.length > 0 && (
-        <ul className="search-results-list">
+        <ul id={resultsId} className="search-results-list" aria-label="Search results">
           {searchResults.map((track) => (
             <li key={track.id}>
               <button
@@ -81,15 +85,20 @@ export function TrackSearchPanel({
                 className="search-result-button"
                 aria-label={`Select ${track.name}${track.artistName ? ` by ${track.artistName}` : ''}`}
               >
-                {track.name}
-                {track.artistName ? ` · ${track.artistName}` : ''}
+                <span>
+                  {track.name}
+                  {track.artistName ? ` · ${track.artistName}` : ''}
+                </span>
+                <span className="search-result-action" aria-hidden="true">
+                  Select
+                </span>
               </button>
             </li>
           ))}
         </ul>
       )}
       {hasSearched && !searching && !searchError && searchResults.length === 0 && (
-        <p className="support-text search-empty">
+        <p className="support-text search-empty" id={resultsId}>
           No songs found. Try different keywords or check the spelling.
         </p>
       )}

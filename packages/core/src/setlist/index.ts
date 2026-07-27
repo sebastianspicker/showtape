@@ -1,4 +1,4 @@
-export type { Setlist, SetlistEntry } from './types.js';
+export { SETLIST_FM_ATTRIBUTION_FALLBACK_URL, type Setlist, type SetlistEntry } from './types.js';
 export type {
   SetlistFmResponse,
   SetlistFmArtist,
@@ -6,7 +6,7 @@ export type {
   SetlistFmSong,
   SetlistFmSet,
 } from './setlistfm-types.js';
-export { mapSetlistFmToSetlist } from './mapper.js';
+export { getSetlistFmAttributionUrl, mapSetlistFmToSetlist } from './mapper.js';
 export { flattenSetlistToEntries } from './flatten.js';
 export { parseSetlistIdFromInput } from './parse-id.js';
 export { buildPlaylistName } from './playlist-name.js';

@@ -1,4 +1,5 @@
 import { APPLE_MUSIC_APP_ID } from '../config';
+import { PRODUCT_NAME } from '../../content/brand';
 import { fetchDeveloperToken, isTokenValid } from './token';
 import type { MusicKitGlobal, MusicKitInstance } from './types';
 
@@ -90,7 +91,7 @@ export async function initMusicKit(): Promise<MusicKitInstance> {
       const MusicKit = await waitForMusicKit();
       const configureResult = MusicKit.configure({
         developerToken: token,
-        app: { name: 'Setlist to Playlist', build: '1' },
+        app: { name: PRODUCT_NAME, build: '1' },
         appId: APPLE_MUSIC_APP_ID,
       });
       if (configureResult && typeof (configureResult as Promise<unknown>).then === 'function') {

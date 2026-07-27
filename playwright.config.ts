@@ -5,7 +5,7 @@ const buildWorkspaceLibraries =
   'corepack pnpm@9.15.3 --filter @repo/shared run build && corepack pnpm@9.15.3 --filter @repo/core run build';
 
 export default defineConfig({
-  testDir: './apps/web/e2e',
+  testDir: './apps/web/tests/e2e',
   timeout: 60_000,
   fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),

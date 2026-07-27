@@ -168,6 +168,10 @@ describe('CreatePlaylistView', () => {
 
     render(<CreatePlaylistView setlist={setlist} matchRows={matchRows} />);
 
+    expect(screen.getByRole('list', { name: 'Selected songs' })).toHaveTextContent('Song A');
+    expect(screen.getByRole('region', { name: 'Apple Music playlist creation' })).toHaveTextContent(
+      'Connected'
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Create playlist' }));
     expect(handleCreate).toHaveBeenCalledOnce();
   });

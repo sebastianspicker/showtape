@@ -87,22 +87,25 @@ vi.mock('../../src/features/setlist-import/useFlowState', () => ({
 
 import { SetlistImportView } from '../../src/features/setlist-import/SetlistImportView';
 
-describe('SetlistImportView', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockValidateInput.mockReturnValue(true);
-    mockLoadSetlist.mockResolvedValue(false);
-    mockSelectHistoryItem.mockResolvedValue(false);
-    mockUseSetlistImportState.mockReturnValue(baseImportState);
-  });
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockValidateInput.mockReturnValue(true);
+  mockLoadSetlist.mockResolvedValue(false);
+  mockSelectHistoryItem.mockResolvedValue(false);
+  mockUseSetlistImportState.mockReturnValue(baseImportState);
+});
 
-  afterEach(cleanup);
+afterEach(cleanup);
 
+describe('SetlistImportView import controls', () => {
   it('renders the initial orientation and import field', () => {
     render(<SetlistImportView />);
-    expect(screen.getByRole('heading', { name: 'Find a setlist' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Import a setlist' })).toBeInTheDocument();
     expect(screen.getByLabelText('Setlist URL or ID')).toBeInTheDocument();
     expect(screen.getByText('Confirm the show and song order.')).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: 'Playlist creation progress' })).toContainElement(
+      screen.getByText('Import').closest('[aria-current="step"]')
+    );
   });
 
   it('does not request an invalid input', () => {
@@ -129,7 +132,9 @@ describe('SetlistImportView', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(mockCancelLoad).toHaveBeenCalledOnce();
   });
+});
 
+describe('SetlistImportView recovery and history', () => {
   it('shows retry only for retryable errors', () => {
     mockUseSetlistImportState.mockReturnValue({
       ...baseImportState,
@@ -149,13 +154,10 @@ describe('SetlistImportView', () => {
     expect(mockRetryLast).toHaveBeenCalledOnce();
   });
 
-  it('renders recognizable history metadata and imports the selected record', async () => {
+  it('renders input-only history and imports the selected record', async () => {
     const historyItem = {
       input: '63de4613',
       setlistId: '63de4613',
-      artist: 'The Beatles',
-      venue: 'Hollywood Bowl',
-      date: '23-08-1964',
     };
     mockSelectHistoryItem.mockResolvedValue(true);
     mockUseSetlistImportState.mockReturnValue({
@@ -164,7 +166,7 @@ describe('SetlistImportView', () => {
     });
     render(<SetlistImportView />);
 
-    fireEvent.click(screen.getByRole('button', { name: /The Beatles/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Setlist 63de4613/ }));
 
     await waitFor(() => expect(mockSelectHistoryItem).toHaveBeenCalledWith(historyItem));
     expect(mockGoToPreview).toHaveBeenCalledOnce();

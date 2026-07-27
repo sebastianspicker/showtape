@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   devIndicators: false,
-  transpilePackages: ['@repo/core', '@repo/shared', 'api'],
+  transpilePackages: ['@repo/api', '@repo/core', '@repo/shared'],
   turbopack: { root: repoRoot },
 };
 

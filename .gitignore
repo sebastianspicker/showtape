@@ -46,30 +46,33 @@ Thumbs.db
 .Trashes
 .cursor/
 
-# Local automation and audit artifacts
-.claude/
-.kilo/
-.agents/
-.codex/
-.codacy/
-.codegraph/
-.serena/
-AGENTS.md
-AGENT_*.md
-AGENT_AUDIT_REPORT.md
-AUDIT*.md
-FINDINGS*.md
-REVIEW*.md
-Plan.md
-reports/
-scratch/
-deprecated/
+# Local tool state and internal workflow artifacts
+/.claude/
+/.kilo/
+/.agents/
+/.codex/
+/.codacy/
+/.codegraph/
+/.impeccable/
+/.serena/
+/.prompts/
+/AGENTS.md
+/AGENT_*.md
+/AGENT_AUDIT_REPORT.md
+/AUDIT*.md
+/FINDINGS*.md
+/REVIEW*.md
+/Plan.md
+/RELEASE_STATUS.md
+/reports/
+/scratch/
+/deprecated/
 /local/
 /report.json
 /diagnostics*.json
 /support-report*.json
-*-ledger.md
-*-report.md
+/*-ledger.md
+/*-report.md
 docs/local/
 docs/private/
 docs/internal/
@@ -89,6 +92,7 @@ lerna-debug.log*
 # Test and coverage
 coverage/
 .nyc_output/
+.vitest/
 test-results/
 playwright-report/
 blob-report/
@@ -111,8 +115,8 @@ storage-state*.json
 # Generated / seeded fixtures (script output; may contain live API data)
 scripts/fixtures/
 
-# Test-only key material (generated at runtime; no static key files needed)
-apps/api/tests/fixtures/*.pem
+# Test-only key material generated at runtime
+packages/api/tests/fixtures/*.pem
 
 # Backup and temp
 *.bak

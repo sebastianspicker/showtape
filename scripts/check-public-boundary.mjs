@@ -1,18 +1,13 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync, statSync } from 'node:fs';
 
-const FILE_ACCESS = {
-  readFile: readFileSync,
-  stat: statSync,
-};
-
 const files = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z'])
   .toString('utf8')
   .split('\0')
   .filter(Boolean)
   .filter((file) => {
     try {
-      return FILE_ACCESS.stat(file).isFile();
+      return statSync(file).isFile();
     } catch {
       return false;
     }
@@ -26,8 +21,9 @@ const forbiddenPaths = [
   /(^|\/)(?:credentials|secrets|private)(?:\/|$)/i,
   /(^|\/)(?:node_modules|coverage|test-results|playwright-report|blob-report)(?:\/|$)/,
   /(^|\/)(?:\.next|dist|build|out)(?:\/|$)/,
-  /(^|\/)(?:\.agents|\.claude|\.codacy|\.codex|\.codegraph|\.cursor|\.kilo|\.serena)(?:\/|$)/,
+  /(^|\/)(?:\.agents|\.claude|\.codacy|\.codex|\.codegraph|\.cursor|\.impeccable|\.kilo|\.prompts|\.serena)(?:\/|$)/,
   /(^|\/)AGENTS?[^/]*\.md$/i,
+  /^RELEASE_STATUS\.md$/,
   /(^|\/)docs\/(?:audit|fixes|archive|local|private|internal|status)(?:\/|$)/,
   /(^|\/)(?:diagnostics|support-report)[^/]*\.json$/i,
 ];
@@ -42,7 +38,7 @@ for (const file of files) {
 
   let content;
   try {
-    content = FILE_ACCESS.readFile(file, 'utf8');
+    content = readFileSync(file, 'utf8');
   } catch {
     continue;
   }

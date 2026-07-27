@@ -9,7 +9,7 @@ export default defineConfig({
   },
   test: {
     setupFiles: ['./tests/setup.ts'],
-    exclude: ['e2e/**', 'node_modules/**'],
+    exclude: ['tests/e2e/**', 'node_modules/**'],
     coverage: {
       provider: 'v8',
     },

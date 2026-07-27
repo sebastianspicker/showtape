@@ -28,7 +28,7 @@ export function normalizeTrackName(name: string): string {
   s = s.replace(featWithMetadata, ' $1 ');
   s = s.replace(/\s*(?:feat|ft)\.?\s+[^(\n]+(?:\s*-\s*[^(\n]+)?\s*/gi, ' ');
 
-  // 3. Trailing dash-metadata (live, remastered, radio edit, etc.) — after feat. so "X - Radio Edit" is preserved
+  // 3. Trailing dash metadata after feat. (live, remastered, radio edit, etc.).
   s = s
     .replace(/\s*-\s*live\s*$/i, '')
     .replace(/\s*-\s*remastered\s*$/i, '')

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { mockNextRequest } from '../helpers/mock-request';
 
-vi.mock('api', () => ({
+vi.mock('@repo/api', () => ({
   handleHealth: () => ({ status: 'ok', timestamp: '2025-01-01T00:00:00.000Z' }),
 }));
 

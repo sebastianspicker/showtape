@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type Dispatch } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { MatchRow } from '@/features/matching/types';
 
 export type FlowStep = 'import' | 'preview' | 'matching' | 'export';
@@ -10,10 +10,10 @@ export interface UseFlowStateResult {
   stepContainerRef: React.RefObject<HTMLElement | null>;
   goToPreview: () => void;
   goToMatching: () => void;
-  goToExport: Dispatch<MatchRow[]>;
+  goToExport: (rows: MatchRow[]) => void;
   goBackToPreview: () => void;
   goBackToMatching: () => void;
-  updateMatchDraft: Dispatch<MatchRow[]>;
+  updateMatchDraft: (rows: MatchRow[]) => void;
   startAnotherSetlist: () => void;
 }
 
@@ -38,7 +38,8 @@ export function useFlowState(): UseFlowStateResult {
         if (!el.getAttribute('tabindex')) {
           el.setAttribute('tabindex', '-1');
         }
-        el.focus({ preventScroll: false });
+        window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+        el.focus({ preventScroll: true });
       }
     });
     return () => cancelAnimationFrame(id);
@@ -55,9 +56,7 @@ export function useFlowState(): UseFlowStateResult {
   }, []);
   const goBackToPreview = useCallback(() => setStep('preview'), []);
   const goBackToMatching = useCallback(() => setStep('matching'), []);
-  const updateMatchDraft = useCallback((rows: MatchRow[]) => {
-    setMatchRows(rows);
-  }, []);
+  const updateMatchDraft = useCallback((rows: MatchRow[]) => setMatchRows(rows), []);
   const startAnotherSetlist = useCallback(() => {
     setMatchRows(null);
     setStep('import');

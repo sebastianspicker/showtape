@@ -1,43 +1,62 @@
-# setlist.fm API
+# setlist.fm Integration
 
-## Base URL and API key
+## Configuration
 
-- **Base URL:** `https://api.setlist.fm/rest/1.0`
-- **Authentication:** Pass your API key as `x-api-key: <your-api-key>` in the request header.
+Create a setlist.fm API application and set the issued key as:
 
-## Obtaining an API key
+```dotenv
+SETLISTFM_API_KEY=your-setlistfm-api-key
+```
 
-1. Create an account at [setlist.fm](https://www.setlist.fm/).
-2. Open [setlist.fm API applications](https://www.setlist.fm/settings/apps) and create an application.
-3. Copy the API key and set it in your environment as `SETLISTFM_API_KEY`. Never expose this key in the client; use the API proxy so the key stays server-side.
+The server sends the key in the `x-api-key` header to
+`https://api.setlist.fm/rest/1.0`. The browser never receives it.
 
-Reference: [setlist.fm API documentation](https://api.setlist.fm/docs/1.0/index.html).
+Use the current [setlist.fm API documentation](https://api.setlist.fm/docs/1.0/index.html)
+and [API application page](https://www.setlist.fm/settings/apps) for account and
+key setup.
 
-## Import Variants
+## Accepted input
 
-- **By setlist ID:** `GET https://api.setlist.fm/rest/1.0/setlist/{id}`. In this repo, accepted setlist IDs are `4-12` hexadecimal characters.
-- **By URL:** Parse the setlist ID from the setlist.fm URL, then call the API by ID. Alternatively use setlist.fm's URL-based endpoint if documented.
+The application accepts:
 
-## Mapping Notes
+- a 4 to 12 character hexadecimal setlist ID;
+- a setlist.fm setlist URL containing such an ID.
 
-- Songs flagged as `tape: true` are intentionally excluded from playlist mapping so intros/interludes are not exported as Apple Music tracks.
+`GET /api/setlist/proxy` accepts `id` or `url`. If both are present, `id` takes
+precedence. The handler always calls the upstream setlist-by-ID endpoint.
 
-## Caching / Backoff
+## Response handling
 
-- **Caching:** The proxy caches setlist responses by ID in memory: TTL 1 hour, eviction when the cache exceeds 200 entries (expired entries removed first). This reduces outbound calls and helps stay within rate limits.
-- **Rate limits:** setlist.fm enforces rate limits. On 429, the proxy retries with jitter, respects `Retry-After` when present, and returns a clear message to the user.
-- **API key:** Pass as `x-api-key` (or per setlist.fm docs). Never expose in the client; use the proxy so the key stays server-side.
+Before returning or caching a successful response, the server verifies:
 
-## Test setlist ID (for manual or integration checks)
+- the requested setlist ID;
+- a nonempty event date;
+- a nonempty artist name;
+- that `set`, when present, is an array.
 
-A known public setlist you can use to verify the proxy:
+Songs marked `tape: true` are excluded from playlist mapping.
 
-- **ID:** `63de4613`
-- **Description:** The Beatles at Hollywood Bowl, 1964 (example from setlist.fm API docs)
-- **Expected shape:** JSON with `artist`, `venue`, `set` (array of sets with `song` array), `eventDate`, `id`, `versionId`, `url` (attribution).
+Successful responses are cached in process memory for one hour with a
+200-entry limit. Concurrent requests for the same uncached ID share one
+upstream request. The complete upstream operation has a 10 second timeout and
+at most two bounded retries after HTTP 429.
 
-Example: `GET /api/setlist/proxy?id=63de4613` returns the setlist JSON when `SETLISTFM_API_KEY` is set.
+## Attribution and terms
 
-## TOS
+The browser displays the response attribution URL while imported data is shown
+and uses the setlist.fm home page as a validated fallback. Operators must review
+the current [setlist.fm Terms of Use](https://www.setlist.fm/help/terms) before
+enabling the API key. The terms are maintained outside this repository and can
+change independently.
 
-Comply with setlist.fm's API terms of use and attribution requirements.
+## Local fixture seeding
+
+The repository's seeding script fetches setlist ID `63de4613` and writes an
+ignored local fixture:
+
+```bash
+SETLISTFM_API_KEY=your_key corepack pnpm@9.15.3 fixtures:seed
+```
+
+The command writes `scripts/fixtures/demo-setlists.json` only if at least one
+request succeeds.

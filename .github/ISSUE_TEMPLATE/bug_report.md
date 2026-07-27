@@ -4,27 +4,27 @@ about: Something isn't working as expected
 labels: bug
 ---
 
-**What happened?**
+## What happened?
 
 <!-- A clear description of the bug. -->
 
-**Steps to reproduce**
+## Steps to reproduce
 
 1.
 2.
 3.
 
-**Expected behaviour**
+## Expected behavior
 
-**Actual behaviour**
+## Actual behavior
 
-**Environment**
+## Environment
 
 - Browser + version:
 - OS:
 - Public sample setlist.fm URL or ID used (if applicable):
 
-**Relevant errors or screenshots**
+## Relevant errors or screenshots
 
 <!--
 Console errors, network output, or screenshots. Before posting, redact tokens,

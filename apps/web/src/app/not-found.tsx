@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { PRODUCT_NAME } from '@/content/brand';
 
 export default function NotFound() {
   return (
@@ -6,7 +7,7 @@ export default function NotFound() {
       <h1>Page not found</h1>
       <p className="support-text">The page you’re looking for doesn’t exist or has been moved.</p>
       <Link href="/" className="button button--secondary">
-        Back to Setlist to Playlist
+        Back to {PRODUCT_NAME}
       </Link>
     </main>
   );

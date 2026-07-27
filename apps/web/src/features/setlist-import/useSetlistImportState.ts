@@ -6,18 +6,15 @@ import type { Setlist, SetlistFmResponse } from '@repo/core';
 import { getErrorMessage, isOk, MAX_SETLIST_INPUT_LENGTH, SETLIST_MESSAGES } from '@repo/shared';
 import { setlistProxyUrl } from '@/lib/api';
 import { fetchApiJson } from '@/lib/fetch';
+import {
+  clearImportHistory,
+  pushImportHistoryItem,
+  readImportHistory,
+  writeImportHistory,
+  type ImportHistoryItem,
+} from './importHistory';
 
-const HISTORY_V1_KEY = 'setlist_import_history_v1';
-const HISTORY_V2_KEY = 'setlist_import_history_v2';
-const MAX_HISTORY_ITEMS = 8;
-
-export interface ImportHistoryItem {
-  input: string;
-  setlistId: string;
-  artist: string;
-  venue?: string;
-  date?: string;
-}
+export type { ImportHistoryItem };
 
 export interface ImportError {
   message: string;
@@ -26,72 +23,12 @@ export interface ImportError {
   retryAfterSeconds?: number;
 }
 
-function isHistoryItem(value: unknown): value is ImportHistoryItem {
-  if (!value || typeof value !== 'object') return false;
-  const record = value as Record<string, unknown>;
-  return (
-    typeof record.input === 'string' &&
-    typeof record.setlistId === 'string' &&
-    typeof record.artist === 'string'
-  );
-}
-
-function readHistory(): ImportHistoryItem[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const v2Raw = window.localStorage.getItem(HISTORY_V2_KEY);
-    if (v2Raw) {
-      const parsed = JSON.parse(v2Raw) as unknown;
-      if (!Array.isArray(parsed)) return [];
-      return parsed.filter(isHistoryItem).slice(0, MAX_HISTORY_ITEMS);
-    }
-
-    const v1Raw = window.localStorage.getItem(HISTORY_V1_KEY);
-    if (!v1Raw) return [];
-    const parsed = JSON.parse(v1Raw) as unknown;
-    if (!Array.isArray(parsed)) return [];
-    const migrated = parsed
-      .filter((value): value is string => typeof value === 'string')
-      .map((input) => ({
-        input,
-        setlistId: parseSetlistIdFromInput(input) ?? input,
-        artist: 'Previously imported setlist',
-      }))
-      .slice(0, MAX_HISTORY_ITEMS);
-    writeHistory(migrated);
-    return migrated;
-  } catch {
-    return [];
-  }
-}
-
-function writeHistory(next: ImportHistoryItem[]): void {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.setItem(HISTORY_V2_KEY, JSON.stringify(next.slice(0, MAX_HISTORY_ITEMS)));
-  } catch {
-    // History is optional; storage can be unavailable or full.
-  }
-}
-
-function pushHistory(prev: ImportHistoryItem[], item: ImportHistoryItem): ImportHistoryItem[] {
-  const deduped = [
-    item,
-    ...prev.filter((entry) => entry.setlistId !== item.setlistId && entry.input !== item.input),
-  ];
-  return deduped.slice(0, MAX_HISTORY_ITEMS);
-}
-
-function includesAny(value: string, terms: readonly string[]): boolean {
-  return terms.some((term) => value.includes(term));
-}
-
 function classifyError(message: string): ImportError {
   const lower = message.toLowerCase();
-  if (includesAny(lower, ['not found', '404'])) {
+  if (lower.includes('not found') || lower.includes('404')) {
     return { message, code: 'not-found', retryable: false };
   }
-  if (includesAny(lower, ['rate', '429'])) {
+  if (lower.includes('rate') || lower.includes('429') || lower.includes('too many requests')) {
     const retryAfter = lower.match(/(\d+)\s*(?:seconds?|s)\b/)?.[1];
     return {
       message,
@@ -100,10 +37,14 @@ function classifyError(message: string): ImportError {
       retryAfterSeconds: retryAfter ? Number(retryAfter) : undefined,
     };
   }
-  if (includesAny(lower, ['unavailable', '503', '502'])) {
+  if (lower.includes('unavailable') || lower.includes('503') || lower.includes('502')) {
     return { message, code: 'service', retryable: true };
   }
-  if (includesAny(lower, ['network', 'failed to fetch', 'load failed'])) {
+  if (
+    lower.includes('network') ||
+    lower.includes('failed to fetch') ||
+    lower.includes('load failed')
+  ) {
     return { message, code: 'network', retryable: true };
   }
   return { message, code: 'unknown', retryable: false };
@@ -131,6 +72,9 @@ function invalidInputError(value: string): ImportError | null {
   return null;
 }
 
+const isAbortError = (value: unknown): boolean =>
+  value instanceof DOMException && value.name === 'AbortError';
+
 export function useSetlistImportState() {
   const [inputValue, setInputValueState] = useState('');
   const [setlist, setSetlist] = useState<Setlist | null>(null);
@@ -141,13 +85,11 @@ export function useSetlistImportState() {
   const requestCounterRef = useRef(0);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  useEffect(() => {
-    setHistory(readHistory());
-  }, []);
+  useEffect(() => setHistory(readImportHistory()), []);
   useEffect(() => () => abortControllerRef.current?.abort(), []);
 
-  const validateInput = (value = inputValue): boolean => {
-    const validationError = invalidInputError(value);
+  const validateInput = (): boolean => {
+    const validationError = invalidInputError(inputValue);
     setError(validationError);
     return validationError === null;
   };
@@ -169,88 +111,70 @@ export function useSetlistImportState() {
       const result = await fetchApiJson<SetlistFmResponse>(url, { signal: abortController.signal });
       if (currentRequestRef.current !== requestId) return false;
 
-      if (!isOk(result)) return handleLoadError(result.error);
-
-      const mapped = mapSetlistFmToSetlist(result.value);
-      setSetlist(mapped);
-      const item: ImportHistoryItem = {
-        input: trimmed,
-        setlistId: mapped.id,
-        artist: mapped.artist,
-        venue: mapped.venue,
-        date: mapped.eventDate,
-      };
-      setHistory((prev) => {
-        const next = pushHistory(prev, item);
-        writeHistory(next);
-        return next;
-      });
-      return true;
+      if (isOk(result)) {
+        const mapped = mapSetlistFmToSetlist(result.value);
+        setSetlist(mapped);
+        const item: ImportHistoryItem = {
+          input: trimmed,
+          setlistId: mapped.id,
+        };
+        setHistory((prev) => {
+          const next = pushImportHistoryItem(prev, item);
+          writeImportHistory(next);
+          return next;
+        });
+        return true;
+      }
+      setError(classifyError(result.error));
+      setSetlist(null);
+      return false;
     } catch (caught) {
-      if (shouldIgnoreLoadFailure(caught, requestId)) return false;
-      return handleLoadError(getErrorMessage(caught, 'Network error.'));
+      if (isAbortError(caught)) return false;
+      if (currentRequestRef.current !== requestId) return false;
+      setError(classifyError(getErrorMessage(caught, 'Network error.')));
+      setSetlist(null);
+      return false;
     } finally {
-      finishLoad(requestId);
+      if (currentRequestRef.current === requestId) {
+        setLoading(false);
+        currentRequestRef.current = 0;
+        abortControllerRef.current = null;
+      }
     }
   };
 
-  const handleLoadError = (message: string): false => {
-    setError(classifyError(message));
-    setSetlist(null);
-    return false;
-  };
-
-  const shouldIgnoreLoadFailure = (caught: unknown, requestId: number): boolean => {
-    return (
-      (caught instanceof DOMException && caught.name === 'AbortError') ||
-      currentRequestRef.current !== requestId
-    );
-  };
-
-  const finishLoad = (requestId: number): void => {
-    if (currentRequestRef.current !== requestId) return;
-    setLoading(false);
-    currentRequestRef.current = 0;
-    abortControllerRef.current = null;
-  };
-
-  const cancelLoad = () => {
+  function cancelLoad() {
     currentRequestRef.current = 0;
     abortControllerRef.current?.abort();
     abortControllerRef.current = null;
     setLoading(false);
-  };
+  }
 
-  const retryLast = (): Promise<boolean> => {
+  function retryLast(): Promise<boolean> {
     return loadSetlist(inputValue);
-  };
+  }
 
-  const setInputValue = (value: string) => {
+  function setInputValue(value: string) {
     setInputValueState(value);
     setError(null);
-  };
+  }
 
-  const selectHistoryItem = async (item: ImportHistoryItem): Promise<boolean> => {
+  async function selectHistoryItem(item: ImportHistoryItem): Promise<boolean> {
     setInputValueState(item.input);
     return loadSetlist(item.input);
-  };
+  }
 
-  const clearHistory = () => {
+  function clearHistory() {
     setHistory([]);
-    try {
-      window.localStorage.removeItem(HISTORY_V1_KEY);
-      window.localStorage.removeItem(HISTORY_V2_KEY);
-    } catch {
-      // Clearing history is best effort when storage access is blocked.
-    }
-  };
+    clearImportHistory();
+  }
 
-  const resetForAnother = () => {
+  function resetForAnother() {
     cancelLoad();
     setInputValueState('');
     setSetlist(null);
     setError(null);
-  };
+  }
 
   return {
     inputValue,

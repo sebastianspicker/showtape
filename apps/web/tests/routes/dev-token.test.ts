@@ -3,7 +3,7 @@ import { mockNextRequest } from '../helpers/mock-request';
 
 const mockHandleDevToken = vi.fn();
 
-vi.mock('api', () => ({
+vi.mock('@repo/api', () => ({
   handleDevToken: () => mockHandleDevToken(),
 }));
 
@@ -76,7 +76,7 @@ describe('GET /api/apple/dev-token', () => {
     expect(response.headers.get('Pragma')).toBe('no-cache');
   });
 
-  it('documents disabled direct-deployment rate limiting when TRUST_PROXY is unset', async () => {
+  it('reports disabled per-client rate limiting when TRUST_PROXY is unset', async () => {
     mockHandleDevToken.mockResolvedValue({ token: 'test-token' });
 
     const request = mockNextRequest('http://localhost:3000/api/apple/dev-token', {

@@ -11,24 +11,39 @@ export interface AddTracksToLibraryPlaylistResult {
   remainingIds: string[];
 }
 
+export class AmbiguousMusicMutationError extends Error {
+  constructor(message: string, options?: { cause?: unknown }) {
+    super(message, options);
+    this.name = 'AmbiguousMusicMutationError';
+  }
+}
+
 export class AddTracksToLibraryPlaylistError extends Error {
+  readonly progress: 'exact' | 'unknown';
   readonly addedIds: string[];
   readonly remainingIds: string[];
+  readonly attemptedIds: string[];
 
   constructor(
     message: string,
     {
       addedIds,
       remainingIds,
+      progress = 'exact',
+      attemptedIds = [],
     }: {
       addedIds: string[];
       remainingIds: string[];
+      progress?: 'exact' | 'unknown';
+      attemptedIds?: string[];
     }
   ) {
     super(message);
     this.name = 'AddTracksToLibraryPlaylistError';
+    this.progress = progress;
     this.addedIds = addedIds;
     this.remainingIds = remainingIds;
+    this.attemptedIds = attemptedIds;
   }
 }
 
@@ -41,13 +56,25 @@ export async function createLibraryPlaylist(name: string): Promise<CreatePlaylis
   const body = {
     data: [{ type: 'playlists' as const, attributes: { name } }],
   };
-  const res = (await music.music.api(path, {
-    method: 'POST',
-    data: body,
-  })) as MusicKitPlaylistCreateResponse;
+  let res: MusicKitPlaylistCreateResponse;
+  try {
+    res = (await music.music.api(path, {
+      method: 'POST',
+      data: body,
+    })) as MusicKitPlaylistCreateResponse;
+  } catch (error) {
+    throw new AmbiguousMusicMutationError(
+      'Apple Music did not confirm whether the playlist was created. Check your library before retrying.',
+      { cause: error }
+    );
+  }
   throwIfMusicKitError(res, 'Failed to create playlist');
   const playlist = Array.isArray(res?.data) ? res.data[0] : res?.data;
-  if (!playlist?.id) throw new Error('Failed to create playlist');
+  if (!playlist?.id) {
+    throw new AmbiguousMusicMutationError(
+      'Apple Music returned no playlist ID. Check your library before retrying.'
+    );
+  }
   return { id: playlist.id, url: playlist.attributes?.url };
 }
 
@@ -80,10 +107,24 @@ export async function addTracksToLibraryPlaylist(
     const data = {
       data: batch.map((id) => ({ id: id.trim(), type: 'songs' as const })),
     };
+    let res: MusicKitAddTracksResponse | undefined;
     try {
-      const res = (await music.music.api(path, { method: 'POST', data })) as
+      res = (await music.music.api(path, { method: 'POST', data })) as
         | MusicKitAddTracksResponse
         | undefined;
+    } catch {
+      throw new AddTracksToLibraryPlaylistError(
+        'Apple Music did not confirm whether the current track batch was added. Check the playlist before retrying.',
+        {
+          progress: 'unknown',
+          addedIds: validIds.slice(0, addedCount),
+          remainingIds: [],
+          attemptedIds: validIds.slice(addedCount),
+        }
+      );
+    }
+
+    try {
       if (res) {
         throwIfMusicKitError(res, 'Adding tracks to playlist failed');
       }
@@ -92,6 +133,7 @@ export async function addTracksToLibraryPlaylist(
       throw new AddTracksToLibraryPlaylistError(
         error instanceof Error ? error.message : 'Adding tracks to playlist failed',
         {
+          progress: 'exact',
           addedIds: validIds.slice(0, addedCount),
           remainingIds: validIds.slice(addedCount),
         }

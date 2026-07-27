@@ -44,6 +44,9 @@ describe('mapSetlistFmToSetlist', () => {
     expect(result.artist).toBe('The Beatles');
     expect(result.venue).toBe('Compaq Center');
     expect(result.eventDate).toBe('23-08-1964');
+    expect(result.sourceUrl).toBe(
+      'https://www.setlist.fm/setlist/the-beatles/1964/hollywood-bowl-hollywood-ca-63de4613.html'
+    );
   });
 
   it('preserves set structure and track order for playable songs', () => {
@@ -67,9 +70,19 @@ describe('mapSetlistFmToSetlist', () => {
     expect(result.artist).toBe('Unknown');
     expect(result.venue).toBeUndefined();
     expect(result.sets).toEqual([]);
+    expect(result.sourceUrl).toBe('https://www.setlist.fm/');
   });
 
-  it('throws on invalid response shape (DCI-018)', () => {
+  it.each([
+    'javascript:alert(1)',
+    'https://setlist.fm.evil.example/setlist/example-deadbeef.html',
+    'https://user@www.setlist.fm/setlist/example-deadbeef.html',
+  ])('uses the setlist.fm homepage for an unsafe attribution URL: %s', (url) => {
+    const result = mapSetlistFmToSetlist({ ...fixture, url });
+    expect(result.sourceUrl).toBe('https://www.setlist.fm/');
+  });
+
+  it('throws on an invalid response shape', () => {
     expect(() => mapSetlistFmToSetlist(null as unknown as SetlistFmResponse)).toThrow(
       'Invalid setlist response'
     );

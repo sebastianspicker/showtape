@@ -81,6 +81,7 @@ describe('MatchingView', () => {
   it('renders track list', () => {
     render(<MatchingView setlist={mockSetlist} onProceedToCreatePlaylist={vi.fn()} />);
     expect(screen.getByText('Song A')).toBeInTheDocument();
+    expect(screen.getByLabelText('0 of 1 selected')).toBeInTheDocument();
   });
 
   it('shows suggestion loading state', () => {
@@ -93,7 +94,9 @@ describe('MatchingView', () => {
       skipUnmatched: vi.fn(),
     });
     render(<MatchingView setlist={mockSetlist} onProceedToCreatePlaylist={vi.fn()} />);
-    expect(screen.getByText('Searching Apple Music: 0 of 0 songs checked')).toBeInTheDocument();
+    expect(
+      screen.getByText((_, el) => el?.textContent === 'Searching Apple Music: 0 of 0 songs checked')
+    ).toBeInTheDocument();
   });
 
   it('disables proceed button when no tracks matched', () => {
@@ -121,7 +124,9 @@ describe('MatchingView', () => {
 
     render(<MatchingView setlist={mockSetlist} onProceedToCreatePlaylist={vi.fn()} />);
 
-    expect(screen.getByText('0 of 1 songs matched')).toBeInTheDocument();
+    expect(
+      screen.getByText((_, el) => el?.textContent === '0 of 1 songs matched')
+    ).toBeInTheDocument();
     const proceedBtn = screen
       .getAllByRole('button')
       .find((b) => b.textContent?.includes('Review playlist'));
