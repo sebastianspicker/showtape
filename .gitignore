@@ -3,12 +3,24 @@ node_modules/
 .pnpm-store/
 
 # Env and secrets
-.env
-.env.local
-.env.*.local
-.env.development
-.env.test
-.env.production
+.env*
+!/.env.example
+.envrc
+.direnv/
+*.pem
+*.key
+*.p8
+*.p12
+*.pfx
+*.cer
+*.crt
+*.der
+*.mobileprovision
+*.jks
+*.keystore
+credentials/
+secrets/
+private/
 
 # Build outputs
 .next/
@@ -34,12 +46,40 @@ Thumbs.db
 .Trashes
 .cursor/
 
-# AI agent artifacts
-.claude/
-.kilo/
-AGENT_AUDIT_REPORT.md
-AUDIT.md
-deprecated/
+# Local tool state and internal workflow artifacts
+/.claude/
+/.kilo/
+/.agents/
+/.codex/
+/.codacy/
+/.codegraph/
+/.impeccable/
+/.serena/
+/.prompts/
+/AGENTS.md
+/AGENT_*.md
+/AGENT_AUDIT_REPORT.md
+/AUDIT*.md
+/FINDINGS*.md
+/REVIEW*.md
+/Plan.md
+/RELEASE_STATUS.md
+/reports/
+/scratch/
+/deprecated/
+/local/
+/report.json
+/diagnostics*.json
+/support-report*.json
+/*-ledger.md
+/*-report.md
+docs/local/
+docs/private/
+docs/internal/
+docs/status/
+docs/audit/
+docs/fixes/
+docs/archive/
 
 # Logs and debug
 *.log
@@ -52,13 +92,21 @@ lerna-debug.log*
 # Test and coverage
 coverage/
 .nyc_output/
+.vitest/
 test-results/
 playwright-report/
 blob-report/
 .playwright/
+playwright/.auth/
+storage-state*.json
+*.har
+*.trace
+*.cpuprofile
+*.heapprofile
 
 # Caches
 .turbo/
+.vite/
 .eslintcache
 .stylelintcache
 .parcel-cache
@@ -67,8 +115,8 @@ blob-report/
 # Generated / seeded fixtures (script output; may contain live API data)
 scripts/fixtures/
 
-# Test-only key material (generated at runtime; no static key files needed)
-apps/api/tests/fixtures/*.pem
+# Test-only key material generated at runtime
+packages/api/tests/fixtures/*.pem
 
 # Backup and temp
 *.bak
@@ -80,21 +128,3 @@ temp/
 
 # PWA / optional
 *.webmanifest.bak
-
-# Ralph Audit / Fixes (moved under docs/audit, docs/fixes)
-docs/audit/*.log
-docs/fixes/*.log
-docs/audit/.last-message.md
-docs/audit/.last-story
-docs/audit/.model-check.log
-docs/audit/.prompt.md
-docs/audit/.story-attempts
-docs/audit/run.log
-docs/audit/events.log
-docs/fixes/.last-message.md
-docs/fixes/.last-story
-docs/fixes/.model-check.log
-docs/fixes/.prompt.md
-docs/fixes/.story-attempts
-docs/fixes/run.log
-docs/fixes/events.log

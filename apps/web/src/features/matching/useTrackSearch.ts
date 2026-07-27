@@ -27,6 +27,7 @@ export interface UseTrackSearchResult {
   runSearch: (index: number) => Promise<void>;
   chooseTrack: (index: number, track: AppleMusicTrack) => void;
   skipTrack: (index: number) => void;
+  closeSearch: () => void;
 }
 
 export function useTrackSearch({ matches, setMatch }: UseTrackSearchParams): UseTrackSearchResult {
@@ -36,18 +37,40 @@ export function useTrackSearch({ matches, setMatch }: UseTrackSearchParams): Use
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  // The search panel is shared between rows, so row switches invalidate older async results.
   const searchRunIdRef = useRef(0);
   const searchRunIdCounter = useRef(0);
   const searchQueryRef = useRef(searchQuery);
   searchQueryRef.current = searchQuery;
 
-  const openSearch = useCallback((index: number) => {
-    setSearchingIndex(index);
+  const invalidateCurrentSearch = useCallback(() => {
+    searchRunIdRef.current = ++searchRunIdCounter.current;
+    setSearching(false);
+  }, []);
+
+  const openSearch = useCallback(
+    (index: number) => {
+      invalidateCurrentSearch();
+      setSearchingIndex(index);
+      const row = matches[index];
+      setSearchQuery(
+        row?.setlistEntry ? buildSearchQuery(row.setlistEntry.name, row.setlistEntry.artist) : ''
+      );
+      setSearchResults([]);
+      setSearchError(false);
+      setHasSearched(false);
+    },
+    [invalidateCurrentSearch, matches]
+  );
+
+  const closeSearch = useCallback(() => {
+    invalidateCurrentSearch();
+    setSearchingIndex(null);
     setSearchQuery('');
     setSearchResults([]);
     setSearchError(false);
     setHasSearched(false);
-  }, []);
+  }, [invalidateCurrentSearch]);
 
   const runSearch = useCallback(
     async (index: number) => {
@@ -82,27 +105,27 @@ export function useTrackSearch({ matches, setMatch }: UseTrackSearchParams): Use
 
   const chooseTrack = useCallback(
     (index: number, track: AppleMusicTrack) => {
+      invalidateCurrentSearch();
       setMatch(index, track);
       setSearchingIndex(null);
       setSearchResults([]);
       setSearchError(false);
     },
-    [setMatch]
+    [invalidateCurrentSearch, setMatch]
   );
 
   const skipTrack = useCallback(
     (index: number) => {
       setMatch(index, null);
-      setSearchingIndex((prev) => {
-        if (prev === index) {
-          setSearchQuery('');
-          setSearchResults([]);
-          return null;
-        }
-        return prev;
-      });
+      if (searchingIndex !== index) return;
+      invalidateCurrentSearch();
+      setSearchQuery('');
+      setSearchResults([]);
+      setSearchError(false);
+      setHasSearched(false);
+      setSearchingIndex(null);
     },
-    [setMatch]
+    [invalidateCurrentSearch, searchingIndex, setMatch]
   );
 
   const searchContext: TrackSearchContext = {
@@ -121,5 +144,6 @@ export function useTrackSearch({ matches, setMatch }: UseTrackSearchParams): Use
     runSearch,
     chooseTrack,
     skipTrack,
+    closeSearch,
   };
 }

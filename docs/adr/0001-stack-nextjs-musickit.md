@@ -1,19 +1,27 @@
-# ADR 0001: Stack – Next.js + MusicKit
+# ADR 0001: Next.js and MusicKit
 
 ## Status
 
-Accepted.
+Accepted
 
 ## Context
 
-We need a web app that talks to setlist.fm and Apple Music, runs in the browser, and can be deployed as a PWA. We need to mint an Apple Developer Token server-side and keep the setlist.fm API key off the client.
+The application needs browser access to Apple Music while keeping the Apple
+private key and setlist.fm API key off the client. The repository also needs one
+deployable HTTP process.
 
 ## Decision
 
-- **Frontend:** Next.js (App Router) + TypeScript + React. Enables SSR/SSG if needed later, simple deployment, and a single codebase for pages and (optionally) API routes.
-- **Apple Music in client:** MusicKit JS. Apple’s official SDK for catalog search and library/playlist operations. User authorization happens in the browser; we only provide the Developer Token from our backend.
-- **Backend:** Minimal serverless/API (separate `apps/api` or Next API routes) for Developer Token and setlist.fm proxy (keeps API key server-side).
+- Use Next.js App Router, React, and TypeScript for the web application.
+- Use MusicKit JS in the browser for catalog search, authorization, and playlist
+  writes.
+- Use Next.js Route Handlers as the HTTP entry points.
+- Keep reusable token and setlist handlers in `packages/api`.
+- Keep the application network-dependent and do not register a service worker.
 
 ## Consequences
 
-- One framework to maintain; good DX and ecosystem. MusicKit is the supported way to integrate Apple Music in the browser. Token and API key stay server-side.
+One Next.js process serves pages and API routes. `packages/api` remains reusable but
+is not independently deployable from this repository. Apple and setlist.fm
+credentials remain on the server, while the MusicKit user token remains in the
+browser.

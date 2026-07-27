@@ -61,23 +61,23 @@ function resumeStorageKey(setlistId: string): string {
   return `playlist_resume_v1:${setlistId}`;
 }
 
-describe('useCreatePlaylistState', () => {
-  beforeEach(() => {
-    window.sessionStorage.clear();
-    mockIsMusicKitAuthorized.mockReset();
-    mockCreateLibraryPlaylist.mockReset();
-    mockAddTracksToLibraryPlaylist.mockReset();
-    mockIsMusicKitAuthorized.mockResolvedValue(true);
-    mockCreateLibraryPlaylist.mockResolvedValue({
-      id: 'playlist-1',
-      url: 'https://music.apple.com/playlist/playlist-1',
-    });
+beforeEach(() => {
+  window.sessionStorage.clear();
+  mockIsMusicKitAuthorized.mockReset();
+  mockCreateLibraryPlaylist.mockReset();
+  mockAddTracksToLibraryPlaylist.mockReset();
+  mockIsMusicKitAuthorized.mockResolvedValue(true);
+  mockCreateLibraryPlaylist.mockResolvedValue({
+    id: 'playlist-1',
+    url: 'https://music.apple.com/playlist/playlist-1',
   });
+});
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
+describe('useCreatePlaylistState creation and exact progress', () => {
   it('clears resume state after a full successful create', async () => {
     mockAddTracksToLibraryPlaylist.mockResolvedValue({
       addedIds: ['song-1', 'song-2', 'song-3'],
@@ -114,9 +114,55 @@ describe('useCreatePlaylistState', () => {
       url: 'https://music.apple.com/playlist/playlist-1',
     });
     expect(result.current.resumeState?.remainingIds).toEqual(['song-3']);
+    expect(result.current.resumeState?.progress).toBe('exact');
     expect(window.sessionStorage.getItem(resumeStorageKey(setlist.id))).toContain('song-3');
   });
+});
 
+describe('useCreatePlaylistState unknown progress safeguards', () => {
+  it('stores unknown progress when add-track failure has no exact remaining IDs', async () => {
+    mockAddTracksToLibraryPlaylist.mockRejectedValue(new Error('Adding tracks failed.'));
+
+    const { result } = renderHook(() => useCreatePlaylistState({ setlist, matchRows }));
+
+    await act(async () => {
+      await result.current.handleCreate();
+    });
+
+    expect(result.current.created).toEqual({
+      id: 'playlist-1',
+      url: 'https://music.apple.com/playlist/playlist-1',
+    });
+    expect(result.current.resumeState).toMatchObject({
+      progress: 'unknown',
+      remainingIds: [],
+      attemptedIds: ['song-1', 'song-2', 'song-3'],
+    });
+    expect(window.sessionStorage.getItem(resumeStorageKey(setlist.id))).toContain(
+      '"progress":"unknown"'
+    );
+  });
+
+  it('does not retry add-track calls when progress is unknown', async () => {
+    mockAddTracksToLibraryPlaylist.mockRejectedValue(new Error('Adding tracks failed.'));
+
+    const { result } = renderHook(() => useCreatePlaylistState({ setlist, matchRows }));
+
+    await act(async () => {
+      await result.current.handleCreate();
+    });
+    mockAddTracksToLibraryPlaylist.mockClear();
+
+    await act(async () => {
+      await result.current.handleAddRemainingTracks();
+    });
+
+    expect(mockAddTracksToLibraryPlaylist).not.toHaveBeenCalled();
+    expect(result.current.addTracksError).toMatch(/Cannot safely resume/);
+  });
+});
+
+describe('useCreatePlaylistState resume restoration', () => {
   it('restores resumable incomplete exports from session storage', async () => {
     mockAddTracksToLibraryPlaylist.mockRejectedValue(
       createAddTracksError('Adding tracks failed.', ['song-3'])
@@ -165,7 +211,61 @@ describe('useCreatePlaylistState', () => {
     });
     expect(window.sessionStorage.getItem(resumeStorageKey(setlist.id))).toBeNull();
   });
+});
 
+describe('useCreatePlaylistState stored resume validation', () => {
+  it('discards stored resume data with remaining IDs outside the current selection', async () => {
+    const sig = JSON.stringify({
+      dedupeTracks: false,
+      songIds: ['song-1', 'song-2', 'song-3'],
+    });
+    window.sessionStorage.setItem(
+      resumeStorageKey(setlist.id),
+      JSON.stringify({
+        status: 'incomplete',
+        progress: 'exact',
+        id: 'playlist-1',
+        remainingIds: ['song-4'],
+        selectionSignature: sig,
+        storedAt: Date.now(),
+      })
+    );
+
+    const { result } = renderHook(() => useCreatePlaylistState({ setlist, matchRows }));
+
+    await waitFor(() => {
+      expect(result.current.resumeState).toBeNull();
+    });
+    expect(window.sessionStorage.getItem(resumeStorageKey(setlist.id))).toBeNull();
+  });
+
+  it('discards stored resume data with duplicate remaining IDs impossible for current selection', async () => {
+    const sig = JSON.stringify({
+      dedupeTracks: false,
+      songIds: ['song-1', 'song-2', 'song-3'],
+    });
+    window.sessionStorage.setItem(
+      resumeStorageKey(setlist.id),
+      JSON.stringify({
+        status: 'incomplete',
+        progress: 'exact',
+        id: 'playlist-1',
+        remainingIds: ['song-3', 'song-3'],
+        selectionSignature: sig,
+        storedAt: Date.now(),
+      })
+    );
+
+    const { result } = renderHook(() => useCreatePlaylistState({ setlist, matchRows }));
+
+    await waitFor(() => {
+      expect(result.current.resumeState).toBeNull();
+    });
+    expect(window.sessionStorage.getItem(resumeStorageKey(setlist.id))).toBeNull();
+  });
+});
+
+describe('useCreatePlaylistState retry completion', () => {
   it('clears resume state after a successful retry of the remaining songs', async () => {
     mockAddTracksToLibraryPlaylist
       .mockRejectedValueOnce(createAddTracksError('Adding tracks failed.', ['song-3']))
@@ -186,23 +286,7 @@ describe('useCreatePlaylistState', () => {
   });
 });
 
-describe('useCreatePlaylistState – additional paths', () => {
-  beforeEach(() => {
-    window.sessionStorage.clear();
-    mockIsMusicKitAuthorized.mockReset();
-    mockCreateLibraryPlaylist.mockReset();
-    mockAddTracksToLibraryPlaylist.mockReset();
-    mockIsMusicKitAuthorized.mockResolvedValue(true);
-    mockCreateLibraryPlaylist.mockResolvedValue({
-      id: 'playlist-1',
-      url: 'https://music.apple.com/playlist/playlist-1',
-    });
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
+describe('useCreatePlaylistState authorization', () => {
   it('sets needsAuth=true when MusicKit is not authorized at create time', async () => {
     mockIsMusicKitAuthorized.mockResolvedValue(false);
 
@@ -234,7 +318,9 @@ describe('useCreatePlaylistState – additional paths', () => {
     expect(result.current.needsAuth).toBe(false);
     expect(result.current.created).not.toBeNull();
   });
+});
 
+describe('useCreatePlaylistState deduplication', () => {
   it('dedupeTrackIds removes duplicate song IDs from songIds when dedupeTracks is enabled', () => {
     const dupMatchRows: MatchRow[] = [
       {
@@ -267,7 +353,9 @@ describe('useCreatePlaylistState – additional paths', () => {
 
     expect(result.current.songIds).toEqual(['song-1', 'song-2']);
   });
+});
 
+describe('useCreatePlaylistState stale resume cleanup', () => {
   it('discards stale resume state older than 30 minutes', async () => {
     const sig = JSON.stringify({
       dedupeTracks: false,
@@ -290,7 +378,9 @@ describe('useCreatePlaylistState – additional paths', () => {
     });
     expect(window.sessionStorage.getItem(resumeStorageKey(setlist.id))).toBeNull();
   });
+});
 
+describe('useCreatePlaylistState retry failures', () => {
   it('updates remainingIds in storage when a retry of remaining tracks also partially fails', async () => {
     mockAddTracksToLibraryPlaylist
       .mockRejectedValueOnce(createAddTracksError('Fail', ['song-2', 'song-3']))
@@ -308,9 +398,34 @@ describe('useCreatePlaylistState – additional paths', () => {
     });
 
     expect(result.current.resumeState?.remainingIds).toEqual(['song-3']);
+    expect(result.current.resumeState?.progress).toBe('exact');
     expect(result.current.addTracksError).toBe('Fail again');
   });
 
+  it('changes retry state to unknown when remaining-track retry fails without exact progress', async () => {
+    mockAddTracksToLibraryPlaylist
+      .mockRejectedValueOnce(createAddTracksError('Fail', ['song-2', 'song-3']))
+      .mockRejectedValueOnce(new Error('Fail again'));
+
+    const { result } = renderHook(() => useCreatePlaylistState({ setlist, matchRows }));
+
+    await act(async () => {
+      await result.current.handleCreate();
+    });
+    await act(async () => {
+      await result.current.handleAddRemainingTracks();
+    });
+
+    expect(result.current.resumeState).toMatchObject({
+      progress: 'unknown',
+      remainingIds: [],
+      attemptedIds: ['song-2', 'song-3'],
+    });
+    expect(result.current.addTracksError).toBe('Fail again');
+  });
+});
+
+describe('useCreatePlaylistState creation failures and re-entry', () => {
   it('shows an error (not needsAuth) when playlist creation itself fails', async () => {
     mockCreateLibraryPlaylist.mockRejectedValue(new Error('Apple Music API unavailable'));
 
@@ -323,5 +438,32 @@ describe('useCreatePlaylistState – additional paths', () => {
     expect(result.current.error).toBe('Apple Music API unavailable');
     expect(result.current.created).toBeNull();
     expect(result.current.needsAuth).toBe(false);
+  });
+
+  it('guards playlist creation against synchronous re-entry', async () => {
+    let resolveCreate!: (value: { id: string; url: string }) => void;
+    mockCreateLibraryPlaylist.mockReturnValue(
+      new Promise((resolve) => {
+        resolveCreate = resolve;
+      })
+    );
+    mockAddTracksToLibraryPlaylist.mockResolvedValue({ addedIds: ['song-1'], remainingIds: [] });
+    const { result } = renderHook(() => useCreatePlaylistState({ setlist, matchRows }));
+
+    let first!: Promise<void>;
+    let second!: Promise<void>;
+    act(() => {
+      first = result.current.handleCreate();
+      second = result.current.handleCreate();
+    });
+
+    await waitFor(() => expect(mockCreateLibraryPlaylist).toHaveBeenCalledOnce());
+    await expect(second).resolves.toBeUndefined();
+
+    await act(async () => {
+      resolveCreate({ id: 'playlist-1', url: 'https://music.apple.com/playlist/playlist-1' });
+      await first;
+    });
+    expect(mockCreateLibraryPlaylist).toHaveBeenCalledOnce();
   });
 });

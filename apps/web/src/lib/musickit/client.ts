@@ -1,34 +1,65 @@
 import { APPLE_MUSIC_APP_ID } from '../config';
+import { PRODUCT_NAME } from '../../content/brand';
 import { fetchDeveloperToken, isTokenValid } from './token';
 import type { MusicKitGlobal, MusicKitInstance } from './types';
 
-/** Wait for MusicKit script to be available. */
-function waitForMusicKit(): Promise<MusicKitGlobal> {
-  return new Promise((resolve, reject) => {
-    if (typeof window === 'undefined') {
-      reject(new Error('MusicKit only runs in the browser'));
-      return;
+let scriptPromise: Promise<void> | null = null;
+
+function loadMusicKitScript(): Promise<void> {
+  if (typeof window === 'undefined')
+    return Promise.reject(new Error('MusicKit only runs in the browser'));
+  if (window.MusicKit) return Promise.resolve();
+  if (scriptPromise) return scriptPromise;
+  scriptPromise = new Promise((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>('script[data-musickit]');
+    const script = existing ?? document.createElement('script');
+    const handleLoad = () => resolve();
+    const handleError = () => {
+      scriptPromise = null;
+      reject(new Error('MusicKit script did not load'));
+    };
+    script.addEventListener('load', handleLoad, { once: true });
+    script.addEventListener('error', handleError, { once: true });
+    if (!existing) {
+      script.src = 'https://js-cdn.music.apple.com/musickit/v3/musickit.js';
+      script.crossOrigin = 'anonymous';
+      script.dataset.musickit = 'true';
+      document.head.append(script);
     }
-    if (window.MusicKit) {
-      resolve(window.MusicKit);
-      return;
-    }
-    let settled = false;
-    const check = setInterval(() => {
-      if (!settled && window.MusicKit) {
-        settled = true;
-        clearInterval(check);
-        resolve(window.MusicKit);
-      }
-    }, 50);
-    setTimeout(() => {
-      if (!settled) {
-        settled = true;
-        clearInterval(check);
-        reject(new Error('MusicKit script did not load'));
-      }
-    }, 10000);
   });
+  return scriptPromise;
+}
+
+/** Load and wait for MusicKit only when matching or export first needs it. */
+function waitForMusicKit(): Promise<MusicKitGlobal> {
+  return loadMusicKitScript().then(
+    () =>
+      new Promise((resolve, reject) => {
+        if (typeof window === 'undefined') {
+          reject(new Error('MusicKit only runs in the browser'));
+          return;
+        }
+        if (window.MusicKit) {
+          resolve(window.MusicKit);
+          return;
+        }
+        let settled = false;
+        const check = setInterval(() => {
+          if (!settled && window.MusicKit) {
+            settled = true;
+            clearInterval(check);
+            resolve(window.MusicKit);
+          }
+        }, 50);
+        setTimeout(() => {
+          if (!settled) {
+            settled = true;
+            clearInterval(check);
+            reject(new Error('MusicKit script did not load'));
+          }
+        }, 10000);
+      })
+  );
 }
 
 let configuredInstance: MusicKitInstance | null = null;
@@ -60,7 +91,7 @@ export async function initMusicKit(): Promise<MusicKitInstance> {
       const MusicKit = await waitForMusicKit();
       const configureResult = MusicKit.configure({
         developerToken: token,
-        app: { name: 'Setlist to Playlist', build: '1' },
+        app: { name: PRODUCT_NAME, build: '1' },
         appId: APPLE_MUSIC_APP_ID,
       });
       if (configureResult && typeof (configureResult as Promise<unknown>).then === 'function') {

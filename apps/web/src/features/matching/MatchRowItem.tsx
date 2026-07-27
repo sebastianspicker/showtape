@@ -16,83 +16,186 @@ export interface MatchRowItemProps {
   onSearchQueryChange: (value: string) => void;
   onSearch: (index: number) => void;
   onChoose: (index: number, track: AppleMusicTrack) => void;
+  onCancelSearch: () => void;
 }
 
-export const MatchRowItem = React.memo(function MatchRowItem({
-  row,
-  index,
-  isSearching,
-  searchContext,
-  onOpenSearch,
-  onSkip,
-  onSearchQueryChange,
-  onSearch,
-  onChoose,
-}: MatchRowItemProps) {
-  const statusClass =
-    row.status === 'matched'
-      ? 'matching-row--matched'
-      : row.status === 'skipped'
-        ? 'matching-row--skipped'
-        : 'matching-row--unmatched';
+const STATUS_CLASS: Record<MatchRow['status'], string> = {
+  matched: 'matching-row--matched',
+  skipped: 'matching-row--skipped',
+  pending: 'matching-row--pending',
+  unmatched: 'matching-row--unmatched',
+};
+
+const trackNameOrFallback = (value: unknown, fallback: string): string =>
+  typeof value === 'string' ? value : fallback;
+
+const TrackMetadata = ({ row, index }: Pick<MatchRowItemProps, 'row' | 'index'>) => (
+  <div className="matching-track-meta">
+    <span className="matching-row-number">{String(index + 1).padStart(2, '0')}</span>
+    <strong>{trackNameOrFallback(row.setlistEntry.name, 'Untitled track')}</strong>
+    {row.setlistEntry.artist && <span className="muted-inline"> · {row.setlistEntry.artist}</span>}
+  </div>
+);
+
+const AppleTrackArtist = ({ artistName }: { artistName?: string }) =>
+  artistName ? <span className="muted-inline"> · {artistName}</span> : null;
+
+/** Catalog match line without status chip (chip lives in row actions). */
+const TrackResult = ({ row }: Pick<MatchRowItemProps, 'row'>) => {
+  if (row.appleTrack) {
+    return (
+      <span className="match-found">
+        <span className="match-result-primary">
+          {row.appleTrack.name}
+          <AppleTrackArtist artistName={row.appleTrack.artistName} />
+        </span>
+      </span>
+    );
+  }
+  if (row.status === 'skipped') {
+    return (
+      <span className="match-skipped">
+        <span className="match-result-primary">No match selected</span>
+      </span>
+    );
+  }
+  if (row.status === 'pending') {
+    return (
+      <span className="match-pending">
+        <span className="match-result-primary">Searching</span>
+      </span>
+    );
+  }
+  return (
+    <span className="match-missing">
+      <span className="match-result-primary">No match found</span>
+    </span>
+  );
+};
+
+interface StatusChipProps {
+  row: MatchRow;
+}
+
+/** Pill/chip status using existing match-status + indicator classes. */
+function StatusChip({ row }: StatusChipProps) {
+  if (row.appleTrack) {
+    return (
+      <span className="match-found">
+        <span className="match-status">
+          <span className="match-indicator" aria-hidden="true">
+            &#x2713;
+          </span>
+          Matched
+        </span>
+      </span>
+    );
+  }
+  if (row.status === 'skipped') {
+    return (
+      <span className="match-skipped">
+        <span className="match-status">
+          <span className="match-indicator match-indicator--skip" aria-hidden="true">
+            -
+          </span>
+          Skipped
+        </span>
+      </span>
+    );
+  }
+  if (row.status === 'pending') {
+    return (
+      <span className="match-pending">
+        <span className="match-status">
+          <span className="match-indicator" aria-hidden="true">
+            …
+          </span>
+          Searching
+        </span>
+      </span>
+    );
+  }
+  return (
+    <span className="match-missing">
+      <span className="match-status">
+        <span className="match-indicator match-indicator--missing" aria-hidden="true">
+          ?
+        </span>
+        Unmatched
+      </span>
+    </span>
+  );
+}
+
+interface RowActionsProps {
+  row: MatchRow;
+  index: number;
+  changeButtonRef: React.RefObject<HTMLButtonElement | null>;
+  onOpenSearch: (index: number) => void;
+  onSkip: (index: number) => void;
+}
+
+const RowActions = ({ row, index, changeButtonRef, onOpenSearch, onSkip }: RowActionsProps) => (
+  <div className="matching-row-actions">
+    <StatusChip row={row} />
+    <button
+      ref={changeButtonRef}
+      type="button"
+      onClick={() => onOpenSearch(index)}
+      aria-label={`Change match for ${trackNameOrFallback(row.setlistEntry.name, 'track')}`}
+      className="button button--quiet button--compact"
+      disabled={row.status === 'pending'}
+    >
+      {row.appleTrack ? 'Change' : 'Search'}
+    </button>
+    {row.status !== 'skipped' && (
+      <button
+        type="button"
+        onClick={() => onSkip(index)}
+        aria-label={`Skip ${trackNameOrFallback(row.setlistEntry.name, 'track')}`}
+        className="button button--quiet button--compact"
+        disabled={row.status === 'pending'}
+      >
+        Skip
+      </button>
+    )}
+  </div>
+);
+
+const MatchRowItemComponent = (props: MatchRowItemProps) => {
+  const {
+    row,
+    index,
+    isSearching,
+    searchContext,
+    onOpenSearch,
+    onSkip,
+    onSearchQueryChange,
+    onSearch,
+    onChoose,
+    onCancelSearch,
+  } = props;
+  const changeButtonRef = React.useRef<HTMLButtonElement>(null);
+
+  function restoreFocus(action: () => void) {
+    action();
+    window.requestAnimationFrame(() => changeButtonRef.current?.focus());
+  }
 
   return (
-    <li className={`matching-row ${statusClass}`}>
+    <li className={`matching-row ${STATUS_CLASS[row.status]}`}>
       <div className="matching-row-main">
-        <div className="matching-track-meta">
-          <span className="matching-row-number">{index + 1}</span>
-          <strong>{row.setlistEntry?.name ?? '—'}</strong>
-          {row.setlistEntry?.artist && (
-            <span className="muted-inline"> — {row.setlistEntry.artist}</span>
-          )}
-        </div>
+        <TrackMetadata row={row} index={index} />
         <div className="matching-track-result">
-          {row.appleTrack ? (
-            <span className="match-found">
-              <span className="match-indicator" aria-hidden="true">
-                &#x2713;
-              </span>
-              {row.appleTrack.name}
-              {row.appleTrack.artistName && (
-                <span className="muted-inline"> · {row.appleTrack.artistName}</span>
-              )}
-            </span>
-          ) : row.status === 'skipped' ? (
-            <span className="match-skipped">
-              <span className="match-indicator match-indicator--skip" aria-hidden="true">
-                &#x2014;
-              </span>
-              Skipped
-            </span>
-          ) : (
-            <span className="match-missing">
-              <span className="match-indicator match-indicator--missing" aria-hidden="true">
-                ?
-              </span>
-              No match found
-            </span>
-          )}
+          <TrackResult row={row} />
         </div>
-        <div className="matching-row-actions">
-          <button
-            type="button"
-            onClick={() => onOpenSearch(index)}
-            aria-label={`Change match for ${row.setlistEntry?.name ?? 'track'}`}
-            className="premium-button secondary mini"
-          >
-            {row.appleTrack ? 'Change' : 'Search'}
-          </button>
-          {row.status !== 'skipped' && (
-            <button
-              type="button"
-              onClick={() => onSkip(index)}
-              aria-label="Skip track"
-              className="premium-button secondary mini"
-            >
-              Skip
-            </button>
-          )}
-        </div>
+        <RowActions
+          row={row}
+          index={index}
+          changeButtonRef={changeButtonRef}
+          onOpenSearch={onOpenSearch}
+          onSkip={onSkip}
+        />
       </div>
 
       {isSearching && searchContext && (
@@ -105,9 +208,12 @@ export const MatchRowItem = React.memo(function MatchRowItem({
           hasSearched={searchContext.hasSearched}
           onSearchQueryChange={onSearchQueryChange}
           onSearch={() => onSearch(index)}
-          onChoose={(track) => onChoose(index, track)}
+          onChoose={(track) => restoreFocus(() => onChoose(index, track))}
+          onCancel={() => restoreFocus(onCancelSearch)}
         />
       )}
     </li>
   );
-});
+};
+
+export const MatchRowItem = React.memo(MatchRowItemComponent);

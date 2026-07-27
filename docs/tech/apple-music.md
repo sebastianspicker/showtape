@@ -1,38 +1,52 @@
 # Apple Music Integration
 
-## Setup (obtaining credentials)
+## Configuration
 
-To obtain the Apple Music credentials used for the Developer Token (JWT):
+Configure MusicKit in the Apple Developer account, create a MusicKit private
+key, and set:
 
-1. **Apple Developer account:** Enroll at [Apple Developer](https://developer.apple.com/programs/) if you don’t have one.
-2. **App and Music Kit:** Create an App in [App Store Connect](https://appstoreconnect.apple.com/) and enable **Music Kit** (or use an existing app).
-3. **Keys:** In [Certificates, Identifiers & Profiles → Keys](https://developer.apple.com/account/resources/authkeys/list), create a new key and enable **Music Kit**. Download the `.p8` private key once (it cannot be re-downloaded). Note the **Key ID** and your **Team ID** (in the top-right or Membership details).
-4. **Environment variables:** Set `APPLE_TEAM_ID`, `APPLE_KEY_ID`, and `APPLE_PRIVATE_KEY` (contents of the `.p8` file, including the `-----BEGIN/END PRIVATE KEY-----` lines). For the web app, set `NEXT_PUBLIC_APPLE_MUSIC_APP_ID` to your app’s Apple Music app identifier (e.g. from the App’s Services ID or Music Kit configuration).
-
-See [Apple’s Music Kit documentation](https://developer.apple.com/documentation/applemusicapi) and [Configuring Keys for Music Kit](https://developer.apple.com/documentation/applemusicapi/requesting_keys_for_the_apple_music_api) for the official steps.
-
-## Token Strategy
-
-- **Developer Token (JWT):** Issued by our backend. Signed with Apple private key (ES256); claims: `iss` = Team ID, `iat`, `exp` (e.g. 1 hour). Never logged or exposed in repo. Client fetches it from our API when initializing MusicKit.
-- **User Token:** Obtained in the browser via MusicKit after user authorizes. Used for playlist create and catalog search on behalf of the user. We do not store or transmit it to our servers.
-
-## Endpoints (our side)
-
-- `GET /api/apple/dev-token`: Returns `{ token: "…" }` or `{ error: "…" }`. Implemented as a Next.js Route Handler in `apps/web/src/app/api/apple/dev-token/route.ts`; CORS restricted to the configured frontend origin(s).
-
-## MusicKit Usage (client)
-
-```text
-1. Fetch Developer Token from our API.
-2. MusicKit.configure({ app: { name, build }, developerToken: token }).
-3. MusicKit.authorize() when user clicks "Create playlist" (or earlier).
-4. Catalog search: MusicKit.music.api.music('/v1/catalog/{storefront}/search', { term: query }).
-5. Create playlist: MusicKit.music.api.music('/v1/me/library/playlists', { method: 'POST', data: { attributes: { name } } }).
-6. Add tracks: MusicKit.music.api.music('/v1/me/library/playlists/{id}/tracks', { method: 'POST', data: { data: [{ id, type: 'songs' }] } }).
+```dotenv
+APPLE_TEAM_ID=your-team-id
+APPLE_KEY_ID=your-key-id
+APPLE_PRIVATE_KEY="<PEM contents with literal \\n line breaks>"
+NEXT_PUBLIC_APPLE_MUSIC_APP_ID=your-app-id
 ```
 
-## Security Notes
+Apple documents account and key setup in the
+[Apple Music API documentation](https://developer.apple.com/documentation/applemusicapi).
+Credential requirements can change, so verify them against Apple's current
+documentation.
 
-- Developer Token must be generated server-side only. The dev-token endpoint is CORS-restricted to the configured frontend origin.
-- Rate limiting: the dev-token endpoint applies an in-memory fixed-window limiter (30 requests per 60 s, keyed by client IP via `x-forwarded-for`). Responds with `429` and `Retry-After` when exceeded.
-- User token is in the client only; our API never sees it.
+## Token handling
+
+`packages/api/src/lib/jwt.ts` signs a one-hour ES256 developer token. The Next.js
+route at `GET /api/apple/dev-token` returns it with no-store cache headers. The
+browser caches the token for 55 minutes and shares concurrent refresh requests.
+
+MusicKit obtains the user token in the browser during authorization. Showtape
+does not send that token to its API routes.
+
+## Browser operations
+
+The browser:
+
+1. loads MusicKit JS;
+2. fetches the developer token;
+3. configures MusicKit with `NEXT_PUBLIC_APPLE_MUSIC_APP_ID`;
+4. searches the user's storefront catalog;
+5. authorizes the user when export begins;
+6. creates a library playlist;
+7. adds selected song IDs in batches of 100.
+
+Catalog search results remain in a bounded browser-memory cache for five
+minutes. Storefront codes are limited to two letters and fall back to `us`.
+
+## Write safety
+
+A definite add-tracks error can report the remaining IDs for one resumable
+operation. A rejected transport request is ambiguous because Apple may have
+applied the write before the client received the response. Showtape requires
+library inspection and does not automatically retry that state.
+
+Live authorization and playlist writes require an Apple Music account and are
+not exercised by the repository's automated browser tests.

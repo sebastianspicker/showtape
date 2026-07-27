@@ -1,65 +1,73 @@
 # Contributing
 
-## PR Style
+Discuss changes that alter the workflow, public interfaces, data retention, or
+third-party integrations before implementation.
 
-- Open a branch from `main` using short prefixed names: `feat/…`, `fix/…`, `docs/…`, `refactor/…`, `test/…`.
-- Keep PRs focused; link to issues or exec plans if applicable.
-- Ensure CI passes (format check, lint, build, test, dependency audit).
-
-## Lint / Test / Format / Build
-
-- **Lint:** Run `pnpm lint` from the repo root. Fix any reported issues before pushing.
-- **Test:** Run `pnpm test`. New logic in `packages/core` or shared code should include tests.
-- **Format:** Use Prettier (project config in repo). Run `pnpm format` or rely on editor format-on-save with `.editorconfig`.
-- **Build:** Run `pnpm build` to build all workspace packages; ensure it succeeds before pushing.
-
-CI enforces all of the above (format check, lint, build, test, dependency audit) on every push and PR.
-
-### Pre-push checklist
-
-Run this before pushing to avoid CI failures:
+## Development setup
 
 ```bash
-pnpm format:check && pnpm lint && pnpm build && pnpm test
+cp .env.example .env
+corepack pnpm@9.15.3 install --frozen-lockfile
+corepack pnpm@9.15.3 build
+corepack pnpm@9.15.3 test
 ```
 
-## Test conventions
+Unit and mocked browser tests do not need live service credentials. Live
+setlist import and Apple Music operations do.
 
-- **Framework:** [Vitest](https://vitest.dev/).
-- **Location:** `tests/` directory in each package/app (`packages/core/tests/`, `apps/web/tests/`, etc.).
-- **Naming:** `*.test.ts`.
-- **Run:** `pnpm test` from root runs all workspace tests. To run a single package: `pnpm --filter core test`.
-- **Scope:** 30 test files covering normalization, search-query building, setlist mapping, dedupe, CORS headers, fetch helpers, API URL construction, MusicKit token/catalog/playlist, rate limiter memory bounds, route handlers, component rendering, and hook state transitions.
-- **Patterns:** `vi.mock` for module-level mocks, `vi.stubGlobal` for browser globals (`fetch`, `window.sessionStorage`). Standard `describe`/`it` structure with `beforeEach`/`afterEach` for cleanup.
+## Change requirements
 
-## Pre-commit hooks (optional)
+- Keep each change focused.
+- Preserve unrelated worktree changes.
+- Add tests for behavior changes and regression fixes.
+- Do not change public behavior only to satisfy an implementation-specific
+  assertion.
+- Keep credentials and user data out of source, fixtures, screenshots, logs,
+  and diagnostics.
+- Avoid new dependencies when the current toolchain is sufficient.
+- Update documentation when commands, configuration, routes, or behavior
+  change.
 
-You can run lint and format checks automatically before each commit using [`simple-git-hooks`](https://github.com/toplenboren/simple-git-hooks) or [`husky`](https://typicode.github.io/husky/). Example with `simple-git-hooks`:
+## Validation
+
+Run the complete local gate before requesting review:
 
 ```bash
-pnpm add -D simple-git-hooks
+corepack pnpm@9.15.3 format:check
+corepack pnpm@9.15.3 hygiene:check
+corepack pnpm@9.15.3 lint
+corepack pnpm@9.15.3 typecheck
+corepack pnpm@9.15.3 test
+corepack pnpm@9.15.3 build
+corepack pnpm@9.15.3 audit:security
+corepack pnpm@9.15.3 test:e2e
 ```
 
-Add to root `package.json`:
+Use `corepack pnpm@9.15.3 --filter <package-name> test` for a narrower workspace
+test while developing.
 
-```json
-"simple-git-hooks": {
-  "pre-commit": "pnpm format:check && pnpm lint"
-}
+For UI changes, inspect keyboard operation, focus movement, loading, empty,
+error, and terminal states. Check the affected surface at 320 CSS pixels and a
+desktop width. Refresh screenshots only when the documented UI changes:
+
+```bash
+corepack pnpm@9.15.3 test:e2e:screenshots
 ```
 
-Then run `npx simple-git-hooks` once to install. CI will catch any issues that slip through.
+## Pull requests
 
-## Optional scripts
+Include:
 
-- **seed-demo-setlists:** With `SETLISTFM_API_KEY` set, run `npx tsx scripts/seed-demo-setlists.ts` to fetch demo setlists into `scripts/fixtures/demo-setlists.json` (useful for local dev or fixtures).
-- **export-diagnostics:** Run `npx tsx scripts/export-diagnostics.ts` (optionally `--out report.json`) to export non-sensitive config for support; output is constrained under the current working directory.
-- **cleanup-repo:** Run `bash scripts/cleanup-repo.sh` to remove local logs, OS artifacts, and build caches that should not be committed.
+- the problem and the resulting behavior;
+- compatibility or configuration impact;
+- exact validation commands and results;
+- screenshots when they help reviewers inspect a visible change;
+- a clear distinction between mocked tests and live integration checks.
 
-## No Secrets
+Do not include credentials, private URLs, account identifiers, or personal data.
+Use the repository pull request template.
 
-Do not commit `.env`, API keys, or private keys. Use `.env.example` as a template with placeholders only.
+## Security reports
 
-## Questions
-
-Open an issue and use [docs/index.md](docs/index.md) as the docs entrypoint.
+Do not open a public issue for a vulnerability, exposed credential, or private
+user data. Follow [SECURITY.md](SECURITY.md).

@@ -13,6 +13,8 @@ export interface UseFlowStateResult {
   goToExport: (rows: MatchRow[]) => void;
   goBackToPreview: () => void;
   goBackToMatching: () => void;
+  updateMatchDraft: (rows: MatchRow[]) => void;
+  startAnotherSetlist: () => void;
 }
 
 export function useFlowState(): UseFlowStateResult {
@@ -36,13 +38,17 @@ export function useFlowState(): UseFlowStateResult {
         if (!el.getAttribute('tabindex')) {
           el.setAttribute('tabindex', '-1');
         }
-        el.focus({ preventScroll: false });
+        window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+        el.focus({ preventScroll: true });
       }
     });
     return () => cancelAnimationFrame(id);
   }, [step]);
 
-  const goToPreview = useCallback(() => setStep('preview'), []);
+  const goToPreview = useCallback(() => {
+    setMatchRows(null);
+    setStep('preview');
+  }, []);
   const goToMatching = useCallback(() => setStep('matching'), []);
   const goToExport = useCallback((rows: MatchRow[]) => {
     setMatchRows(rows);
@@ -50,6 +56,11 @@ export function useFlowState(): UseFlowStateResult {
   }, []);
   const goBackToPreview = useCallback(() => setStep('preview'), []);
   const goBackToMatching = useCallback(() => setStep('matching'), []);
+  const updateMatchDraft = useCallback((rows: MatchRow[]) => setMatchRows(rows), []);
+  const startAnotherSetlist = useCallback(() => {
+    setMatchRows(null);
+    setStep('import');
+  }, []);
 
   return {
     step,
@@ -60,5 +71,7 @@ export function useFlowState(): UseFlowStateResult {
     goToExport,
     goBackToPreview,
     goBackToMatching,
+    updateMatchDraft,
+    startAnotherSetlist,
   };
 }

@@ -1,15 +1,20 @@
 # Privacy
 
-## Data Minimization
+## Data minimization
 
-- We do not require an account on our side. You use your own Apple Music account via Apple’s MusicKit; we do not store your Apple credentials.
-- Setlist data is fetched from setlist.fm (public data). We use it only to show you the setlist and to create a playlist in your Apple Music library. If we add server-side caching, we may cache setlist responses temporarily; we do not build profiles from this data.
-- We do not sell or share your data with third parties for advertising.
+- We do not require an account. You use your own Apple Music account through MusicKit, and we do not store your Apple credentials.
+- Public setlist.fm data is displayed after retrieval and used to prepare the playlist. Successful upstream responses may be cached in server memory for up to one hour and are not persisted to disk by the application.
+- The current alpha does not include analytics, advertising, or a Showtape user-account database.
 
-## Where Data Lives
+## Where data lives
 
-- **Apple:** When you authorize the app, Apple Music handles authentication. Playlist creation and catalog search are done through Apple’s APIs under their privacy terms.
-- **setlist.fm:** Setlist content comes from setlist.fm’s API. Their terms and privacy policy apply to that data.
-- **Our servers:** If we run an API (e.g. for Developer Token or setlist proxy), we may log minimal request data (e.g. IP, path) for operation and security. We do not store your Apple or setlist.fm credentials.
+- Apple handles MusicKit authentication, catalog search, and playlist creation under Apple’s privacy terms.
+- Setlist content comes from setlist.fm under its terms and privacy policy.
+- Hosting infrastructure may log request metadata such as IP address and path. Logging and retention depend on the deployment; the application does not intentionally log credential values.
+- Your browser stores up to eight recent user-entered setlist URLs or IDs and their parsed IDs in localStorage. Legacy history is migrated without retaining upstream artist, venue, date, or song data. Interrupted exports may store the playlist ID, exact remaining song IDs or an unknown-progress marker, and a selection signature in sessionStorage for up to 30 minutes. Automatic resume is available only when the remaining IDs are known.
 
-This document is a high-level overview; it may be updated as the product evolves. For formal terms, see TERMS.md.
+## Network-only public alpha
+
+- There is no service worker, offline access, or background sync. Import, matching, authorization, and playlist creation require network access.
+
+For formal terms, see TERMS.md.

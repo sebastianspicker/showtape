@@ -1,19 +1,42 @@
 {
-  "name": "setlist-to-playlist",
+  "name": "showtape",
+  "version": "0.3.0-alpha.1",
+  "description": "Network-only web application for turning one setlist.fm setlist into an Apple Music playlist.",
   "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sebastianspicker/setlist-to-playlist.git"
+  },
   "scripts": {
-    "build": "pnpm -r run build",
-    "dev": "pnpm --filter web run dev",
-    "lint": "pnpm -r run lint",
-    "typecheck": "pnpm --filter @repo/shared run build && pnpm --filter @repo/core run build && pnpm --filter api run build && pnpm --filter web exec tsc --noEmit",
-    "test": "pnpm -r run test",
+    "build": "corepack pnpm@9.15.3 -r run build",
+    "dev": "corepack pnpm@9.15.3 --filter web run dev",
+    "lint": "corepack pnpm@9.15.3 -r run lint",
+    "typecheck": "corepack pnpm@9.15.3 --filter @repo/shared run build && corepack pnpm@9.15.3 --filter @repo/core run build && corepack pnpm@9.15.3 --filter @repo/api run build && corepack pnpm@9.15.3 --filter web exec tsc --noEmit",
+    "test": "corepack pnpm@9.15.3 -r run test",
+    "test:e2e": "corepack pnpm@9.15.3 --filter web exec playwright test --config=../../playwright.config.ts",
+    "test:e2e:screenshots": "corepack pnpm@9.15.3 --filter web exec playwright test --config=../../playwright.config.ts --grep @screenshots",
+    "test:e2e:performance": "PLAYWRIGHT_PRODUCTION=1 corepack pnpm@9.15.3 --filter web exec playwright test --config=../../playwright.config.ts --grep @performance",
+    "bundle:report": "node scripts/report-web-bundle.mjs",
+    "diagnostics:export": "tsx scripts/export-diagnostics.ts",
+    "fixtures:seed": "tsx scripts/seed-demo-setlists.ts",
+    "hygiene:check": "node scripts/check-public-boundary.mjs",
+    "audit:security": "corepack pnpm@9.15.3 audit --audit-level=moderate --prod",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
     "cleanup:repo": "bash scripts/cleanup-repo.sh"
   },
+  "pnpm": {
+    "overrides": {
+      "@babel/core": "7.29.6",
+      "postcss": "8.5.10"
+    }
+  },
+  "packageManager": "pnpm@9.15.3",
   "devDependencies": {
     "@eslint/js": "^9.16.0",
     "prettier": "^3.4.2",
+    "tsx": "4.23.1",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.17.0"
   },

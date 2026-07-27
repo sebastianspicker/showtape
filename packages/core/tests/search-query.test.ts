@@ -28,4 +28,10 @@ describe('buildSearchQuery', () => {
   it('handles empty track', () => {
     expect(buildSearchQuery('', 'Artist')).toBe('Artist');
   });
+
+  it('normalizes release metadata and preserves Unicode', () => {
+    expect(buildSearchQuery('Song - Radio Edit', 'Artist')).toBe('Song Artist');
+    expect(buildSearchQuery('Song (2011 Remastered)', 'Artist')).toBe('Song Artist');
+    expect(buildSearchQuery('Café (Live)', 'Björk')).toBe('Café Björk');
+  });
 });

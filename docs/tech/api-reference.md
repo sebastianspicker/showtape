@@ -1,137 +1,123 @@
 # API Reference
 
-All routes are served by the Next.js app (`apps/web`). Base URL is the deployment origin (e.g. `http://localhost:3000` locally).
+The Next.js application serves all API routes. Local examples use
+`http://localhost:3000`.
 
-Every response includes `Content-Type: application/json`, `X-Content-Type-Options: nosniff`, and `X-Frame-Options: DENY`. CORS is restricted to the configured `ALLOWED_ORIGIN` (or localhost in development).
+JSON responses include `Content-Type: application/json`,
+`X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, and CORS headers.
+`OPTIONS` responses have no body and include only preflight headers.
 
-## Error format
-
-All error responses use a consistent shape:
+Errors generally use:
 
 ```json
-{ "error": "Human-readable message", "code": "API_ERROR_CODE" }
+{
+  "error": "Human-readable message",
+  "code": "BAD_REQUEST"
+}
 ```
 
-`code` is one of: `UNAUTHORIZED`, `RATE_LIMIT`, `NOT_FOUND`, `BAD_REQUEST`, `INTERNAL`, `SERVICE_UNAVAILABLE`. The `code` field may be omitted for simple validation errors.
-
----
+The `code` field is absent from the missing-query-parameter response. Current
+codes are `BAD_REQUEST`, `NOT_FOUND`, `RATE_LIMIT`, `INTERNAL`, and
+`SERVICE_UNAVAILABLE`.
 
 ## GET /api/health
 
-Liveness check for load balancers and deployment monitoring.
+Returns process liveness information. It does not test setlist.fm, Apple
+credentials, or Apple Music.
 
-**Parameters:** None.
-
-**Rate limit:** None.
-
-**Success (200):**
+Success, HTTP 200:
 
 ```json
-{ "status": "ok", "timestamp": "2025-06-01T12:00:00.000Z" }
+{
+  "status": "ok",
+  "timestamp": "2026-07-24T12:00:00.000Z"
+}
 ```
-
-**Headers:** Default CORS headers.
-
-**Example:**
 
 ```bash
-curl -s http://localhost:3000/api/health | jq .
+curl --fail --silent http://localhost:3000/api/health
 ```
-
----
 
 ## GET /api/apple/dev-token
 
-Mint an Apple Developer Token (JWT) for MusicKit JS. The token is signed server-side using `APPLE_TEAM_ID`, `APPLE_KEY_ID`, and `APPLE_PRIVATE_KEY` from the environment.
+Signs and returns a one-hour ES256 Apple developer token.
 
-**Parameters:** None.
+Required server variables:
 
-**Rate limit:** 30 requests per 60 s per client IP (in-memory, fixed-window). Forwarded IP headers are only trusted when `TRUST_PROXY=1` is configured behind a trusted reverse proxy.
+- `APPLE_TEAM_ID`
+- `APPLE_KEY_ID`
+- `APPLE_PRIVATE_KEY`
 
-**Success (200):**
+Success, HTTP 200:
 
 ```json
-{ "token": "<jwt>" }
+{
+  "token": "eyJ..."
+}
 ```
 
-**Headers:**
+Configuration or signing failure returns HTTP 503 with
+`SERVICE_UNAVAILABLE`. Unexpected errors return HTTP 500 with `INTERNAL`.
+Responses use `Cache-Control: no-store` and `Pragma: no-cache`.
 
-| Header                  | Value      |
-| ----------------------- | ---------- |
-| `Cache-Control`         | `no-store` |
-| `Pragma`                | `no-cache` |
-| `X-RateLimit-Remaining` | `<number>` |
+When `TRUST_PROXY=1` and a forwarded client key is available, the route applies
+a fixed limit of 30 requests per 60 seconds. Otherwise per-client limiting is
+disabled and the response includes:
 
-**Error responses:**
-
-| Status | Condition                          | Body                                                                                 |
-| ------ | ---------------------------------- | ------------------------------------------------------------------------------------ |
-| 429    | Rate limit exceeded                | `{ "error": "Too many requests. Please retry shortly.", "code": "RATE_LIMIT" }`      |
-| 503    | Missing env vars or signing failed | `{ "error": "...", "code": "SERVICE_UNAVAILABLE" }`                                  |
-| 500    | Unexpected error                   | `{ "error": "An unexpected error occurred. Please try again.", "code": "INTERNAL" }` |
-
-The 429 response includes a `Retry-After` header (seconds).
-
-**Example:**
+```text
+X-RateLimit-Policy: disabled-direct-no-trusted-client-key
+```
 
 ```bash
-curl -s http://localhost:3000/api/apple/dev-token | jq .
+curl --fail --silent http://localhost:3000/api/apple/dev-token
 ```
-
----
 
 ## GET /api/setlist/proxy
 
-Proxy to the setlist.fm API. The `SETLISTFM_API_KEY` stays server-side and is never exposed to the client.
+Accepts either query parameter:
 
-**Query parameters:**
+- `id`: a 4 to 12 character hexadecimal setlist ID
+- `url`: a setlist.fm setlist URL from which the ID can be parsed
 
-| Name  | Type   | Required | Description                                                            |
-| ----- | ------ | -------- | ---------------------------------------------------------------------- |
-| `id`  | string | \*       | Setlist ID (4-12 hex chars, e.g. `63de4613`) or a full setlist.fm URL. |
-| `url` | string | \*       | Alias for `id`. Either `id` or `url` must be provided.                 |
-
-\* Exactly one of `id` or `url` is required. Max length: 2000 characters.
-
-**Rate limit:** 20 requests per 60 s per client IP (in-memory, fixed-window). Forwarded IP headers are only trusted when `TRUST_PROXY=1` is configured behind a trusted reverse proxy.
-
-**Success (200):**
-
-Returns the setlist.fm API JSON for the requested setlist. Cached privately for 1 hour.
-
-**Headers:**
-
-| Header          | Value (success)         | Value (error) |
-| --------------- | ----------------------- | ------------- |
-| `Cache-Control` | `private, max-age=3600` | `no-store`    |
-
-**Error responses:**
-
-| Status | Condition                              | Body                                                                                 |
-| ------ | -------------------------------------- | ------------------------------------------------------------------------------------ |
-| 400    | Missing `id`/`url` parameter           | `{ "error": "Missing id or url query parameter." }`                                  |
-| 400    | Input exceeds 2000 chars               | `{ "error": "Input too long. ...", "code": "BAD_REQUEST" }`                          |
-| 400    | Invalid setlist ID or URL format       | `{ "error": "Invalid setlist ID or URL. ...", "code": "BAD_REQUEST" }`               |
-| 404    | Setlist not found on setlist.fm        | `{ "error": "...", "code": "NOT_FOUND" }`                                            |
-| 429    | Rate limit exceeded (local)            | `{ "error": "Too many requests. Please retry shortly.", "code": "RATE_LIMIT" }`      |
-| 429    | Rate limit from upstream setlist.fm    | `{ "error": "...", "code": "RATE_LIMIT" }`                                           |
-| 500    | Unexpected server error                | `{ "error": "An unexpected error occurred. Please try again.", "code": "INTERNAL" }` |
-| 503    | API key not configured or upstream 5xx | `{ "error": "...", "code": "SERVICE_UNAVAILABLE" }`                                  |
-
-The local 429 response includes a `Retry-After` header (seconds).
-
-**Examples:**
+If both are present, `id` takes precedence. Input is limited to 2,000
+characters. The setlist.fm API key remains on the server.
 
 ```bash
-# By setlist ID
-curl -s 'http://localhost:3000/api/setlist/proxy?id=63de4613' | jq .
-
-# By setlist.fm URL
-curl -s 'http://localhost:3000/api/setlist/proxy?url=https://www.setlist.fm/setlist/radiohead/2017/...' | jq .
+curl --fail --silent \
+  'http://localhost:3000/api/setlist/proxy?id=63de4613'
 ```
 
----
+Successful responses contain the validated setlist.fm payload and use:
 
-## CORS preflight (OPTIONS)
+```text
+Cache-Control: private, max-age=3600
+```
 
-All routes respond to `OPTIONS` with `204 No Content` and the appropriate `Access-Control-Allow-Origin`, `Access-Control-Allow-Methods: GET, OPTIONS`, and `Access-Control-Allow-Headers: Content-Type` headers (when the origin is allowed).
+Error responses use `Cache-Control: no-store`.
+
+| Status | Condition                                         |
+| ------ | ------------------------------------------------- |
+| 400    | Missing, too long, or invalid `id` or `url` input |
+| 404    | setlist.fm did not find the requested setlist     |
+| 429    | Local trusted-proxy limit or upstream rate limit  |
+| 500    | Unexpected application error                      |
+| 503    | Missing API key or upstream server failure        |
+
+When `TRUST_PROXY=1` and a forwarded client key is available, the route applies
+a fixed limit of 20 requests per 60 seconds.
+
+## OPTIONS
+
+Each API route accepts `OPTIONS` and returns HTTP 204. For an allowed origin the
+response includes:
+
+```text
+Access-Control-Allow-Origin: <request origin>
+Access-Control-Allow-Methods: GET, OPTIONS
+Access-Control-Allow-Headers: Content-Type
+Access-Control-Max-Age: 86400
+```
+
+`ALLOWED_ORIGIN` is a comma-separated exact-origin allowlist. When it is unset,
+only HTTP origins on `localhost` or `127.0.0.1` are allowed. Wildcard and `null`
+origins are rejected.

@@ -4,9 +4,7 @@ import { useState } from 'react';
 import { getErrorMessage } from '@repo/shared';
 import { Button } from '@repo/ui';
 import { ErrorAlert } from '@/components/ErrorAlert';
-import { LoadingButton } from '@/components/LoadingButton';
-import { useAsyncAction } from '@/hooks/useAsyncAction';
-import { authorizeMusicKit, initMusicKit } from '@/lib/musickit';
+import { authorizeMusicKit, isMusicKitAuthorized } from '@/lib/musickit';
 
 export interface ConnectAppleMusicProps {
   onAuthorized?: () => void;
@@ -24,20 +22,35 @@ function friendlyAuthMessage(message: string): string {
 }
 
 /**
- * "Connect Apple Music" flow: init MusicKit, authorize user, show errors and retry.
+ * Export-only Apple Music authorization flow with operation-specific retry.
  */
 export function ConnectAppleMusic({
   onAuthorized,
   label = 'Connect Apple Music',
 }: ConnectAppleMusicProps) {
-  const { loading, error, run } = useAsyncAction();
-  const [authorized, setAuthorized] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function runAction(fn: () => Promise<void>) {
+    setError(null);
+    setLoading(true);
+    try {
+      await fn();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoading(false);
+    }
+  }
 
   function handleAuthorize() {
-    run(async () => {
+    void runAction(async () => {
       try {
         await authorizeMusicKit();
-        setAuthorized(true);
+        const isAuthorized = await isMusicKitAuthorized();
+        if (!isAuthorized) {
+          throw new Error('Apple Music authorization was not confirmed. Click below to try again.');
+        }
         onAuthorized?.();
       } catch (err) {
         const message = getErrorMessage(err, 'Authorization failed.');
@@ -46,49 +59,18 @@ export function ConnectAppleMusic({
     });
   }
 
-  function handleDisconnect() {
-    run(async () => {
-      try {
-        const music = await initMusicKit();
-        await music.unauthorize();
-        setAuthorized(false);
-      } catch (err) {
-        throw new Error(getErrorMessage(err, 'Failed to disconnect.'));
-      }
-    });
-  }
-
   return (
-    <div className="connect-apple-music" style={{ marginTop: '1rem' }}>
-      {!authorized && (
-        <LoadingButton
-          onClick={handleAuthorize}
-          loading={loading}
-          loadingChildren="Connecting…"
-          aria-label={loading ? 'Connecting to Apple Music' : label}
-          title="Sign in with Apple Music to create playlists in your library"
-        >
-          {label}
-        </LoadingButton>
-      )}
-
-      {authorized && (
-        <div className="apple-music-connected">
-          <span className="connected-badge" role="status">
-            <span className="connected-dot" aria-hidden="true" />
-            Connected to Apple Music
-          </span>
-          <Button
-            onClick={handleDisconnect}
-            disabled={loading}
-            variant="secondary"
-            aria-label="Disconnect Apple Music"
-            style={{ cursor: loading ? 'not-allowed' : 'pointer' }}
-          >
-            Disconnect
-          </Button>
-        </div>
-      )}
+    <div className="connect-apple-music">
+      <Button
+        onClick={handleAuthorize}
+        loading={loading}
+        loadingChildren="Connecting…"
+        aria-label={loading ? 'Connecting to Apple Music' : label}
+        title="Sign in with Apple Music to create playlists in your library"
+        className="proceed-button"
+      >
+        {label}
+      </Button>
 
       {error && (
         <ErrorAlert message={error} onRetry={handleAuthorize} retryLabel="Try connecting again" />

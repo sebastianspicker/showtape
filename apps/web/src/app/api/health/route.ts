@@ -1,4 +1,4 @@
-import { handleHealth } from 'api';
+import { handleHealth } from '@repo/api';
 import { NextRequest } from 'next/server';
 import { jsonResponse } from '@/lib/api-response';
 import { optionsNoContent } from '../_helpers';

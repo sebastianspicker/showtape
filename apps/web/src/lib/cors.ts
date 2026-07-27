@@ -1,5 +1,26 @@
 import type { NextRequest } from 'next/server';
 
+const configuredOrigins = (): string[] | null => {
+  const configured = (process.env.ALLOWED_ORIGIN ?? '').trim();
+  if (!configured) return null;
+  return configured
+    .split(',')
+    .map((origin) => origin.trim().replace(/\/$/, ''))
+    .filter((origin) => Boolean(origin) && origin !== 'null' && origin !== '*');
+};
+
+const localDevelopmentOrigin = (origin: string | null): string | null => {
+  if (!origin || origin === 'null') return null;
+  try {
+    const parsed = new URL(origin);
+    if (parsed.origin !== origin || parsed.protocol !== 'http:') return null;
+    if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') return origin;
+    return null;
+  } catch {
+    return null;
+  }
+};
+
 /**
  * Shared CORS helper for API routes.
  * Set ALLOWED_ORIGIN in production (comma-separated list); when unset, only localhost/127.0.0.1 are allowed.
@@ -7,21 +28,9 @@ import type { NextRequest } from 'next/server';
  * Rejects "*" to avoid allowing any origin (insecure).
  */
 export function getAllowOrigin(origin: string | null): string | null {
-  const configured = (process.env.ALLOWED_ORIGIN ?? '').trim();
-  const isLocalOrigin =
-    origin &&
-    origin !== 'null' &&
-    (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1'));
-  if (configured) {
-    const origins = configured
-      .split(',')
-      .map((o) => o.trim().replace(/\/$/, ''))
-      .filter((o) => o && o !== 'null' && o !== '*');
-    if (origins.length === 0) return null;
-    if (origin && origins.includes(origin)) return origin;
-    return null;
-  }
-  return isLocalOrigin ? origin : null;
+  const allowlist = configuredOrigins();
+  if (allowlist) return origin && allowlist.includes(origin) ? origin : null;
+  return localDevelopmentOrigin(origin);
 }
 
 export function corsHeaders(request: NextRequest, contentType = 'application/json'): HeadersInit {

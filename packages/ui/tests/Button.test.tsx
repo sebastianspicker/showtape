@@ -2,10 +2,9 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { Button } from '../src/Button';
 
-describe('Button', () => {
+describe('Button rendering and variants', () => {
   it('renders children', () => {
     render(<Button>Click me</Button>);
     expect(screen.getByRole('button', { name: 'Click me' })).toBeInTheDocument();
@@ -38,10 +37,26 @@ describe('Button', () => {
     const btn = screen.getByRole('button', { name: 'Confirm' });
     expect(btn.className).not.toContain('secondary');
   });
+});
 
+describe('Button interaction and attributes', () => {
   it('explicit disabled prop disables the button', () => {
     render(<Button disabled>Disabled</Button>);
     expect(screen.getByRole('button', { name: 'Disabled' })).toBeDisabled();
+  });
+
+  it('loading disables the button even when disabled is explicitly false', () => {
+    render(
+      <Button loading disabled={false}>
+        Saving
+      </Button>
+    );
+    expect(screen.getByRole('button', { name: 'Loading…' })).toBeDisabled();
+  });
+
+  it('merges caller classes with its variant classes', () => {
+    render(<Button className="wide">Save</Button>);
+    expect(screen.getByRole('button', { name: 'Save' })).toHaveClass('button--primary', 'wide');
   });
 
   it('fires onClick when not disabled or loading', async () => {

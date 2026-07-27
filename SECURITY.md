@@ -1,17 +1,40 @@
-# Security
+# Security Policy
 
-## Threat Model (Light)
+## Supported versions
 
-- **Secrets:** Apple private key and setlist.fm API key must stay server-side. Developer Token (JWT) is short-lived and delivered over HTTPS; it must not be logged or stored in client storage beyond session use.
-- **User data:** Apple Music authorization is handled by MusicKit in the browser; we do not store user passwords. Setlist data from setlist.fm is displayed and used only to build a playlist; we do not persist it unless we add optional caching (then only setlist ID and response, with access control).
-- **APIs:** All calls to our API should use HTTPS. CORS is restricted to our frontend origin(s). Rate limiting on token and proxy endpoints reduces abuse.
+Security fixes are applied to the current `0.3.0-alpha` development line. Older
+snapshots are unsupported.
 
-## Handling Tokens
+## Reporting a vulnerability
 
-- **Developer Token:** Generated server-side from env (Team ID, Key ID, private key). Never commit these; use `.env` and a secure secret store in production.
-- **User Token:** Obtained and held by MusicKit in the client; we do not transmit or store it on our servers.
-- **setlist.fm API key:** Used only in the server/proxy; never exposed to the client.
+Use a
+[private GitHub security advisory](https://github.com/sebastianspicker/setlist-to-playlist/security/advisories/new).
+Do not open a public issue for a vulnerability, exposed credential, or private
+user data.
 
-## Reporting Vulnerabilities
+Include the affected path or endpoint, reproduction conditions, observed
+impact, and whether credentials or external data may have been exposed. Do not
+include live secrets. The repository does not specify response or disclosure
+time commitments.
 
-Please report security issues privately (e.g. via maintainer contact or a private security advisory). Do not open public issues for sensitive vulnerabilities.
+## Security boundaries
+
+- `APPLE_PRIVATE_KEY`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, and
+  `SETLISTFM_API_KEY` are server-side values.
+- The Apple developer token is minted by the server and returned to the browser
+  for MusicKit initialization.
+- The MusicKit user token remains in the browser and is not sent to Showtape API
+  routes.
+- Successful setlist responses can remain in process memory for one hour.
+- Browser import history contains only user input and parsed setlist ID.
+- API routes validate input, restrict CORS, and use bounded in-memory rate
+  limiting when a trusted client key is available.
+- `TRUST_PROXY=1` is valid only behind a reverse proxy that replaces forwarded
+  client IP headers.
+- `corepack pnpm@9.15.3 hygiene:check` rejects common credential files, private
+  key markers, local tool state, reports, and absolute home paths.
+- `corepack pnpm@9.15.3 audit:security` checks production dependencies at
+  moderate severity or higher.
+
+Operators are responsible for TLS, secret storage, proxy configuration, access
+logs, monitoring, backups, and incident response.
