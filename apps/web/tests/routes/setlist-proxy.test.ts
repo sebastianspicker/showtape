@@ -3,7 +3,7 @@ import { mockNextRequest } from '../helpers/mock-request';
 
 const mockHandleSetlistProxy = vi.fn();
 
-vi.mock('api', () => ({
+vi.mock('@repo/api', () => ({
   handleSetlistProxy: (...args: unknown[]) => mockHandleSetlistProxy(...args),
 }));
 
@@ -64,7 +64,7 @@ describe('GET /api/setlist/proxy', () => {
     expect(mockHandleSetlistProxy).toHaveBeenCalledWith('63de4613');
   });
 
-  it('documents disabled direct-deployment rate limiting when TRUST_PROXY is unset', async () => {
+  it('reports disabled per-client rate limiting when TRUST_PROXY is unset', async () => {
     mockHandleSetlistProxy.mockResolvedValue({
       ok: true,
       value: { body: { id: 'direct' } },

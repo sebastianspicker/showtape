@@ -1,85 +1,76 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+This file records user-visible and maintainer-relevant changes. The format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+## Unreleased
 
-## [Unreleased]
-
-### Documentation & Cleanup
-
-- Product docs consolidated: PRD is now the single source for problem, scope, stories, onboarding and success metrics.
-- Redundant docs removed from `docs/product-specs` and `docs/design-docs`.
-- Added `scripts/cleanup-repo.sh` and root script `pnpm cleanup:repo` for local artifact cleanup.
-
-### Platform & Tooling
-
-- Upgraded `apps/web` to Next.js `16.x` and kept app-level security headers in `apps/web/middleware.ts`.
-- Migrated web lint script from `next lint` to ESLint CLI.
-- Added `@repo/ui` as a web dependency and unified button primitive usage.
-
-### API & Error Semantics
-
-- Added structured API error payload support with optional `code` in shared types.
-- Added dev-token endpoint rate limiting (`429`, `Retry-After`, `RATE_LIMIT` code).
-- Unified API route helpers for `OPTIONS` and internal error responses.
-- Setlist proxy now returns structured errors with mapped codes (`BAD_REQUEST`, `NOT_FOUND`, `RATE_LIMIT`, `SERVICE_UNAVAILABLE`).
-
-### Refactor & Features
-
-- Refactored MusicKit integration into modules (`token`, `client`, `catalog`, `playlist`) behind a stable barrel.
-- Split matching flow into dedicated hook/components:
-  - `useMatchingSuggestions`
-  - `MatchingBulkActions`
-  - `MatchRowItem`
-  - `TrackSearchPanel`
-- Added matching bulk actions: refresh suggestions, skip unmatched, reset all.
-- Added import history with local persistence and quick re-import actions.
-- Added export QoL features:
-  - Optional ordered track dedupe before playlist creation.
-  - Session-based resume for failed "add tracks" operations.
-
-### Core Utilities & Tests
-
-- Added `@repo/core` utilities:
-  - `buildPlaylistName`
-  - `dedupeTrackIdsOrdered`
-  - `getSetlistSignature`
-- Expanded tests in `packages/core` and `apps/web` (rate limiter).
-
-## [0.2.1] – 2026-03-22
+The workspace version is `0.3.0-alpha.1`. This candidate has not been tagged or
+published.
 
 ### Added
 
-- Testing infrastructure: `@testing-library/react`, `@testing-library/jest-dom`, `jsdom`
-- Component tests: `useFlowState` (6), `useMatchingSuggestions` (6), `SetlistImportView` (5), `MatchingView` (3)
-- CSP middleware tests (8) verifying all security headers and directives
-- RTL smoke test for infrastructure verification
+- Deterministic Playwright coverage for the import, preview, matching, manual
+  search, export, partial-recovery, responsive, keyboard, and accessibility
+  states.
+- Workflow screenshots captured from the real `/` route with mocked external
+  responses.
+- Public `/privacy` and `/terms` routes backed by maintained root documents.
+- Showtape product metadata, web manifest icons, and browser mark.
+- Visible setlist.fm source attribution using the validated response URL or the
+  setlist.fm homepage fallback.
+- Public-boundary, bundle-report, fixture-seed, and diagnostic scripts.
+- Optional ordered duplicate removal and bounded session recovery for known
+  partial track-add failures.
+
+### Changed
+
+- Renamed the active application from Setlist to Playlist to Showtape. The GitHub
+  repository slug remains unchanged.
+- Updated the web application to Next.js 16 and React 19.
+- Replaced the removed demo route with deterministic fixtures on the real workflow.
+- Browser import history now retains only user-entered URLs or IDs and parsed IDs.
+  Legacy upstream artist, venue, date, and song metadata is discarded during
+  migration.
+- Setlist requests now have a 10 second total upstream deadline, coalesce identical
+  in-flight IDs, validate the minimum response shape, and keep bounded 429 retry.
+- API routes return structured error codes and apply documented rate-limit policy.
+- MusicKit logic is split into token, client, catalog, and playlist modules.
 
 ### Fixed
 
-- Accessibility: search result buttons now have descriptive `aria-label` attributes
-- Dynamic import loading fallbacks now use `StatusText` component for visual consistency
-- `console.error` in error boundary gated to development mode only
-- Removed redundant `.then((value) => value)` in `useAsyncAction`
-- Added `settled` flag to `waitForMusicKit` timeout to prevent resolve/reject race
+- Ambiguous Apple Music create or add failures no longer offer an unsafe automatic
+  retry that could duplicate playlists or tracks.
+- Late setlist and matching responses no longer overwrite newer user work.
+- Browser history, diagnostic, trace, key, report, and local tool paths are covered
+  by the public repository boundary.
+- API failure bodies, oversized upstream responses, timeout states, and cache bounds
+  return deterministic errors.
 
-## [0.2.0] – 2026-03-22
+## 0.2.1, 2026-03-22
+
+### Added
+
+- React Testing Library, jsdom, component tests, and CSP middleware tests.
 
 ### Fixed
 
-- MusicKit `writeResume` now handles `QuotaExceededError` gracefully instead of crashing
-- Replaced inline type assertion in `playlist.ts` with proper `MusicKitAddTracksResponse` type
+- Accessible search-result names and dynamic loading status text.
+- MusicKit initialization timeout settlement and development-only error logging.
 
-### Security
+## 0.2.0, 2026-03-22
 
-- Added Content-Security-Policy middleware with MusicKit CDN and Apple API whitelist
-- Added `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` headers via middleware
+### Added
 
-### Testing
+- Content Security Policy and browser security headers.
+- MusicKit client integration tests.
 
-- Added MusicKit client integration tests (init, cache, failure reset, concurrency, missing config)
+### Fixed
 
-## [0.1.0] – Initial
+- Export resume writes now tolerate unavailable browser storage.
+- Playlist response handling uses a declared MusicKit response type.
 
-- Initial monorepo structure: apps (web, api), packages (core, shared, ui), docs, infra, scripts.
+## 0.1.0
+
+- Initial workspace with the web application, reusable API handlers, shared
+  packages, documentation, and scripts.

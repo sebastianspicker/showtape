@@ -19,15 +19,14 @@ rm -rf \
   apps/web/.next \
   apps/web/tsconfig.tsbuildinfo \
   apps/web/coverage \
-  apps/api/dist \
-  apps/api/coverage \
+  packages/api/dist \
+  packages/api/coverage \
   packages/core/dist \
   packages/core/coverage \
   packages/shared/dist \
   packages/shared/coverage \
   packages/ui/coverage \
   coverage \
-  .turbo \
   playwright-report \
   test-results \
   blob-report \

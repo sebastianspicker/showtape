@@ -1,9 +1,18 @@
-# Documentation Index
+# Documentation
 
-- **Product:** [product-specs/](product-specs/) – single-source PRD with scope, stories, onboarding and metrics
-- **Design:** [design-docs/](design-docs/) – UX flows and references to the design system master
-- **Tech:** [tech/](tech/) – frontend, backend, API reference, data flow, Apple Music, setlist.fm, security, reliability, deployment
-- **ADR:** [adr/](adr/) – architecture decision records
-
-Local audit reports, remediation ledgers, and generated fix-runner output are not
-part of the public documentation set.
+- [Architecture](architecture.md)
+- [Product overview](product/overview.md)
+- [Product requirements](product/requirements.md)
+- [Interface design](design/interface.md)
+- [API reference](tech/api-reference.md)
+- [Frontend](tech/frontend.md)
+- [Server handlers](tech/backend.md)
+- [Data flow](tech/data-flow.md)
+- [Apple Music integration](tech/apple-music.md)
+- [setlist.fm integration](tech/setlistfm.md)
+- [Reliability](tech/reliability.md)
+- [Security](tech/security.md)
+- [Deployment](tech/deployment.md)
+- [Architecture decisions](adr/)
+- [Workflow screenshots](screenshots/README.md)
+- [Local performance baseline](performance/public-alpha.json)

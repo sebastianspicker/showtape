@@ -38,15 +38,15 @@ function createDeferred<T>(): {
   return { promise, resolve, reject };
 }
 
-describe('useTrackSearch', () => {
-  beforeEach(() => {
-    mockSearchCatalog.mockReset();
-  });
+beforeEach(() => {
+  mockSearchCatalog.mockReset();
+});
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
+describe('useTrackSearch results', () => {
   it('runs a manual search and stores the returned results', async () => {
     const setMatch = vi.fn();
     mockSearchCatalog.mockResolvedValueOnce([
@@ -57,6 +57,9 @@ describe('useTrackSearch', () => {
 
     act(() => {
       result.current.openSearch(0);
+    });
+    expect(result.current.searchContext.searchQuery).toBe('Song A Artist A');
+    act(() => {
       result.current.setSearchQuery('Custom Song Query');
     });
     await act(async () => {
@@ -69,7 +72,9 @@ describe('useTrackSearch', () => {
     ]);
     expect(result.current.searchContext.hasSearched).toBe(true);
   });
+});
 
+describe('useTrackSearch selection lifecycle', () => {
   it('skipTrack clears the active manual search and marks the row skipped', async () => {
     const setMatch = vi.fn();
     mockSearchCatalog.mockResolvedValueOnce([

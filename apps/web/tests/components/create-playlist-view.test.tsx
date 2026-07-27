@@ -94,7 +94,7 @@ describe('CreatePlaylistView', () => {
     render(<CreatePlaylistView setlist={setlist} matchRows={matchRows} />);
 
     expect(
-      screen.getByText('Playlist created, but track import is incomplete.')
+      screen.getByRole('heading', { name: 'Playlist created; import incomplete' })
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add remaining songs' })).toBeInTheDocument();
   });
@@ -118,7 +118,7 @@ describe('CreatePlaylistView', () => {
 
     render(<CreatePlaylistView setlist={setlist} matchRows={matchRows} />);
 
-    expect(screen.getByRole('status')).toHaveTextContent('cannot be resumed safely');
+    expect(screen.getByText(/Automatic resume is unavailable/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Add remaining songs' })).not.toBeInTheDocument();
   });
 
@@ -133,8 +133,8 @@ describe('CreatePlaylistView', () => {
 
     render(<CreatePlaylistView setlist={setlist} matchRows={matchRows} />);
 
-    expect(screen.getByRole('status')).toHaveTextContent('Your playlist is ready!');
-    expect(screen.getByText(/1 song added to your Apple Music library/)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Playlist ready' })).toBeInTheDocument();
+    expect(screen.getByText(/1 song added/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Open in Apple Music' })).toHaveAttribute(
       'href',
       'https://music.apple.com/playlist/playlist-1'
@@ -155,8 +155,8 @@ describe('CreatePlaylistView', () => {
 
     render(<CreatePlaylistView setlist={setlist} matchRows={duplicateMatchRows} />);
 
-    expect(screen.getByText(/1 song added to your Apple Music library/)).toBeInTheDocument();
-    expect(screen.queryByText(/2 songs added to your Apple Music library/)).not.toBeInTheDocument();
+    expect(screen.getByText(/1 song added/)).toBeInTheDocument();
+    expect(screen.queryByText(/2 songs added/)).not.toBeInTheDocument();
   });
 
   it('wires the create action when Apple Music authorization is not required', async () => {
@@ -168,6 +168,10 @@ describe('CreatePlaylistView', () => {
 
     render(<CreatePlaylistView setlist={setlist} matchRows={matchRows} />);
 
+    expect(screen.getByRole('list', { name: 'Selected songs' })).toHaveTextContent('Song A');
+    expect(screen.getByRole('region', { name: 'Apple Music playlist creation' })).toHaveTextContent(
+      'Connected'
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Create playlist' }));
     expect(handleCreate).toHaveBeenCalledOnce();
   });
@@ -182,7 +186,9 @@ describe('CreatePlaylistView', () => {
 
     render(<CreatePlaylistView setlist={setlist} matchRows={matchRows} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Connect Apple Music' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Connect Apple Music and create playlist' })
+    );
     expect(handleAuthorized).toHaveBeenCalledOnce();
   });
 });

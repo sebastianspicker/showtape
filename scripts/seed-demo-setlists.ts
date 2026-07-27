@@ -3,7 +3,7 @@
  * Fetches a few known setlist IDs from setlist.fm and saves them as JSON fixtures.
  *
  * Usage:
- *   SETLISTFM_API_KEY=your_key npx tsx scripts/seed-demo-setlists.ts
+ *   SETLISTFM_API_KEY=your_key pnpm fixtures:seed
  *
  * Writes to scripts/fixtures/demo-setlists.json (create fixtures dir if needed).
  */

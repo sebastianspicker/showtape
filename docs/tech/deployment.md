@@ -1,51 +1,70 @@
 # Deployment
 
-## Overview
+## Supported process
 
-The app is a single Next.js deployment — one process serves both the PWA and all API routes (`/api/apple/dev-token`, `/api/setlist/proxy`, `/api/health`). No separate API server is required.
-
-## Self-Hosted Node.js
-
-```bash
-pnpm install --frozen-lockfile
-pnpm build
-pnpm --filter web start
-```
-
-Requires Node >= 20 and all environment variables set in the process environment. Serve behind a reverse proxy (Traefik, nginx, or Caddy) with TLS. Set `TRUST_PROXY=1` only when that reverse proxy overwrites forwarded IP headers. If `TRUST_PROXY` is unset, API responses expose `X-RateLimit-Policy: disabled-direct-no-trusted-client-key` and per-client rate limiting is deliberately disabled rather than trusting spoofable forwarded headers.
-
-| Variable                         | Value                                             |
-| -------------------------------- | ------------------------------------------------- |
-| `APPLE_TEAM_ID`                  | Your Apple Developer Team ID                      |
-| `APPLE_KEY_ID`                   | Your MusicKit key ID                              |
-| `APPLE_PRIVATE_KEY`              | Full contents of the `.p8` file, newlines as `\n` |
-| `NEXT_PUBLIC_APPLE_MUSIC_APP_ID` | Your MusicKit app identifier                      |
-| `SETLISTFM_API_KEY`              | Your setlist.fm API key                           |
-| `ALLOWED_ORIGIN`                 | Your production origin                            |
-| `TRUST_PROXY`                    | `1` only behind a trusted reverse proxy           |
-
-Leave `NEXT_PUBLIC_API_URL` unset when the web app and API routes are served from the same origin.
-
-## Release Process
-
-This repository uses a `dev` → `main` promotion model:
-
-1. All feature work lands on `dev` (CI runs automatically on every push/PR to `dev`).
-2. When ready to release: open a PR from `dev` → `main`. CI must pass.
-3. Merge to `main`. The deploy workflow (once configured) triggers deployment.
-4. Tag the release: `git tag v<semver>` following the `CHANGELOG.md` version.
-
-> **Note:** A GitHub Actions deploy workflow (for example `deploy.yml`) can be added later if this repo should trigger a self-hosted rollout automatically after `main` passes CI.
-
-## Health Check
-
-After deployment, verify:
+One self-hosted Next.js process serves the browser application and all API
+routes.
 
 ```bash
-curl https://your-app.example.com/api/health
-# Expected: {"status":"ok","timestamp":"..."}
+corepack pnpm@9.15.3 install --frozen-lockfile
+corepack pnpm@9.15.3 build
+corepack pnpm@9.15.3 --filter web start
 ```
 
-## Environment Variables Reference
+Node.js 20 or later is required. The repository does not provide a container
+image, process supervisor, reverse-proxy configuration, or deployment workflow.
 
-See [`.env.example`](../../.env.example) for the full list with inline documentation.
+## Environment
+
+Set these values in the process environment:
+
+| Variable                         | Description                           |
+| -------------------------------- | ------------------------------------- |
+| `APPLE_TEAM_ID`                  | Apple Developer Team ID               |
+| `APPLE_KEY_ID`                   | MusicKit key ID                       |
+| `APPLE_PRIVATE_KEY`              | Full PEM private key                  |
+| `NEXT_PUBLIC_APPLE_MUSIC_APP_ID` | Browser MusicKit application ID       |
+| `SETLISTFM_API_KEY`              | Server-side setlist.fm API key        |
+| `ALLOWED_ORIGIN`                 | Comma-separated exact browser origins |
+
+Leave `NEXT_PUBLIC_API_URL` unset for the included same-origin routes.
+
+`NEXT_PUBLIC_*` values are incorporated into the browser build. Set production
+values before running `build`.
+
+## Reverse proxy
+
+Terminate TLS before the Next.js process and preserve the request origin.
+Set `TRUST_PROXY=1` only if the proxy removes client-supplied forwarded-IP
+headers and writes trusted `X-Forwarded-For` or `X-Real-IP` values.
+
+Without a trusted client key, per-client route limiting is disabled and API
+responses include:
+
+```text
+X-RateLimit-Policy: disabled-direct-no-trusted-client-key
+```
+
+The application still uses bounded in-memory caches and limiter storage. These
+structures are per process and are not shared across instances.
+
+## Health check
+
+After deployment:
+
+```bash
+curl --fail --silent https://your-app.example.com/api/health
+```
+
+A successful response confirms that the Next.js route is running. It does not
+verify Apple credentials, setlist.fm access, MusicKit authorization, or a
+playlist write.
+
+## Release boundary
+
+CI verifies formatting, public-tree hygiene, linting, types, builds, tests,
+production dependency audit, and mocked Chromium behavior. It does not deploy
+the application.
+
+Operators must provide revision selection, deployment, monitoring, credential
+checks, and rollback procedures.

@@ -1,35 +1,21 @@
 'use client';
 
-import dynamic from 'next/dynamic';
-import { useState } from 'react';
+import { type ReactNode, useRef, useState } from 'react';
 import { Button } from '@repo/ui';
-import { FlowStepIndicator } from '@/components/FlowStepIndicator';
-import { ErrorAlert } from '@/components/ErrorAlert';
-import { SectionTitle } from '@/components/SectionTitle';
-import { StatusText } from '@/components/StatusText';
-import { ConnectAppleMusic } from '@/features/matching/ConnectAppleMusic';
-import { SetlistPreview } from './SetlistPreview';
+import { SetlistAttribution } from '@/components/SetlistAttribution';
+import { StepHeader } from '@/components/StepHeader';
+import { WorkflowRail } from '@/components/WorkflowRail';
+import { MatchingView } from '@/features/matching/MatchingView';
+import { CreatePlaylistView } from '@/features/playlist-export/CreatePlaylistView';
+import { ImportStep } from './ImportStep';
+import { PreviewStep } from './PreviewStep';
 import { useFlowState } from './useFlowState';
-import { useSetlistImportState } from './useSetlistImportState';
-
-const MatchingView = dynamic(
-  () =>
-    import('@/features/matching/MatchingView').then((m) => ({
-      default: m.MatchingView,
-    })),
-  { loading: () => <StatusText>Loading matching…</StatusText> }
-);
-
-const CreatePlaylistView = dynamic(
-  () =>
-    import('@/features/playlist-export/CreatePlaylistView').then((m) => ({
-      default: m.CreatePlaylistView,
-    })),
-  { loading: () => <StatusText>Loading export…</StatusText> }
-);
+import { useSetlistImportState, type ImportHistoryItem } from './useSetlistImportState';
 
 export function SetlistImportView() {
   const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [historyAnnouncement, setHistoryAnnouncement] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
   const {
     inputValue,
     setInputValue,
@@ -38,9 +24,12 @@ export function SetlistImportView() {
     error,
     history,
     loadSetlist,
+    validateInput,
+    cancelLoad,
     retryLast,
     selectHistoryItem,
     clearHistory,
+    resetForAnother,
   } = useSetlistImportState();
   const {
     step,
@@ -51,201 +40,127 @@ export function SetlistImportView() {
     goToExport,
     goBackToPreview,
     goBackToMatching,
+    updateMatchDraft,
+    startAnotherSetlist,
   } = useFlowState();
 
-  function handleSubmit(e: React.FormEvent): void {
-    e.preventDefault();
+  function focusInvalidInput() {
+    window.requestAnimationFrame(() => inputRef.current?.focus());
+  }
+
+  function handleSubmit(event: React.FormEvent): void {
+    event.preventDefault();
     setSubmissionError(null);
+    if (!validateInput()) {
+      focusInvalidInput();
+      return;
+    }
     void loadSetlist(inputValue)
-      .then((ok) => {
-        if (ok) goToPreview();
-      })
-      .catch(() => {
-        setSubmissionError('Unable to load the setlist. Please try again.');
-      });
+      .then((ok) => ok && goToPreview())
+      .catch(() => setSubmissionError('Unable to load the setlist. Please try again.'));
   }
 
-  function handleSelectHistoryItem(value: string): void {
+  function handleSelectHistoryItem(item: ImportHistoryItem): void {
     setSubmissionError(null);
-    void selectHistoryItem(value)
-      .then((ok) => {
-        if (ok) goToPreview();
-      })
-      .catch(() => {
-        setSubmissionError('Unable to load the setlist. Please try again.');
-      });
+    void selectHistoryItem(item)
+      .then((ok) => ok && goToPreview())
+      .catch(() => setSubmissionError('Unable to load the setlist. Please try again.'));
   }
 
-  const displayedError = error ?? submissionError;
+  function handleStartAnother(): void {
+    resetForAnother();
+    startAnotherSetlist();
+  }
+
+  function handleClearHistory(): void {
+    clearHistory();
+    setHistoryAnnouncement('Recent imports cleared.');
+  }
+
+  function handleRetry(): void {
+    void retryLast().then((ok) => ok && goToPreview());
+  }
+
+  const displayedError = error?.message ?? submissionError;
+  const retryable = error?.retryable ?? Boolean(submissionError);
+  const stepNumber = step === 'preview' ? 2 : step === 'matching' ? 3 : step === 'export' ? 4 : 1;
+  let stageContent: ReactNode;
 
   if (step === 'matching' && setlist) {
-    return (
-      <section ref={stepContainerRef} className="step-section" aria-label="Matching step">
-        <FlowStepIndicator step={3} total={4} label="Match songs" />
-        <button
-          type="button"
-          onClick={goBackToPreview}
-          aria-label="Back to setlist preview"
-          className="premium-button secondary back-button"
-        >
+    stageContent = (
+      <section className="workflow-section" aria-label="Confirm each song">
+        <StepHeader
+          step={3}
+          title="Confirm each song"
+          stageLabel="Step 3 of 4 · Match catalog tracks"
+          context={`${setlist.artist}${setlist.venue ? ` at ${setlist.venue}` : ''}`}
+          headingRef={stepContainerRef}
+        />
+        <Button variant="secondary" onClick={goBackToPreview} className="back-button">
           Back to preview
-        </button>
-        <p className="muted-block" style={{ marginTop: '0.75rem' }}>
-          <strong>{setlist.artist}</strong>
-          {setlist.venue ? ` at ${setlist.venue}` : ''}
-        </p>
-        <ConnectAppleMusic />
+        </Button>
+        <SetlistAttribution sourceUrl={setlist.sourceUrl} />
         <MatchingView
           setlist={setlist}
-          onProceedToCreatePlaylist={(matches) => {
-            goToExport(matches);
-          }}
+          initialDraft={matchRows}
+          onMatchesChange={updateMatchDraft}
+          onProceedToCreatePlaylist={goToExport}
         />
       </section>
     );
-  }
-
-  if (step === 'export' && setlist && matchRows) {
-    return (
-      <section ref={stepContainerRef} className="step-section" aria-label="Export step">
-        <FlowStepIndicator step={4} total={4} label="Save playlist" />
-        <button
-          type="button"
-          onClick={goBackToMatching}
-          aria-label="Back to matching"
-          className="premium-button secondary back-button"
-        >
-          Back to matching
-        </button>
-        <CreatePlaylistView setlist={setlist} matchRows={matchRows} />
+  } else if (step === 'export' && setlist && matchRows) {
+    stageContent = (
+      <section className="workflow-section" aria-label="Export playlist">
+        <StepHeader
+          step={4}
+          title="Save to Apple Music"
+          context={`${setlist.artist} · ${matchRows.filter((row) => row.appleTrack).length} selected`}
+          headingRef={stepContainerRef}
+        />
+        <CreatePlaylistView
+          setlist={setlist}
+          matchRows={matchRows}
+          onBack={goBackToMatching}
+          onStartAnother={handleStartAnother}
+        />
+        <SetlistAttribution sourceUrl={setlist.sourceUrl} />
       </section>
+    );
+  } else if (step === 'preview' && setlist) {
+    stageContent = (
+      <PreviewStep
+        setlist={setlist}
+        headingRef={stepContainerRef}
+        onChangeSetlist={startAnotherSetlist}
+        onMatchSongs={goToMatching}
+      />
+    );
+  } else {
+    stageContent = (
+      <ImportStep
+        inputValue={inputValue}
+        setInputValue={setInputValue}
+        loading={loading}
+        displayedError={displayedError}
+        retryable={retryable}
+        history={history}
+        historyAnnouncement={historyAnnouncement}
+        inputRef={inputRef}
+        headingRef={stepContainerRef}
+        onSubmit={handleSubmit}
+        onValidateInput={validateInput}
+        onCancelLoad={cancelLoad}
+        onRetry={handleRetry}
+        onSelectHistoryItem={handleSelectHistoryItem}
+        onClearHistory={handleClearHistory}
+      />
     );
   }
 
   return (
-    <section
-      ref={stepContainerRef}
-      aria-label="Import setlist"
-      className="glass-panel import-panel"
-    >
-      <FlowStepIndicator
-        step={step === 'preview' ? 2 : 1}
-        total={4}
-        label={step === 'preview' ? 'Preview setlist' : 'Find setlist'}
-      />
-      <SectionTitle>Find your setlist</SectionTitle>
-      <p className="muted-block">
-        Paste a link from{' '}
-        <a
-          href="https://www.setlist.fm"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="accent-link"
-        >
-          setlist.fm
-        </a>{' '}
-        or enter a setlist ID to get started.
-      </p>
-
-      <form onSubmit={handleSubmit} className="import-form">
-        <div className="import-input-wrap">
-          <label htmlFor="setlist-input" className="input-label">
-            Setlist URL or ID
-          </label>
-          <input
-            id="setlist-input"
-            type="text"
-            className="premium-input"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            placeholder="https://www.setlist.fm/setlist/..."
-            disabled={loading}
-            aria-invalid={!!displayedError}
-            aria-describedby={displayedError ? 'setlist-error' : 'setlist-hint'}
-          />
-          {!displayedError && (
-            <p id="setlist-hint" className="input-hint">
-              Example:{' '}
-              <code className="accent-inline">
-                https://www.setlist.fm/setlist/radiohead/...63de4613.html
-              </code>{' '}
-              or just <code className="accent-inline">63de4613</code>
-            </p>
-          )}
-        </div>
-        <Button
-          type="submit"
-          loading={loading}
-          loadingChildren="Fetching setlist…"
-          disabled={!inputValue.trim()}
-          style={{ height: '46px' }}
-          title="Fetch setlist from setlist.fm"
-        >
-          Load setlist
-        </Button>
-      </form>
-
-      {history.length > 0 && (
-        <div className="history-panel">
-          <div className="history-header">
-            <strong>Recent imports</strong>
-            <button type="button" className="premium-button secondary mini" onClick={clearHistory}>
-              Clear
-            </button>
-          </div>
-          <ul className="history-list">
-            {history.map((item) => (
-              <li key={item}>
-                <button
-                  type="button"
-                  className="history-item-button"
-                  onClick={() => {
-                    handleSelectHistoryItem(item);
-                  }}
-                  title={item}
-                >
-                  {item}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {loading && (
-        <StatusText
-          style={{ color: 'var(--accent-primary)', fontWeight: 500, marginTop: '0.5rem' }}
-        >
-          Loading setlist…
-        </StatusText>
-      )}
-
-      {displayedError && (
-        <div id="setlist-error">
-          <ErrorAlert
-            message={displayedError}
-            onRetry={retryLast}
-            retryLabel="Retry load setlist"
-          />
-        </div>
-      )}
-
-      {setlist && step === 'preview' && (
-        <>
-          <SetlistPreview setlist={setlist} />
-          <p className="muted-block" style={{ marginTop: '1rem' }}>
-            Looks good? Continue to match these songs on Apple Music.
-          </p>
-          <button
-            type="button"
-            className="premium-button"
-            onClick={goToMatching}
-            style={{ marginTop: '0.5rem' }}
-          >
-            Find songs on Apple Music
-          </button>
-        </>
-      )}
-    </section>
+    <div className={`workflow-shell workflow-shell--${step}`}>
+      <WorkflowRail currentStep={stepNumber} />
+      <div className={`workflow-stage workflow-stage--${step}`}>{stageContent}</div>
+    </div>
   );
 }

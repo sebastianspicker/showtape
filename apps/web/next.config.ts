@@ -7,9 +7,9 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
-  transpilePackages: ['@repo/core', '@repo/shared', 'api'],
+  devIndicators: false,
+  transpilePackages: ['@repo/api', '@repo/core', '@repo/shared'],
   turbopack: { root: repoRoot },
-  // Next 16+: set cacheComponents: true for PPR and use cache; see docs/tech/cache-components.md
 };
 
 export default nextConfig;

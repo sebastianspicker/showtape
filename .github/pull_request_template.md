@@ -9,6 +9,7 @@
 ## Testing
 
 - [ ] `pnpm format:check` passes
+- [ ] `pnpm hygiene:check` passes
 - [ ] `pnpm lint` passes
 - [ ] `pnpm typecheck` passes
 - [ ] `pnpm test` passes

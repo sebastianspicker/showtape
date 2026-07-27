@@ -1,99 +1,137 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { mapSetlistFmToSetlist } from '@repo/core';
+import { mapSetlistFmToSetlist, parseSetlistIdFromInput } from '@repo/core';
 import type { Setlist, SetlistFmResponse } from '@repo/core';
 import { getErrorMessage, isOk, MAX_SETLIST_INPUT_LENGTH, SETLIST_MESSAGES } from '@repo/shared';
 import { setlistProxyUrl } from '@/lib/api';
 import { fetchApiJson } from '@/lib/fetch';
+import {
+  clearImportHistory,
+  pushImportHistoryItem,
+  readImportHistory,
+  writeImportHistory,
+  type ImportHistoryItem,
+} from './importHistory';
 
-const HISTORY_KEY = 'setlist_import_history_v1';
-const MAX_HISTORY_ITEMS = 8;
+export type { ImportHistoryItem };
 
-function readHistory(): string[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = window.localStorage.getItem(HISTORY_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter((x): x is string => typeof x === 'string').slice(0, MAX_HISTORY_ITEMS);
-  } catch {
-    return [];
+export interface ImportError {
+  message: string;
+  code: 'invalid-input' | 'not-found' | 'rate-limit' | 'service' | 'network' | 'unknown';
+  retryable: boolean;
+  retryAfterSeconds?: number;
+}
+
+function classifyError(message: string): ImportError {
+  const lower = message.toLowerCase();
+  if (lower.includes('not found') || lower.includes('404')) {
+    return { message, code: 'not-found', retryable: false };
   }
-}
-
-function writeHistory(next: string[]): void {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.setItem(HISTORY_KEY, JSON.stringify(next.slice(0, MAX_HISTORY_ITEMS)));
-  } catch {
-    // ignore quota/access errors
+  if (lower.includes('rate') || lower.includes('429') || lower.includes('too many requests')) {
+    const retryAfter = lower.match(/(\d+)\s*(?:seconds?|s)\b/)?.[1];
+    return {
+      message,
+      code: 'rate-limit',
+      retryable: true,
+      retryAfterSeconds: retryAfter ? Number(retryAfter) : undefined,
+    };
   }
+  if (lower.includes('unavailable') || lower.includes('503') || lower.includes('502')) {
+    return { message, code: 'service', retryable: true };
+  }
+  if (
+    lower.includes('network') ||
+    lower.includes('failed to fetch') ||
+    lower.includes('load failed')
+  ) {
+    return { message, code: 'network', retryable: true };
+  }
+  return { message, code: 'unknown', retryable: false };
 }
 
-function pushHistory(prev: string[], value: string): string[] {
-  const normalized = value.trim();
-  if (!normalized) return prev;
-  const deduped = [normalized, ...prev.filter((item) => item !== normalized)];
-  return deduped.slice(0, MAX_HISTORY_ITEMS);
+function invalidInputError(value: string): ImportError | null {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return {
+      message: 'Enter a setlist.fm URL or setlist ID.',
+      code: 'invalid-input',
+      retryable: false,
+    };
+  }
+  if (trimmed.length > MAX_SETLIST_INPUT_LENGTH) {
+    return { message: SETLIST_MESSAGES.INPUT_TOO_LONG, code: 'invalid-input', retryable: false };
+  }
+  if (!parseSetlistIdFromInput(trimmed)) {
+    return {
+      message: 'Enter a valid setlist.fm URL or a 4–12 character hexadecimal setlist ID.',
+      code: 'invalid-input',
+      retryable: false,
+    };
+  }
+  return null;
 }
+
+const isAbortError = (value: unknown): boolean =>
+  value instanceof DOMException && value.name === 'AbortError';
 
 export function useSetlistImportState() {
   const [inputValue, setInputValueState] = useState('');
   const [setlist, setSetlist] = useState<Setlist | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [history, setHistory] = useState<string[]>([]);
-
-  // Numeric IDs distinguish repeated submissions of the same input and block late responses.
+  const [error, setError] = useState<ImportError | null>(null);
+  const [history, setHistory] = useState<ImportHistoryItem[]>([]);
   const currentRequestRef = useRef(0);
   const requestCounterRef = useRef(0);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  useEffect(() => {
-    setHistory(readHistory());
-  }, []);
+  useEffect(() => setHistory(readImportHistory()), []);
+  useEffect(() => () => abortControllerRef.current?.abort(), []);
 
-  async function loadSetlist(trimmedValue: string): Promise<boolean> {
-    const trimmed = trimmedValue.trim();
-    setError(null);
-    if (!trimmed) return false;
-    if (trimmed.length > MAX_SETLIST_INPUT_LENGTH) {
-      setError(SETLIST_MESSAGES.INPUT_TOO_LONG);
-      return false;
-    }
+  const validateInput = (): boolean => {
+    const validationError = invalidInputError(inputValue);
+    setError(validationError);
+    return validationError === null;
+  };
+
+  const loadSetlist = async (rawValue: string): Promise<boolean> => {
+    const trimmed = rawValue.trim();
+    const validationError = invalidInputError(trimmed);
+    setError(validationError);
+    if (validationError) return false;
 
     const requestId = ++requestCounterRef.current;
     currentRequestRef.current = requestId;
     abortControllerRef.current?.abort();
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
-    const signal = abortController.signal;
     setLoading(true);
     try {
       const url = setlistProxyUrl(`id=${encodeURIComponent(trimmed)}`);
-      const result = await fetchApiJson<SetlistFmResponse>(url, { signal });
+      const result = await fetchApiJson<SetlistFmResponse>(url, { signal: abortController.signal });
       if (currentRequestRef.current !== requestId) return false;
 
       if (isOk(result)) {
         const mapped = mapSetlistFmToSetlist(result.value);
         setSetlist(mapped);
+        const item: ImportHistoryItem = {
+          input: trimmed,
+          setlistId: mapped.id,
+        };
         setHistory((prev) => {
-          const next = pushHistory(prev, trimmed);
-          writeHistory(next);
+          const next = pushImportHistoryItem(prev, item);
+          writeImportHistory(next);
           return next;
         });
         return true;
-      } else {
-        setError(result.error);
-        setSetlist(null);
-        return false;
       }
-    } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') return false;
+      setError(classifyError(result.error));
+      setSetlist(null);
+      return false;
+    } catch (caught) {
+      if (isAbortError(caught)) return false;
       if (currentRequestRef.current !== requestId) return false;
-      setError(getErrorMessage(err, 'Network error.'));
+      setError(classifyError(getErrorMessage(caught, 'Network error.')));
       setSetlist(null);
       return false;
     } finally {
@@ -103,10 +141,17 @@ export function useSetlistImportState() {
         abortControllerRef.current = null;
       }
     }
+  };
+
+  function cancelLoad() {
+    currentRequestRef.current = 0;
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
+    setLoading(false);
   }
 
-  function retryLast() {
-    void loadSetlist(inputValue);
+  function retryLast(): Promise<boolean> {
+    return loadSetlist(inputValue);
   }
 
   function setInputValue(value: string) {
@@ -114,14 +159,21 @@ export function useSetlistImportState() {
     setError(null);
   }
 
-  async function selectHistoryItem(value: string): Promise<boolean> {
-    setInputValueState(value);
-    return loadSetlist(value);
+  async function selectHistoryItem(item: ImportHistoryItem): Promise<boolean> {
+    setInputValueState(item.input);
+    return loadSetlist(item.input);
   }
 
   function clearHistory() {
     setHistory([]);
-    writeHistory([]);
+    clearImportHistory();
+  }
+
+  function resetForAnother() {
+    cancelLoad();
+    setInputValueState('');
+    setSetlist(null);
+    setError(null);
   }
 
   return {
@@ -132,8 +184,11 @@ export function useSetlistImportState() {
     error,
     history,
     loadSetlist,
+    validateInput,
+    cancelLoad,
     retryLast,
     selectHistoryItem,
     clearHistory,
+    resetForAnother,
   };
 }

@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { getErrorMessage } from '@repo/shared';
 import { ErrorBoundaryView } from '@/components/ErrorBoundaryView';
 
-export default function Error({
+export default function AppError({
   error,
   reset,
 }: {

@@ -16,6 +16,10 @@ export interface Setlist {
   venue?: string;
   /** Event date (ISO or display) */
   eventDate?: string;
+  /** setlist.fm attribution URL supplied by the upstream response */
+  sourceUrl?: string;
   /** Ordered list of tracks/songs */
   sets: SetlistEntry[][];
 }
+
+export const SETLIST_FM_ATTRIBUTION_FALLBACK_URL = 'https://www.setlist.fm/';

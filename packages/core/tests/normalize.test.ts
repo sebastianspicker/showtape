@@ -7,7 +7,7 @@ describe('normalizeTrackName', () => {
     expect(normalizeTrackName('Song (acoustic)')).toBe('Song');
   });
 
-  it('strips unbalanced trailing parentheses (DCI-059)', () => {
+  it('strips unbalanced trailing parentheses', () => {
     expect(normalizeTrackName('Song (live')).toBe('Song');
     expect(normalizeTrackName('Song (acoustic')).toBe('Song');
   });
@@ -17,7 +17,7 @@ describe('normalizeTrackName', () => {
     expect(normalizeTrackName('Song ft. Other Artist')).toBe('Song');
   });
 
-  it('strips feat. segment when it contains a hyphen (DCI-008)', () => {
+  it('strips a featured-artist segment when it contains a hyphen', () => {
     expect(normalizeTrackName('Song feat. Artist A - Artist B')).toBe('Song');
   });
 
@@ -29,19 +29,19 @@ describe('normalizeTrackName', () => {
     expect(normalizeTrackName('  Hello   World  ')).toBe('Hello World');
   });
 
-  it('preserves valid parentheses (DCI-061)', () => {
+  it('preserves meaningful leading parentheses', () => {
     expect(normalizeTrackName("(Don't Fear) The Reaper")).toBe("(Don't Fear) The Reaper");
     expect(normalizeTrackName('Interstate Love Song (2019 Remastered)')).toBe(
       'Interstate Love Song'
     );
   });
 
-  it('refines feat. removal to preserve trailing metadata (DCI-063)', () => {
+  it('preserves non-artist text after removing a featured-artist segment', () => {
     expect(normalizeTrackName('Song feat. Artist A (live)')).toBe('Song');
     expect(normalizeTrackName('Song feat. Artist A - Radio Edit')).toBe('Song Radio Edit');
   });
 
-  it('documents active release metadata compatibility fixtures', () => {
+  it('removes common release metadata', () => {
     expect(normalizeTrackName('Song (2011 Remastered Version)')).toBe('Song');
     expect(normalizeTrackName('Song (Live Version)')).toBe('Song');
     expect(normalizeTrackName('Song - 2019 Remaster')).toBe('Song');

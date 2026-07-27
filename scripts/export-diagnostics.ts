@@ -4,8 +4,8 @@
  * Secret values are excluded, but the report should still be reviewed before sharing.
  *
  * Usage:
- *   npx tsx scripts/export-diagnostics.ts
- *   mkdir -p reports && npx tsx scripts/export-diagnostics.ts --out reports/diagnostics.json
+ *   pnpm diagnostics:export
+ *   pnpm diagnostics:export -- --out reports/diagnostics.json
  */
 
 import { lstatSync, realpathSync, writeFileSync } from 'node:fs';

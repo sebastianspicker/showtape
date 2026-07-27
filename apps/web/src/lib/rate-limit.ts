@@ -14,7 +14,7 @@ const RATE_LIMIT_POLICY_DISABLED_DIRECT = 'disabled-direct-no-trusted-client-key
 /** Threshold at which expired-bucket cleanup runs. */
 const CLEANUP_THRESHOLD = 1000;
 
-/** Hard cap — if still above this after expiry sweep, drop oldest entries (FIFO). */
+/** If an expiry sweep leaves the map above this hard cap, drop the oldest entries. */
 const MAX_BUCKETS = 5000;
 
 /**
@@ -92,7 +92,7 @@ export function createInMemoryRateLimiter(
 /**
  * Extract a client identifier from request headers for rate limiting.
  *
- * **Important:** This relies on `X-Forwarded-For` and `X-Real-IP` headers,
+ * Important: This relies on `X-Forwarded-For` and `X-Real-IP` headers,
  * which are only trustworthy when the application sits behind a trusted
  * reverse proxy (for example Traefik, nginx, or Caddy) that sets these headers.
  * Without a trusted proxy, clients can spoof these headers to bypass rate limits.
