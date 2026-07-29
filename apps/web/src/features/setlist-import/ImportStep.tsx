@@ -163,23 +163,6 @@ function ImportStatus({ loading, displayedError, retryable, onRetry }: ImportSta
 }
 
 export function ImportStep(props: ImportStepProps) {
-  const {
-    inputValue,
-    setInputValue,
-    loading,
-    displayedError,
-    retryable,
-    history,
-    historyAnnouncement,
-    inputRef,
-    headingRef,
-    onSubmit,
-    onValidateInput,
-    onCancelLoad,
-    onRetry,
-    onSelectHistoryItem,
-    onClearHistory,
-  } = props;
   return (
     <section className="workflow-section import-section" aria-label="Import setlist">
       <StepHeader
@@ -187,7 +170,7 @@ export function ImportStep(props: ImportStepProps) {
         title="Import a setlist"
         stageLabel="Step 1 of 4 · Start with a show"
         context="Paste a setlist.fm link or enter its setlist ID."
-        headingRef={headingRef}
+        headingRef={props.headingRef}
       />
 
       <div className="workflow-orientation-panel" aria-labelledby="workflow-orientation-title">
@@ -201,30 +184,30 @@ export function ImportStep(props: ImportStepProps) {
       </div>
 
       <ImportForm
-        inputValue={inputValue}
-        setInputValue={setInputValue}
-        loading={loading}
-        displayedError={displayedError}
-        inputRef={inputRef}
-        onSubmit={onSubmit}
-        onValidateInput={onValidateInput}
-        onCancelLoad={onCancelLoad}
+        inputValue={props.inputValue}
+        setInputValue={props.setInputValue}
+        loading={props.loading}
+        displayedError={props.displayedError}
+        inputRef={props.inputRef}
+        onSubmit={props.onSubmit}
+        onValidateInput={props.onValidateInput}
+        onCancelLoad={props.onCancelLoad}
       />
 
       <ImportStatus
-        loading={loading}
-        displayedError={displayedError}
-        retryable={retryable}
-        onRetry={onRetry}
+        loading={props.loading}
+        displayedError={props.displayedError}
+        retryable={props.retryable}
+        onRetry={props.onRetry}
       />
 
       <ImportHistory
-        history={history}
-        onSelectHistoryItem={onSelectHistoryItem}
-        onClearHistory={onClearHistory}
+        history={props.history}
+        onSelectHistoryItem={props.onSelectHistoryItem}
+        onClearHistory={props.onClearHistory}
       />
       <span className="sr-only" role="status" aria-live="polite">
-        {historyAnnouncement}
+        {props.historyAnnouncement}
       </span>
     </section>
   );
