@@ -23,10 +23,10 @@ export type Result<T, E = string> = { ok: true; value: T } | { ok: false; error:
 
 /** Type guard: narrow Result to success. */
 export function isOk<T, E>(r: Result<T, E>): r is { ok: true; value: T } {
-  return r.ok === true;
+  return r.ok;
 }
 
 /** Type guard: narrow Result to error. */
 export function isErr<T, E>(r: Result<T, E>): r is { ok: false; error: E } {
-  return r.ok === false;
+  return !r.ok;
 }

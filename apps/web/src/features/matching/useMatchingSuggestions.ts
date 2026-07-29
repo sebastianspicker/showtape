@@ -67,7 +67,8 @@ export function useMatchingSuggestions(setlist: Setlist, initialDraft?: MatchRow
 
       const results = await Promise.allSettled(
         batchIndices.map((i) => {
-          const entry = entriesFlat[i]!;
+          const entry = entriesFlat.at(i);
+          if (!entry) return Promise.resolve(null);
           const query = buildSearchQuery(entry.name, entry.artist);
           if (!query) return Promise.resolve(null);
           const existingPromise = searchPromises.get(query);
@@ -137,15 +138,16 @@ export function useMatchingSuggestions(setlist: Setlist, initialDraft?: MatchRow
 
   const setMatch = useCallback((index: number, appleTrack: MatchRow['appleTrack']) => {
     setMatches((prev) => {
-      const existing = prev[index];
+      const existing =
+        Number.isInteger(index) && index >= 0 && index < prev.length ? prev.at(index) : undefined;
       if (!existing) return prev;
       const validTrack = isValidAppleMusicTrack(appleTrack) ? appleTrack : null;
       const next = [...prev];
-      next[index] = {
+      next.splice(index, 1, {
         ...existing,
         appleTrack: validTrack,
         status: validTrack ? 'matched' : 'skipped',
-      };
+      });
       return next;
     });
   }, []);

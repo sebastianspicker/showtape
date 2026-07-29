@@ -141,6 +141,20 @@ describe('CreatePlaylistView', () => {
     );
   });
 
+  it('does not render optional navigation controls when callbacks are omitted', () => {
+    mockUseCreatePlaylistState.mockReturnValue(baseState);
+    render(<CreatePlaylistView setlist={setlist} matchRows={matchRows} />);
+    expect(screen.queryByRole('button', { name: 'Back to matching' })).not.toBeInTheDocument();
+
+    cleanup();
+    mockUseCreatePlaylistState.mockReturnValue({
+      ...baseState,
+      created: { id: 'playlist-1', url: 'https://music.apple.com/playlist/playlist-1' },
+    });
+    render(<CreatePlaylistView setlist={setlist} matchRows={matchRows} />);
+    expect(screen.queryByRole('button', { name: 'Start another setlist' })).not.toBeInTheDocument();
+  });
+
   it('uses the actual sent song ID count in success copy after dedupe', () => {
     mockUseCreatePlaylistState.mockReturnValue({
       ...baseState,

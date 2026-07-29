@@ -12,8 +12,51 @@ const CACHE_HIT = { 'Cache-Control': 'private, max-age=3600' } as const;
 /** Cache-Control: error responses must not be cached. */
 const CACHE_NO_STORE = { 'Cache-Control': 'no-store' } as const;
 
-export async function OPTIONS(request: NextRequest) {
+export function OPTIONS(request: NextRequest) {
   return optionsNoContent(request);
+}
+
+function setlistInput(request: NextRequest): string {
+  return request.nextUrl.searchParams.get('id') ?? request.nextUrl.searchParams.get('url') ?? '';
+}
+
+function invalidInputResponse(
+  request: NextRequest,
+  id: string,
+  rateHeaders: Record<string, string>
+) {
+  if (!id) {
+    return jsonResponse({ error: 'Missing id or url query parameter.' }, 400, request, {
+      ...rateHeaders,
+      ...CACHE_NO_STORE,
+    });
+  }
+  if (id.length > MAX_SETLIST_INPUT_LENGTH) {
+    return jsonResponse({ error: SETLIST_MESSAGES.INPUT_TOO_LONG }, 400, request, {
+      ...rateHeaders,
+      ...CACHE_NO_STORE,
+    });
+  }
+  return null;
+}
+
+function setlistResultResponse(
+  result: Awaited<ReturnType<typeof handleSetlistProxy>>,
+  request: NextRequest,
+  rateHeaders: Record<string, string>
+) {
+  if (!isErr(result)) {
+    return jsonResponse(result.value.body, 200, request, { ...rateHeaders, ...CACHE_HIT });
+  }
+
+  const payload =
+    result.error.status >= 500
+      ? { error: 'setlist.fm is temporarily unavailable', code: result.error.error.code }
+      : result.error.error;
+  return jsonResponse(payload, result.error.status, request, {
+    ...rateHeaders,
+    ...CACHE_NO_STORE,
+  });
 }
 
 /**
@@ -29,34 +72,13 @@ export async function GET(request: NextRequest) {
   );
   if (rateLimitedResponse) return rateLimitedResponse;
 
-  const id =
-    request.nextUrl.searchParams.get('id') ?? request.nextUrl.searchParams.get('url') ?? '';
-  if (!id) {
-    return jsonResponse({ error: 'Missing id or url query parameter.' }, 400, request, {
-      ...rateHeaders,
-      ...CACHE_NO_STORE,
-    });
-  }
-  if (id.length > MAX_SETLIST_INPUT_LENGTH) {
-    return jsonResponse({ error: SETLIST_MESSAGES.INPUT_TOO_LONG }, 400, request, {
-      ...rateHeaders,
-      ...CACHE_NO_STORE,
-    });
-  }
+  const id = setlistInput(request);
+  const invalidResponse = invalidInputResponse(request, id, rateHeaders);
+  if (invalidResponse) return invalidResponse;
 
   try {
     const result = await handleSetlistProxy(id);
-    if (isErr(result)) {
-      const payload =
-        result.error.status >= 500
-          ? { error: 'setlist.fm is temporarily unavailable', code: result.error.error.code }
-          : result.error.error;
-      return jsonResponse(payload, result.error.status, request, {
-        ...rateHeaders,
-        ...CACHE_NO_STORE,
-      });
-    }
-    return jsonResponse(result.value.body, 200, request, { ...rateHeaders, ...CACHE_HIT });
+    return setlistResultResponse(result, request, rateHeaders);
   } catch {
     return internalError(request);
   }

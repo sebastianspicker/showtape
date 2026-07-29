@@ -207,9 +207,17 @@ const MatchRowItemComponent = (props: MatchRowItemProps) => {
           searchResults={searchContext.searchResults}
           hasSearched={searchContext.hasSearched}
           onSearchQueryChange={onSearchQueryChange}
-          onSearch={() => onSearch(index)}
-          onChoose={(track) => restoreFocus(() => onChoose(index, track))}
-          onCancel={() => restoreFocus(onCancelSearch)}
+          onSearch={() => {
+            onSearch(index);
+          }}
+          onChoose={(track) => {
+            restoreFocus(() => {
+              onChoose(index, track);
+            });
+          }}
+          onCancel={() => {
+            restoreFocus(onCancelSearch);
+          }}
         />
       )}
     </li>

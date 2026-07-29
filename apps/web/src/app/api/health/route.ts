@@ -4,7 +4,7 @@ import { jsonResponse } from '@/lib/api-response';
 import { optionsNoContent } from '../_helpers';
 
 /** OPTIONS for CORS preflight so cross-origin health checks succeed. Uses corsHeadersForOptions (no Content-Type, includes Allow-Methods/Headers). */
-export async function OPTIONS(request: NextRequest) {
+export function OPTIONS(request: NextRequest) {
   return optionsNoContent(request);
 }
 
@@ -12,6 +12,6 @@ export async function OPTIONS(request: NextRequest) {
  * GET /api/health – liveness check for deployment and load balancers.
  * Returns 200 and { status: "ok", timestamp: "..." }.
  */
-export async function GET(request: NextRequest) {
+export function GET(request: NextRequest) {
   return jsonResponse(handleHealth(), 200, request);
 }

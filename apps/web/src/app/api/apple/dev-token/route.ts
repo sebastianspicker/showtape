@@ -7,7 +7,7 @@ import { checkRateLimit, internalError, optionsNoContent } from '../../_helpers'
 
 const DEV_TOKEN_RATE_LIMIT = createInMemoryRateLimiter(30, 60_000);
 
-export async function OPTIONS(request: NextRequest) {
+export function OPTIONS(request: NextRequest) {
   return optionsNoContent(request);
 }
 

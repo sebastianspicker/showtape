@@ -30,6 +30,16 @@ export interface UseTrackSearchResult {
   closeSearch: () => void;
 }
 
+function findSearchRow(matches: MatchRow[], index: number): MatchRow | undefined {
+  return Number.isInteger(index) && index >= 0 && index < matches.length
+    ? matches.at(index)
+    : undefined;
+}
+
+function queryForRow(row: MatchRow, value: string): string {
+  return value.trim() || buildSearchQuery(row.setlistEntry.name, row.setlistEntry.artist);
+}
+
 export function useTrackSearch({ matches, setMatch }: UseTrackSearchParams): UseTrackSearchResult {
   const [searchingIndex, setSearchingIndex] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -50,12 +60,11 @@ export function useTrackSearch({ matches, setMatch }: UseTrackSearchParams): Use
 
   const openSearch = useCallback(
     (index: number) => {
+      const row = findSearchRow(matches, index);
+      if (!row) return;
       invalidateCurrentSearch();
       setSearchingIndex(index);
-      const row = matches[index];
-      setSearchQuery(
-        row?.setlistEntry ? buildSearchQuery(row.setlistEntry.name, row.setlistEntry.artist) : ''
-      );
+      setSearchQuery(buildSearchQuery(row.setlistEntry.name, row.setlistEntry.artist));
       setSearchResults([]);
       setSearchError(false);
       setHasSearched(false);
@@ -74,11 +83,9 @@ export function useTrackSearch({ matches, setMatch }: UseTrackSearchParams): Use
 
   const runSearch = useCallback(
     async (index: number) => {
-      const row = matches[index];
-      if (index < 0 || index >= matches.length || !row?.setlistEntry) return;
-      const q =
-        searchQueryRef.current.trim() ||
-        buildSearchQuery(row.setlistEntry.name, row.setlistEntry.artist);
+      const row = findSearchRow(matches, index);
+      if (!row) return;
+      const q = queryForRow(row, searchQueryRef.current);
       if (!q) return;
       const runId = ++searchRunIdCounter.current;
       searchRunIdRef.current = runId;
@@ -105,17 +112,19 @@ export function useTrackSearch({ matches, setMatch }: UseTrackSearchParams): Use
 
   const chooseTrack = useCallback(
     (index: number, track: AppleMusicTrack) => {
+      if (!findSearchRow(matches, index)) return;
       invalidateCurrentSearch();
       setMatch(index, track);
       setSearchingIndex(null);
       setSearchResults([]);
       setSearchError(false);
     },
-    [invalidateCurrentSearch, setMatch]
+    [invalidateCurrentSearch, matches, setMatch]
   );
 
   const skipTrack = useCallback(
     (index: number) => {
+      if (!findSearchRow(matches, index)) return;
       setMatch(index, null);
       if (searchingIndex !== index) return;
       invalidateCurrentSearch();
@@ -125,7 +134,7 @@ export function useTrackSearch({ matches, setMatch }: UseTrackSearchParams): Use
       setHasSearched(false);
       setSearchingIndex(null);
     },
-    [invalidateCurrentSearch, searchingIndex, setMatch]
+    [invalidateCurrentSearch, matches, searchingIndex, setMatch]
   );
 
   const searchContext: TrackSearchContext = {
