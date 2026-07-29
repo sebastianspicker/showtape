@@ -62,6 +62,106 @@ function ImportHistory({ history, onSelectHistoryItem, onClearHistory }: ImportH
   );
 }
 
+type ImportFormProps = Pick<
+  ImportStepProps,
+  | 'inputValue'
+  | 'setInputValue'
+  | 'loading'
+  | 'displayedError'
+  | 'inputRef'
+  | 'onSubmit'
+  | 'onValidateInput'
+  | 'onCancelLoad'
+>;
+
+type SetlistInputProps = Pick<
+  ImportFormProps,
+  'inputValue' | 'setInputValue' | 'loading' | 'displayedError' | 'inputRef' | 'onValidateInput'
+>;
+
+function SetlistInput(props: SetlistInputProps) {
+  const { inputValue, setInputValue, loading, displayedError, inputRef, onValidateInput } = props;
+
+  return (
+    <div className="import-input-wrap">
+      <label htmlFor="setlist-input" className="input-label">
+        Setlist URL or ID
+      </label>
+      <input
+        ref={inputRef}
+        id="setlist-input"
+        type="text"
+        className="input"
+        value={inputValue}
+        onChange={(event) => {
+          setInputValue(event.target.value);
+        }}
+        onBlur={() => {
+          if (inputValue.trim()) onValidateInput();
+        }}
+        placeholder="setlist.fm URL or 63de4613"
+        disabled={loading}
+        aria-invalid={Boolean(displayedError)}
+        aria-describedby={displayedError ? 'setlist-error' : 'setlist-hint'}
+      />
+      {!displayedError ? (
+        <p id="setlist-hint" className="input-hint">
+          Example ID: <code>63de4613</code>
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function ImportActions({
+  loading,
+  onCancelLoad,
+}: Pick<ImportFormProps, 'loading' | 'onCancelLoad'>) {
+  return (
+    <div className="import-actions">
+      <Button type="submit" loading={loading} loadingChildren="Fetching setlist…">
+        Load setlist
+      </Button>
+      {loading ? (
+        <Button type="button" variant="secondary" onClick={onCancelLoad}>
+          Cancel
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
+function ImportForm(props: ImportFormProps) {
+  return (
+    <form onSubmit={props.onSubmit} className="import-form" noValidate>
+      <SetlistInput {...props} />
+      <ImportActions loading={props.loading} onCancelLoad={props.onCancelLoad} />
+    </form>
+  );
+}
+
+type ImportStatusProps = Pick<
+  ImportStepProps,
+  'loading' | 'displayedError' | 'retryable' | 'onRetry'
+>;
+
+function ImportStatus({ loading, displayedError, retryable, onRetry }: ImportStatusProps) {
+  return (
+    <>
+      {loading ? <StatusText>Loading setlist…</StatusText> : null}
+      {displayedError ? (
+        <div id="setlist-error">
+          <ErrorAlert
+            message={displayedError}
+            onRetry={retryable ? onRetry : undefined}
+            retryLabel="Retry load setlist"
+          />
+        </div>
+      ) : null}
+    </>
+  );
+}
+
 export function ImportStep(props: ImportStepProps) {
   const {
     inputValue,
@@ -100,54 +200,23 @@ export function ImportStep(props: ImportStepProps) {
         </ol>
       </div>
 
-      <form onSubmit={onSubmit} className="import-form" noValidate>
-        <div className="import-input-wrap">
-          <label htmlFor="setlist-input" className="input-label">
-            Setlist URL or ID
-          </label>
-          <input
-            ref={inputRef}
-            id="setlist-input"
-            type="text"
-            className="input"
-            value={inputValue}
-            onChange={(event) => setInputValue(event.target.value)}
-            onBlur={() => {
-              if (inputValue.trim()) onValidateInput();
-            }}
-            placeholder="setlist.fm URL or 63de4613"
-            disabled={loading}
-            aria-invalid={Boolean(displayedError)}
-            aria-describedby={displayedError ? 'setlist-error' : 'setlist-hint'}
-          />
-          {!displayedError ? (
-            <p id="setlist-hint" className="input-hint">
-              Example ID: <code>63de4613</code>
-            </p>
-          ) : null}
-        </div>
-        <div className="import-actions">
-          <Button type="submit" loading={loading} loadingChildren="Fetching setlist…">
-            Load setlist
-          </Button>
-          {loading ? (
-            <Button type="button" variant="secondary" onClick={onCancelLoad}>
-              Cancel
-            </Button>
-          ) : null}
-        </div>
-      </form>
+      <ImportForm
+        inputValue={inputValue}
+        setInputValue={setInputValue}
+        loading={loading}
+        displayedError={displayedError}
+        inputRef={inputRef}
+        onSubmit={onSubmit}
+        onValidateInput={onValidateInput}
+        onCancelLoad={onCancelLoad}
+      />
 
-      {loading ? <StatusText>Loading setlist…</StatusText> : null}
-      {displayedError ? (
-        <div id="setlist-error">
-          <ErrorAlert
-            message={displayedError}
-            onRetry={retryable ? onRetry : undefined}
-            retryLabel="Retry load setlist"
-          />
-        </div>
-      ) : null}
+      <ImportStatus
+        loading={loading}
+        displayedError={displayedError}
+        retryable={retryable}
+        onRetry={onRetry}
+      />
 
       <ImportHistory
         history={history}

@@ -25,6 +25,61 @@ interface SearchResultsProps {
   onChoose: (track: AppleMusicTrack) => void;
 }
 
+interface SearchControlsProps {
+  inputId: string;
+  resultsId: string;
+  searchQuery: string;
+  searching: boolean;
+  onSearchQueryChange: (value: string) => void;
+  onSearch: () => void;
+  onCancel: () => void;
+}
+
+function SearchControls(props: SearchControlsProps) {
+  const { inputId, resultsId, searchQuery, searching, onSearchQueryChange, onSearch, onCancel } =
+    props;
+
+  return (
+    <>
+      <label htmlFor={inputId} className="input-label">
+        Search Apple Music
+      </label>
+      <div className="track-search-controls">
+        <input
+          id={inputId}
+          type="search"
+          value={searchQuery}
+          onChange={(event) => {
+            onSearchQueryChange(event.target.value);
+          }}
+          placeholder="Song name, artist…"
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') onSearch();
+          }}
+          autoFocus
+          className="input search-input"
+          aria-controls={resultsId}
+          autoComplete="off"
+          enterKeyHint="search"
+        />
+        <button
+          type="button"
+          onClick={onSearch}
+          disabled={searching}
+          aria-label="Search Apple Music"
+          aria-busy={searching}
+          className="button button--secondary"
+        >
+          {searching ? 'Searching…' : 'Search'}
+        </button>
+        <button type="button" onClick={onCancel} className="button button--quiet">
+          Cancel
+        </button>
+      </div>
+    </>
+  );
+}
+
 function SearchResults({
   resultsId,
   searchResults,
@@ -90,39 +145,15 @@ export function TrackSearchPanel(props: TrackSearchPanelProps) {
         if (event.key === 'Escape') onCancel();
       }}
     >
-      <label htmlFor={inputId} className="input-label">
-        Search Apple Music
-      </label>
-      <div className="track-search-controls">
-        <input
-          id={inputId}
-          type="search"
-          value={searchQuery}
-          onChange={(e) => onSearchQueryChange(e.target.value)}
-          placeholder="Song name, artist…"
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') onSearch();
-          }}
-          autoFocus
-          className="input search-input"
-          aria-controls={resultsId}
-          autoComplete="off"
-          enterKeyHint="search"
-        />
-        <button
-          type="button"
-          onClick={onSearch}
-          disabled={searching}
-          aria-label="Search Apple Music"
-          aria-busy={searching}
-          className="button button--secondary"
-        >
-          {searching ? 'Searching…' : 'Search'}
-        </button>
-        <button type="button" onClick={onCancel} className="button button--quiet">
-          Cancel
-        </button>
-      </div>
+      <SearchControls
+        inputId={inputId}
+        resultsId={resultsId}
+        searchQuery={searchQuery}
+        searching={searching}
+        onSearchQueryChange={onSearchQueryChange}
+        onSearch={onSearch}
+        onCancel={onCancel}
+      />
       {searching && <StatusText className="inline-status">Searching…</StatusText>}
       {searchError && !searching && (
         <p role="alert" className="error-text">
