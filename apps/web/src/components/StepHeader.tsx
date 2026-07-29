@@ -13,15 +13,23 @@ interface StepHeaderProps {
   headingRef?: RefObject<HTMLElement | null>;
 }
 
-const STEP_LABELS: Record<number, string> = {
-  1: 'Import',
-  2: 'Preview',
-  3: 'Match',
-  4: 'Export',
-};
+function stepName(step: number): string {
+  switch (step) {
+    case 1:
+      return 'Import';
+    case 2:
+      return 'Preview';
+    case 3:
+      return 'Match';
+    case 4:
+      return 'Export';
+    default:
+      return '';
+  }
+}
 
 export function StepHeader({ step, title, context, stageLabel, headingRef }: StepHeaderProps) {
-  const label = stageLabel ?? `Step ${step} of 4 · ${STEP_LABELS[step]}`;
+  const label = stageLabel ?? `Step ${step} of 4 · ${stepName(step)}`;
 
   return (
     <header className="step-header">

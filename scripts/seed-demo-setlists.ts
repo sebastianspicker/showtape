@@ -70,12 +70,12 @@ export async function seedDemoSetlists({
     throw new Error('Set SETLISTFM_API_KEY to run this script.');
   }
 
-  const out: Record<string, unknown> = {};
+  const out = new Map<string, unknown>();
   const failures: string[] = [];
   for (const id of ids) {
     try {
       const body = await fetchSetlist(id, trimmedApiKey, fetchImpl);
-      out[id] = body;
+      out.set(id, body);
       console.log(`Fetched setlist ${id}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -85,7 +85,7 @@ export async function seedDemoSetlists({
   }
 
   const outPath = join(fixturesDir, 'demo-setlists.json');
-  const count = Object.keys(out).length;
+  const count = out.size;
   if (count === 0) {
     throw new Error(
       `No demo setlists fetched; refusing to write ${outPath}. Last errors: ${failures.join('; ')}`
@@ -95,7 +95,7 @@ export async function seedDemoSetlists({
   if (!NODE_FILE_ACCESS.exists(fixturesDir)) {
     NODE_FILE_ACCESS.mkdir(fixturesDir, { recursive: true });
   }
-  NODE_FILE_ACCESS.writeFile(outPath, JSON.stringify(out, null, 2), 'utf-8');
+  NODE_FILE_ACCESS.writeFile(outPath, JSON.stringify(Object.fromEntries(out), null, 2), 'utf-8');
   console.log(`Wrote ${count} setlist(s) to ${outPath}`);
   return { count, outPath };
 }
