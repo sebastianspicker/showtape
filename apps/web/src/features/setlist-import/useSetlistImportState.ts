@@ -23,12 +23,16 @@ export interface ImportError {
   retryAfterSeconds?: number;
 }
 
+function includesAny(value: string, terms: string[]): boolean {
+  return terms.some((term) => value.includes(term));
+}
+
 function classifyError(message: string): ImportError {
   const lower = message.toLowerCase();
-  if (lower.includes('not found') || lower.includes('404')) {
+  if (includesAny(lower, ['not found', '404'])) {
     return { message, code: 'not-found', retryable: false };
   }
-  if (lower.includes('rate') || lower.includes('429') || lower.includes('too many requests')) {
+  if (includesAny(lower, ['rate', '429', 'too many requests'])) {
     const retryAfter = lower.match(/(\d+)\s*(?:seconds?|s)\b/)?.[1];
     return {
       message,
@@ -37,14 +41,10 @@ function classifyError(message: string): ImportError {
       retryAfterSeconds: retryAfter ? Number(retryAfter) : undefined,
     };
   }
-  if (lower.includes('unavailable') || lower.includes('503') || lower.includes('502')) {
+  if (includesAny(lower, ['unavailable', '503', '502'])) {
     return { message, code: 'service', retryable: true };
   }
-  if (
-    lower.includes('network') ||
-    lower.includes('failed to fetch') ||
-    lower.includes('load failed')
-  ) {
+  if (includesAny(lower, ['network', 'failed to fetch', 'load failed'])) {
     return { message, code: 'network', retryable: true };
   }
   return { message, code: 'unknown', retryable: false };
@@ -86,7 +86,11 @@ export function useSetlistImportState() {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => setHistory(readImportHistory()), []);
-  useEffect(() => () => abortControllerRef.current?.abort(), []);
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
 
   const validateInput = (): boolean => {
     const validationError = invalidInputError(inputValue);

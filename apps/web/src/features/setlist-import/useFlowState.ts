@@ -49,14 +49,22 @@ export function useFlowState(): UseFlowStateResult {
     setMatchRows(null);
     setStep('preview');
   }, []);
-  const goToMatching = useCallback(() => setStep('matching'), []);
+  const goToMatching = useCallback(() => {
+    setStep('matching');
+  }, []);
   const goToExport = useCallback((rows: MatchRow[]) => {
     setMatchRows(rows);
     setStep('export');
   }, []);
-  const goBackToPreview = useCallback(() => setStep('preview'), []);
-  const goBackToMatching = useCallback(() => setStep('matching'), []);
-  const updateMatchDraft = useCallback((rows: MatchRow[]) => setMatchRows(rows), []);
+  const goBackToPreview = useCallback(() => {
+    setStep('preview');
+  }, []);
+  const goBackToMatching = useCallback(() => {
+    setStep('matching');
+  }, []);
+  const updateMatchDraft = useCallback((rows: MatchRow[]) => {
+    setMatchRows(rows);
+  }, []);
   const startAnotherSetlist = useCallback(() => {
     setMatchRows(null);
     setStep('import');

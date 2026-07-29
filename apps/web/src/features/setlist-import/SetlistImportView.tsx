@@ -56,14 +56,18 @@ export function SetlistImportView() {
       return;
     }
     void loadSetlist(inputValue)
-      .then((ok) => ok && goToPreview())
+      .then((ok) => {
+        if (ok) goToPreview();
+      })
       .catch(() => setSubmissionError('Unable to load the setlist. Please try again.'));
   }
 
   function handleSelectHistoryItem(item: ImportHistoryItem): void {
     setSubmissionError(null);
     void selectHistoryItem(item)
-      .then((ok) => ok && goToPreview())
+      .then((ok) => {
+        if (ok) goToPreview();
+      })
       .catch(() => setSubmissionError('Unable to load the setlist. Please try again.'));
   }
 
@@ -78,7 +82,9 @@ export function SetlistImportView() {
   }
 
   function handleRetry(): void {
-    void retryLast().then((ok) => ok && goToPreview());
+    void retryLast().then((ok) => {
+      if (ok) goToPreview();
+    });
   }
 
   const displayedError = error?.message ?? submissionError;

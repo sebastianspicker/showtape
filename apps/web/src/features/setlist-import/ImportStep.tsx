@@ -25,23 +25,61 @@ export interface ImportStepProps {
   onClearHistory: () => void;
 }
 
-export function ImportStep({
-  inputValue,
-  setInputValue,
-  loading,
-  displayedError,
-  retryable,
-  history,
-  historyAnnouncement,
-  inputRef,
-  headingRef,
-  onSubmit,
-  onValidateInput,
-  onCancelLoad,
-  onRetry,
-  onSelectHistoryItem,
-  onClearHistory,
-}: ImportStepProps) {
+interface ImportHistoryProps {
+  history: ImportHistoryItem[];
+  onSelectHistoryItem: (item: ImportHistoryItem) => void;
+  onClearHistory: () => void;
+}
+
+function ImportHistory({ history, onSelectHistoryItem, onClearHistory }: ImportHistoryProps) {
+  if (history.length === 0) return null;
+
+  return (
+    <section className="history-section" aria-labelledby="history-title">
+      <div className="history-header">
+        <h3 id="history-title">Recent imports</h3>
+        <Button variant="secondary" className="button--compact" onClick={onClearHistory}>
+          Clear history
+        </Button>
+      </div>
+      <ul className="history-list">
+        {history.map((item) => (
+          <li key={`${item.setlistId}:${item.input}`}>
+            <button
+              type="button"
+              className="history-item-button"
+              onClick={() => {
+                onSelectHistoryItem(item);
+              }}
+            >
+              <strong>Setlist {item.setlistId}</strong>
+              <span>{item.input === item.setlistId ? 'Setlist ID' : item.input}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+export function ImportStep(props: ImportStepProps) {
+  const {
+    inputValue,
+    setInputValue,
+    loading,
+    displayedError,
+    retryable,
+    history,
+    historyAnnouncement,
+    inputRef,
+    headingRef,
+    onSubmit,
+    onValidateInput,
+    onCancelLoad,
+    onRetry,
+    onSelectHistoryItem,
+    onClearHistory,
+  } = props;
   return (
     <section className="workflow-section import-section" aria-label="Import setlist">
       <StepHeader
@@ -74,7 +112,9 @@ export function ImportStep({
             className="input"
             value={inputValue}
             onChange={(event) => setInputValue(event.target.value)}
-            onBlur={() => inputValue.trim() && onValidateInput()}
+            onBlur={() => {
+              if (inputValue.trim()) onValidateInput();
+            }}
             placeholder="setlist.fm URL or 63de4613"
             disabled={loading}
             aria-invalid={Boolean(displayedError)}
@@ -109,30 +149,11 @@ export function ImportStep({
         </div>
       ) : null}
 
-      {history.length > 0 ? (
-        <section className="history-section" aria-labelledby="history-title">
-          <div className="history-header">
-            <h3 id="history-title">Recent imports</h3>
-            <Button variant="secondary" className="button--compact" onClick={onClearHistory}>
-              Clear history
-            </Button>
-          </div>
-          <ul className="history-list">
-            {history.map((item) => (
-              <li key={`${item.setlistId}:${item.input}`}>
-                <button
-                  type="button"
-                  className="history-item-button"
-                  onClick={() => onSelectHistoryItem(item)}
-                >
-                  <strong>Setlist {item.setlistId}</strong>
-                  <span>{item.input === item.setlistId ? 'Setlist ID' : item.input}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
+      <ImportHistory
+        history={history}
+        onSelectHistoryItem={onSelectHistoryItem}
+        onClearHistory={onClearHistory}
+      />
       <span className="sr-only" role="status" aria-live="polite">
         {historyAnnouncement}
       </span>

@@ -16,17 +16,35 @@ export interface ExportActionPanelProps {
   onAuthorized: () => void;
 }
 
-export function ExportActionPanel({
-  needsAuth,
-  dedupeTracks,
-  setDedupeTracks,
-  dedupeSavings,
-  count,
-  loading,
-  error,
-  onCreate,
-  onAuthorized,
-}: ExportActionPanelProps) {
+function MutationNote() {
+  return (
+    <div className="mutation-note">
+      <span className="mutation-note__icon" aria-hidden="true">
+        ↗
+      </span>
+      <div>
+        <h3>Before you continue</h3>
+        <p>
+          This creates one playlist in your Apple Music library. If Apple Music cannot confirm the
+          result, inspect your library before trying again.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+export function ExportActionPanel(props: ExportActionPanelProps) {
+  const {
+    needsAuth,
+    dedupeTracks,
+    setDedupeTracks,
+    dedupeSavings,
+    count,
+    loading,
+    error,
+    onCreate,
+    onAuthorized,
+  } = props;
   return (
     <section className="export-action-panel" aria-label="Apple Music playlist creation">
       <p className="export-service">Apple Music</p>
@@ -51,18 +69,7 @@ export function ExportActionPanel({
         </span>
       </label>
 
-      <div className="mutation-note">
-        <span className="mutation-note__icon" aria-hidden="true">
-          ↗
-        </span>
-        <div>
-          <h3>Before you continue</h3>
-          <p>
-            This creates one playlist in your Apple Music library. If Apple Music cannot confirm the
-            result, inspect your library before trying again.
-          </p>
-        </div>
-      </div>
+      <MutationNote />
 
       {needsAuth ? (
         <ConnectAppleMusic
@@ -84,7 +91,9 @@ export function ExportActionPanel({
       {error ? (
         <ErrorAlert
           message={error}
-          onRetry={() => void onCreate()}
+          onRetry={() => {
+            onCreate();
+          }}
           retryLabel="Retry create playlist"
         />
       ) : null}

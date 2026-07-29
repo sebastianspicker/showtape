@@ -45,13 +45,39 @@ export function writeImportHistory(next: ImportHistoryItem[]): void {
   }
 }
 
+function parseHistoryArray(raw: string): unknown[] | null {
+  const parsed = JSON.parse(raw) as unknown;
+  return Array.isArray(parsed) ? parsed : null;
+}
+
+function migrateV2History(raw: string): ImportHistoryItem[] | null {
+  const parsed = parseHistoryArray(raw);
+  if (!parsed) return null;
+  return parsed
+    .filter(isHistoryItem)
+    .map(({ input, setlistId }) => ({ input, setlistId }))
+    .slice(0, MAX_HISTORY_ITEMS);
+}
+
+function migrateV1History(raw: string): ImportHistoryItem[] | null {
+  const parsed = parseHistoryArray(raw);
+  if (!parsed) return null;
+  return parsed
+    .filter((value): value is string => typeof value === 'string')
+    .map((input) => ({
+      input,
+      setlistId: parseSetlistIdFromInput(input) ?? input,
+    }))
+    .slice(0, MAX_HISTORY_ITEMS);
+}
+
 export function readImportHistory(): ImportHistoryItem[] {
   if (typeof window === 'undefined') return [];
   try {
     const v3Raw = window.localStorage.getItem(HISTORY_V3_KEY);
     if (v3Raw) {
-      const parsed = JSON.parse(v3Raw) as unknown;
-      if (!Array.isArray(parsed)) {
+      const parsed = parseHistoryArray(v3Raw);
+      if (!parsed) {
         clearImportHistory();
         return [];
       }
@@ -61,15 +87,11 @@ export function readImportHistory(): ImportHistoryItem[] {
 
     const v2Raw = window.localStorage.getItem(HISTORY_V2_KEY);
     if (v2Raw) {
-      const parsed = JSON.parse(v2Raw) as unknown;
-      if (!Array.isArray(parsed)) {
+      const migrated = migrateV2History(v2Raw);
+      if (!migrated) {
         clearLegacyHistory();
         return [];
       }
-      const migrated = parsed
-        .filter(isHistoryItem)
-        .map(({ input, setlistId }) => ({ input, setlistId }))
-        .slice(0, MAX_HISTORY_ITEMS);
       writeImportHistory(migrated);
       clearLegacyHistory();
       return migrated;
@@ -77,18 +99,11 @@ export function readImportHistory(): ImportHistoryItem[] {
 
     const v1Raw = window.localStorage.getItem(HISTORY_V1_KEY);
     if (!v1Raw) return [];
-    const parsed = JSON.parse(v1Raw) as unknown;
-    if (!Array.isArray(parsed)) {
+    const migrated = migrateV1History(v1Raw);
+    if (!migrated) {
       clearLegacyHistory();
       return [];
     }
-    const migrated = parsed
-      .filter((value): value is string => typeof value === 'string')
-      .map((input) => ({
-        input,
-        setlistId: parseSetlistIdFromInput(input) ?? input,
-      }))
-      .slice(0, MAX_HISTORY_ITEMS);
     writeImportHistory(migrated);
     clearLegacyHistory();
     return migrated;
