@@ -11,6 +11,23 @@ export interface AddTracksToLibraryPlaylistResult {
   remainingIds: string[];
 }
 
+const TRACK_BATCH_SIZE = 100;
+
+type MusicKitInstance = Awaited<ReturnType<typeof initMusicKit>>;
+
+const trackBatchPayload = (ids: string[]) => ({
+  data: ids.map((id) => ({ id: id.trim(), type: 'songs' as const })),
+});
+
+const addTrackBatch = async (
+  music: MusicKitInstance,
+  path: string,
+  batch: string[]
+): Promise<MusicKitAddTracksResponse | undefined> =>
+  (await music.music.api(path, { method: 'POST', data: trackBatchPayload(batch) })) as
+    | MusicKitAddTracksResponse
+    | undefined;
+
 export class AmbiguousMusicMutationError extends Error {
   constructor(message: string, options?: { cause?: unknown }) {
     super(message, options);
@@ -100,18 +117,12 @@ export async function addTracksToLibraryPlaylist(
     throw new Error('Not authorized. Please connect Apple Music first.');
   }
   const path = `/v1/me/library/playlists/${encodeURIComponent(playlistId)}/tracks`;
-  const BATCH_SIZE = 100;
   let addedCount = 0;
-  for (let i = 0; i < validIds.length; i += BATCH_SIZE) {
-    const batch = validIds.slice(i, i + BATCH_SIZE);
-    const data = {
-      data: batch.map((id) => ({ id: id.trim(), type: 'songs' as const })),
-    };
+  for (let i = 0; i < validIds.length; i += TRACK_BATCH_SIZE) {
+    const batch = validIds.slice(i, i + TRACK_BATCH_SIZE);
     let res: MusicKitAddTracksResponse | undefined;
     try {
-      res = (await music.music.api(path, { method: 'POST', data })) as
-        | MusicKitAddTracksResponse
-        | undefined;
+      res = await addTrackBatch(music, path, batch);
     } catch {
       throw new AddTracksToLibraryPlaylistError(
         'Apple Music did not confirm whether the current track batch was added. Check the playlist before retrying.',

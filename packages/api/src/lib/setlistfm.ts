@@ -101,23 +101,40 @@ const invalidUpstreamResponse = (): FetchSetlistFailure => ({
   message: 'Invalid response from setlist.fm.',
 });
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const hasValidArtist = (value: unknown): boolean =>
+  isRecord(value) && typeof value.name === 'string' && value.name.trim().length > 0;
+
+const hasExpectedSetlistId = (body: Record<string, unknown>, expectedId: string): boolean =>
+  typeof body.id === 'string' && body.id.toLowerCase() === expectedId.toLowerCase();
+
+const hasValidEventDate = (body: Record<string, unknown>): boolean =>
+  typeof body.eventDate === 'string' && body.eventDate.trim().length > 0;
+
+const hasValidSetSections = (body: Record<string, unknown>): boolean =>
+  body.set === undefined || Array.isArray(body.set);
+
 const isValidSetlistResponse = (body: unknown, expectedId: string): boolean => {
-  if (!body || typeof body !== 'object' || Array.isArray(body)) return false;
-  const record = body as Record<string, unknown>;
-  const artist = record.artist;
+  if (!isRecord(body)) return false;
   return (
-    typeof record.id === 'string' &&
-    record.id.toLowerCase() === expectedId.toLowerCase() &&
-    typeof record.eventDate === 'string' &&
-    record.eventDate.trim().length > 0 &&
-    Boolean(artist) &&
-    typeof artist === 'object' &&
-    !Array.isArray(artist) &&
-    typeof (artist as Record<string, unknown>).name === 'string' &&
-    ((artist as Record<string, unknown>).name as string).trim().length > 0 &&
-    (record.set === undefined || Array.isArray(record.set))
+    hasExpectedSetlistId(body, expectedId) &&
+    hasValidEventDate(body) &&
+    hasValidArtist(body.artist) &&
+    hasValidSetSections(body)
   );
 };
+
+const timeoutFailure = (): FetchAttemptResult => ({
+  kind: 'failure',
+  error: { ok: false, status: 504, message: 'setlist.fm request timed out.' },
+});
+
+const fetchFailure = (error: FetchSetlistFailure): FetchAttemptResult => ({
+  kind: 'failure',
+  error: { ...error, message: error.message || `setlist.fm returned ${error.status}` },
+});
 
 const readSuccessfulResponse = async (
   res: Response,
@@ -158,6 +175,25 @@ const readFailureResponse = async (res: Response): Promise<FetchSetlistFailure> 
   }
 };
 
+const fetchResponseResult = async (
+  response: Response,
+  expectedId: string,
+  signal: AbortSignal
+): Promise<FetchAttemptResult> => {
+  if (response.ok) {
+    const result = await readSuccessfulResponse(response, expectedId);
+    if (signal.aborted) return timeoutFailure();
+    return result.ok ? { kind: 'success', body: result.body } : { kind: 'failure', error: result };
+  }
+
+  const error = await readFailureResponse(response);
+  if (signal.aborted) return timeoutFailure();
+  if (error.status === 429) {
+    return { kind: 'rate-limit', response, message: error.message };
+  }
+  return fetchFailure(error);
+};
+
 const fetchAttempt = async (
   url: string,
   headers: Record<string, string>,
@@ -166,33 +202,7 @@ const fetchAttempt = async (
 ): Promise<FetchAttemptResult> => {
   try {
     const response = await fetch(url, { headers, signal });
-    if (response.ok) {
-      const result = await readSuccessfulResponse(response, expectedId);
-      if (signal.aborted) {
-        return {
-          kind: 'failure',
-          error: { ok: false, status: 504, message: 'setlist.fm request timed out.' },
-        };
-      }
-      return result.ok
-        ? { kind: 'success', body: result.body }
-        : { kind: 'failure', error: result };
-    }
-
-    const error = await readFailureResponse(response);
-    if (signal.aborted) {
-      return {
-        kind: 'failure',
-        error: { ok: false, status: 504, message: 'setlist.fm request timed out.' },
-      };
-    }
-    if (error.status === 429) {
-      return { kind: 'rate-limit', response, message: error.message };
-    }
-    return {
-      kind: 'failure',
-      error: { ...error, message: error.message || `setlist.fm returned ${error.status}` },
-    };
+    return fetchResponseResult(response, expectedId, signal);
   } catch {
     return {
       kind: 'failure',
