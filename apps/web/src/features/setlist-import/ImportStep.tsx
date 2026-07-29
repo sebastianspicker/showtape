@@ -25,23 +25,144 @@ export interface ImportStepProps {
   onClearHistory: () => void;
 }
 
-export function ImportStep({
-  inputValue,
-  setInputValue,
+interface ImportHistoryProps {
+  history: ImportHistoryItem[];
+  onSelectHistoryItem: (item: ImportHistoryItem) => void;
+  onClearHistory: () => void;
+}
+
+function ImportHistory({ history, onSelectHistoryItem, onClearHistory }: ImportHistoryProps) {
+  if (history.length === 0) return null;
+
+  return (
+    <section className="history-section" aria-labelledby="history-title">
+      <div className="history-header">
+        <h3 id="history-title">Recent imports</h3>
+        <Button variant="secondary" className="button--compact" onClick={onClearHistory}>
+          Clear history
+        </Button>
+      </div>
+      <ul className="history-list">
+        {history.map((item) => (
+          <li key={`${item.setlistId}:${item.input}`}>
+            <button
+              type="button"
+              className="history-item-button"
+              onClick={() => {
+                onSelectHistoryItem(item);
+              }}
+            >
+              <strong>Setlist {item.setlistId}</strong>
+              <span>{item.input === item.setlistId ? 'Setlist ID' : item.input}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+type ImportFormProps = Pick<
+  ImportStepProps,
+  | 'inputValue'
+  | 'setInputValue'
+  | 'loading'
+  | 'displayedError'
+  | 'inputRef'
+  | 'onSubmit'
+  | 'onValidateInput'
+  | 'onCancelLoad'
+>;
+
+type SetlistInputProps = Pick<
+  ImportFormProps,
+  'inputValue' | 'setInputValue' | 'loading' | 'displayedError' | 'inputRef' | 'onValidateInput'
+>;
+
+function SetlistInput(props: SetlistInputProps) {
+  const { inputValue, setInputValue, loading, displayedError, inputRef, onValidateInput } = props;
+
+  return (
+    <div className="import-input-wrap">
+      <label htmlFor="setlist-input" className="input-label">
+        Setlist URL or ID
+      </label>
+      <input
+        ref={inputRef}
+        id="setlist-input"
+        type="text"
+        className="input"
+        value={inputValue}
+        onChange={(event) => {
+          setInputValue(event.target.value);
+        }}
+        onBlur={() => {
+          if (inputValue.trim()) onValidateInput();
+        }}
+        placeholder="setlist.fm URL or 63de4613"
+        disabled={loading}
+        aria-invalid={Boolean(displayedError)}
+        aria-describedby={displayedError ? 'setlist-error' : 'setlist-hint'}
+      />
+      {!displayedError ? (
+        <p id="setlist-hint" className="input-hint">
+          Example ID: <code>63de4613</code>
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function ImportActions({
   loading,
-  displayedError,
-  retryable,
-  history,
-  historyAnnouncement,
-  inputRef,
-  headingRef,
-  onSubmit,
-  onValidateInput,
   onCancelLoad,
-  onRetry,
-  onSelectHistoryItem,
-  onClearHistory,
-}: ImportStepProps) {
+}: Pick<ImportFormProps, 'loading' | 'onCancelLoad'>) {
+  return (
+    <div className="import-actions">
+      <Button type="submit" loading={loading} loadingChildren="Fetching setlist…">
+        Load setlist
+      </Button>
+      {loading ? (
+        <Button type="button" variant="secondary" onClick={onCancelLoad}>
+          Cancel
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
+function ImportForm(props: ImportFormProps) {
+  return (
+    <form onSubmit={props.onSubmit} className="import-form" noValidate>
+      <SetlistInput {...props} />
+      <ImportActions loading={props.loading} onCancelLoad={props.onCancelLoad} />
+    </form>
+  );
+}
+
+type ImportStatusProps = Pick<
+  ImportStepProps,
+  'loading' | 'displayedError' | 'retryable' | 'onRetry'
+>;
+
+function ImportStatus({ loading, displayedError, retryable, onRetry }: ImportStatusProps) {
+  return (
+    <>
+      {loading ? <StatusText>Loading setlist…</StatusText> : null}
+      {displayedError ? (
+        <div id="setlist-error">
+          <ErrorAlert
+            message={displayedError}
+            onRetry={retryable ? onRetry : undefined}
+            retryLabel="Retry load setlist"
+          />
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+export function ImportStep(props: ImportStepProps) {
   return (
     <section className="workflow-section import-section" aria-label="Import setlist">
       <StepHeader
@@ -49,7 +170,7 @@ export function ImportStep({
         title="Import a setlist"
         stageLabel="Step 1 of 4 · Start with a show"
         context="Paste a setlist.fm link or enter its setlist ID."
-        headingRef={headingRef}
+        headingRef={props.headingRef}
       />
 
       <div className="workflow-orientation-panel" aria-labelledby="workflow-orientation-title">
@@ -62,79 +183,31 @@ export function ImportStep({
         </ol>
       </div>
 
-      <form onSubmit={onSubmit} className="import-form" noValidate>
-        <div className="import-input-wrap">
-          <label htmlFor="setlist-input" className="input-label">
-            Setlist URL or ID
-          </label>
-          <input
-            ref={inputRef}
-            id="setlist-input"
-            type="text"
-            className="input"
-            value={inputValue}
-            onChange={(event) => setInputValue(event.target.value)}
-            onBlur={() => inputValue.trim() && onValidateInput()}
-            placeholder="setlist.fm URL or 63de4613"
-            disabled={loading}
-            aria-invalid={Boolean(displayedError)}
-            aria-describedby={displayedError ? 'setlist-error' : 'setlist-hint'}
-          />
-          {!displayedError ? (
-            <p id="setlist-hint" className="input-hint">
-              Example ID: <code>63de4613</code>
-            </p>
-          ) : null}
-        </div>
-        <div className="import-actions">
-          <Button type="submit" loading={loading} loadingChildren="Fetching setlist…">
-            Load setlist
-          </Button>
-          {loading ? (
-            <Button type="button" variant="secondary" onClick={onCancelLoad}>
-              Cancel
-            </Button>
-          ) : null}
-        </div>
-      </form>
+      <ImportForm
+        inputValue={props.inputValue}
+        setInputValue={props.setInputValue}
+        loading={props.loading}
+        displayedError={props.displayedError}
+        inputRef={props.inputRef}
+        onSubmit={props.onSubmit}
+        onValidateInput={props.onValidateInput}
+        onCancelLoad={props.onCancelLoad}
+      />
 
-      {loading ? <StatusText>Loading setlist…</StatusText> : null}
-      {displayedError ? (
-        <div id="setlist-error">
-          <ErrorAlert
-            message={displayedError}
-            onRetry={retryable ? onRetry : undefined}
-            retryLabel="Retry load setlist"
-          />
-        </div>
-      ) : null}
+      <ImportStatus
+        loading={props.loading}
+        displayedError={props.displayedError}
+        retryable={props.retryable}
+        onRetry={props.onRetry}
+      />
 
-      {history.length > 0 ? (
-        <section className="history-section" aria-labelledby="history-title">
-          <div className="history-header">
-            <h3 id="history-title">Recent imports</h3>
-            <Button variant="secondary" className="button--compact" onClick={onClearHistory}>
-              Clear history
-            </Button>
-          </div>
-          <ul className="history-list">
-            {history.map((item) => (
-              <li key={`${item.setlistId}:${item.input}`}>
-                <button
-                  type="button"
-                  className="history-item-button"
-                  onClick={() => onSelectHistoryItem(item)}
-                >
-                  <strong>Setlist {item.setlistId}</strong>
-                  <span>{item.input === item.setlistId ? 'Setlist ID' : item.input}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
+      <ImportHistory
+        history={props.history}
+        onSelectHistoryItem={props.onSelectHistoryItem}
+        onClearHistory={props.onClearHistory}
+      />
       <span className="sr-only" role="status" aria-live="polite">
-        {historyAnnouncement}
+        {props.historyAnnouncement}
       </span>
     </section>
   );

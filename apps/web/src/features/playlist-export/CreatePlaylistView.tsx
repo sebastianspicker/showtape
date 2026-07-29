@@ -52,7 +52,9 @@ export function CreatePlaylistView({
         songIds={songIds}
         addTracksError={addTracksError}
         loading={loading}
-        onAddRemainingTracks={handleAddRemainingTracks}
+        onAddRemainingTracks={() => {
+          void handleAddRemainingTracks();
+        }}
         onStartAnother={onStartAnother}
       />
     );
@@ -86,8 +88,12 @@ export function CreatePlaylistView({
         count={count}
         loading={loading}
         error={error}
-        onCreate={handleCreate}
-        onAuthorized={handleAuthorized}
+        onCreate={() => {
+          void handleCreate();
+        }}
+        onAuthorized={() => {
+          void handleAuthorized();
+        }}
       />
     </div>
   );

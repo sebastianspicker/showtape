@@ -106,6 +106,22 @@ describe('useMatchingSuggestions', () => {
     expect(result.current.matches[1]?.status).toBe('matched');
   });
 
+  it('ignores negative and out-of-range setMatch indices', async () => {
+    const { result } = renderHook(() => useMatchingSuggestions(mockSetlist));
+
+    await waitFor(() => {
+      expect(result.current.loadingSuggestions).toBe(false);
+    });
+    const before = result.current.matches;
+    const track = { id: '99', name: 'Custom Track', artistName: 'Custom Artist' };
+    act(() => {
+      result.current.setMatch(-1, track);
+      result.current.setMatch(result.current.matches.length, track);
+    });
+
+    expect(result.current.matches).toEqual(before);
+  });
+
   it('skipUnmatched marks all unmatched rows as skipped', async () => {
     const { result } = renderHook(() => useMatchingSuggestions(mockSetlist));
 
