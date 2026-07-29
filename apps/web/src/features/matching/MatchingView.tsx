@@ -110,7 +110,9 @@ export function MatchingView({
 
         <MatchingBulkActions
           loading={loadingSuggestions}
-          onAutoMatchAll={() => void autoMatchAll()}
+          onAutoMatchAll={() => {
+            void autoMatchAll();
+          }}
           onSkipUnmatched={skipUnmatched}
         />
 
@@ -122,7 +124,9 @@ export function MatchingView({
 
         <div className="matching-proceed">
           <Button
-            onClick={() => onProceedToCreatePlaylist(matches)}
+            onClick={() => {
+              onProceedToCreatePlaylist(matches);
+            }}
             disabled={!canProceed}
             title="Review the selected songs before creating the Apple Music playlist"
             className="proceed-button"

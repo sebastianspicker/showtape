@@ -47,6 +47,26 @@ afterEach(() => {
 });
 
 describe('useTrackSearch results', () => {
+  it('ignores negative and out-of-range indices', async () => {
+    const setMatch = vi.fn();
+    const { result } = renderHook(() => useTrackSearch({ matches, setMatch }));
+
+    act(() => {
+      result.current.openSearch(-1);
+      result.current.chooseTrack(-1, { id: 'song-1', name: 'Song A', artistName: 'Artist A' });
+      result.current.skipTrack(2);
+    });
+    await act(async () => {
+      await result.current.runSearch(-1);
+      await result.current.runSearch(2);
+    });
+
+    expect(result.current.searchContext.searchingIndex).toBeNull();
+    expect(result.current.searchContext.searchQuery).toBe('');
+    expect(mockSearchCatalog).not.toHaveBeenCalled();
+    expect(setMatch).not.toHaveBeenCalled();
+  });
+
   it('runs a manual search and stores the returned results', async () => {
     const setMatch = vi.fn();
     mockSearchCatalog.mockResolvedValueOnce([
