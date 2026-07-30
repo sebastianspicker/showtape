@@ -16,12 +16,12 @@ import { useSetlistImportState, type ImportHistoryItem } from './useSetlistImpor
 
 type SetlistImportState = ReturnType<typeof useSetlistImportState>;
 
-const STEP_NUMBERS: Record<FlowStep, number> = {
-  import: 1,
-  preview: 2,
-  matching: 3,
-  export: 4,
-};
+function getStepNumber(step: FlowStep): number {
+  if (step === 'preview') return 2;
+  if (step === 'matching') return 3;
+  if (step === 'export') return 4;
+  return 1;
+}
 
 interface ImportStageProps {
   state: SetlistImportState;
@@ -36,35 +36,25 @@ interface ImportStageProps {
   onClearHistory: ImportStepProps['onClearHistory'];
 }
 
-function ImportStage({
-  state,
-  displayedError,
-  retryable,
-  historyAnnouncement,
-  inputRef,
-  headingRef,
-  onSubmit,
-  onRetry,
-  onSelectHistoryItem,
-  onClearHistory,
-}: ImportStageProps) {
+function ImportStage(props: ImportStageProps) {
+  const { state } = props;
   return (
     <ImportStep
       inputValue={state.inputValue}
       setInputValue={state.setInputValue}
       loading={state.loading}
-      displayedError={displayedError}
-      retryable={retryable}
+      displayedError={props.displayedError}
+      retryable={props.retryable}
       history={state.history}
-      historyAnnouncement={historyAnnouncement}
-      inputRef={inputRef}
-      headingRef={headingRef}
-      onSubmit={onSubmit}
+      historyAnnouncement={props.historyAnnouncement}
+      inputRef={props.inputRef}
+      headingRef={props.headingRef}
+      onSubmit={props.onSubmit}
       onValidateInput={state.validateInput}
       onCancelLoad={state.cancelLoad}
-      onRetry={onRetry}
-      onSelectHistoryItem={onSelectHistoryItem}
-      onClearHistory={onClearHistory}
+      onRetry={props.onRetry}
+      onSelectHistoryItem={props.onSelectHistoryItem}
+      onClearHistory={props.onClearHistory}
     />
   );
 }
@@ -240,7 +230,9 @@ export function SetlistImportView() {
       .then((ok) => {
         if (ok) goToPreview();
       })
-      .catch(() => setSubmissionError('Unable to load the setlist. Please try again.'));
+      .catch(() => {
+        setSubmissionError('Unable to load the setlist. Please try again.');
+      });
   }
 
   function handleSelectHistoryItem(item: ImportHistoryItem): void {
@@ -250,7 +242,9 @@ export function SetlistImportView() {
       .then((ok) => {
         if (ok) goToPreview();
       })
-      .catch(() => setSubmissionError('Unable to load the setlist. Please try again.'));
+      .catch(() => {
+        setSubmissionError('Unable to load the setlist. Please try again.');
+      });
   }
 
   function handleStartAnother(): void {
@@ -271,7 +265,7 @@ export function SetlistImportView() {
 
   const displayedError = importState.error?.message ?? submissionError;
   const retryable = importState.error?.retryable ?? Boolean(submissionError);
-  const stepNumber = STEP_NUMBERS[step];
+  const stepNumber = getStepNumber(step);
   const importContent = (
     <ImportStage
       state={importState}

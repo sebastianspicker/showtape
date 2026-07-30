@@ -14,7 +14,7 @@ export interface MatchRowItemProps {
   onOpenSearch: (index: number) => void;
   onSkip: (index: number) => void;
   onSearchQueryChange: (value: string) => void;
-  onSearch: (index: number) => void;
+  onSearch: (index: number) => Promise<void>;
   onChoose: (index: number, track: AppleMusicTrack) => void;
   onCancelSearch: () => void;
 }
@@ -45,24 +45,25 @@ function AppleTrackArtist({ artistName }: { artistName?: string }) {
   return artistName ? <span className="muted-inline"> · {artistName}</span> : null;
 }
 
-const TRACK_RESULT_BY_STATUS: Record<Exclude<MatchRow['status'], 'matched'>, string> = {
-  skipped: 'No match selected',
-  pending: 'Searching',
-  unmatched: 'No match found',
-};
-
-const TRACK_RESULT_CLASS_BY_STATUS: Record<Exclude<MatchRow['status'], 'matched'>, string> = {
-  skipped: 'match-skipped',
-  pending: 'match-pending',
-  unmatched: 'match-missing',
-};
-
 function TrackResultStatus({ status }: Pick<MatchRow, 'status'>) {
-  const resultStatus = status === 'matched' ? 'unmatched' : status;
+  if (status === 'skipped') {
+    return (
+      <span className="match-skipped">
+        <span className="match-result-primary">No match selected</span>
+      </span>
+    );
+  }
+  if (status === 'pending') {
+    return (
+      <span className="match-pending">
+        <span className="match-result-primary">Searching</span>
+      </span>
+    );
+  }
 
   return (
-    <span className={TRACK_RESULT_CLASS_BY_STATUS[resultStatus]}>
-      <span className="match-result-primary">{TRACK_RESULT_BY_STATUS[resultStatus]}</span>
+    <span className="match-missing">
+      <span className="match-result-primary">No match found</span>
     </span>
   );
 }
@@ -152,7 +153,9 @@ function RowActions({ row, index, changeButtonRef, onOpenSearch, onSkip }: RowAc
       <button
         ref={changeButtonRef}
         type="button"
-        onClick={() => onOpenSearch(index)}
+        onClick={() => {
+          onOpenSearch(index);
+        }}
         aria-label={`Change match for ${trackNameOrFallback(row.setlistEntry.name, 'track')}`}
         className="button button--quiet button--compact"
         disabled={row.status === 'pending'}
@@ -162,7 +165,9 @@ function RowActions({ row, index, changeButtonRef, onOpenSearch, onSkip }: RowAc
       {row.status !== 'skipped' && (
         <button
           type="button"
-          onClick={() => onSkip(index)}
+          onClick={() => {
+            onSkip(index);
+          }}
           aria-label={`Skip ${trackNameOrFallback(row.setlistEntry.name, 'track')}`}
           className="button button--quiet button--compact"
           disabled={row.status === 'pending'}
@@ -220,7 +225,7 @@ const MatchRowItemComponent = (props: MatchRowItemProps) => {
           hasSearched={searchContext.hasSearched}
           onSearchQueryChange={onSearchQueryChange}
           onSearch={() => {
-            onSearch(index);
+            void onSearch(index);
           }}
           onChoose={(track) => {
             restoreFocus(() => {
