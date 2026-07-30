@@ -14,7 +14,7 @@ export interface MatchRowItemProps {
   onOpenSearch: (index: number) => void;
   onSkip: (index: number) => void;
   onSearchQueryChange: (value: string) => void;
-  onSearch: (index: number) => void;
+  onSearch: (index: number) => Promise<void>;
   onChoose: (index: number, track: AppleMusicTrack) => void;
   onCancelSearch: () => void;
 }
@@ -29,19 +29,47 @@ const STATUS_CLASS: Record<MatchRow['status'], string> = {
 const trackNameOrFallback = (value: unknown, fallback: string): string =>
   typeof value === 'string' ? value : fallback;
 
-const TrackMetadata = ({ row, index }: Pick<MatchRowItemProps, 'row' | 'index'>) => (
-  <div className="matching-track-meta">
-    <span className="matching-row-number">{String(index + 1).padStart(2, '0')}</span>
-    <strong>{trackNameOrFallback(row.setlistEntry.name, 'Untitled track')}</strong>
-    {row.setlistEntry.artist && <span className="muted-inline"> · {row.setlistEntry.artist}</span>}
-  </div>
-);
+function TrackMetadata({ row, index }: Pick<MatchRowItemProps, 'row' | 'index'>) {
+  return (
+    <div className="matching-track-meta">
+      <span className="matching-row-number">{String(index + 1).padStart(2, '0')}</span>
+      <strong>{trackNameOrFallback(row.setlistEntry.name, 'Untitled track')}</strong>
+      {row.setlistEntry.artist && (
+        <span className="muted-inline"> · {row.setlistEntry.artist}</span>
+      )}
+    </div>
+  );
+}
 
-const AppleTrackArtist = ({ artistName }: { artistName?: string }) =>
-  artistName ? <span className="muted-inline"> · {artistName}</span> : null;
+function AppleTrackArtist({ artistName }: { artistName?: string }) {
+  return artistName ? <span className="muted-inline"> · {artistName}</span> : null;
+}
+
+function TrackResultStatus({ status }: Pick<MatchRow, 'status'>) {
+  if (status === 'skipped') {
+    return (
+      <span className="match-skipped">
+        <span className="match-result-primary">No match selected</span>
+      </span>
+    );
+  }
+  if (status === 'pending') {
+    return (
+      <span className="match-pending">
+        <span className="match-result-primary">Searching</span>
+      </span>
+    );
+  }
+
+  return (
+    <span className="match-missing">
+      <span className="match-result-primary">No match found</span>
+    </span>
+  );
+}
 
 /** Catalog match line without status chip (chip lives in row actions). */
-const TrackResult = ({ row }: Pick<MatchRowItemProps, 'row'>) => {
+function TrackResult({ row }: Pick<MatchRowItemProps, 'row'>) {
   if (row.appleTrack) {
     return (
       <span className="match-found">
@@ -52,26 +80,9 @@ const TrackResult = ({ row }: Pick<MatchRowItemProps, 'row'>) => {
       </span>
     );
   }
-  if (row.status === 'skipped') {
-    return (
-      <span className="match-skipped">
-        <span className="match-result-primary">No match selected</span>
-      </span>
-    );
-  }
-  if (row.status === 'pending') {
-    return (
-      <span className="match-pending">
-        <span className="match-result-primary">Searching</span>
-      </span>
-    );
-  }
-  return (
-    <span className="match-missing">
-      <span className="match-result-primary">No match found</span>
-    </span>
-  );
-};
+
+  return <TrackResultStatus status={row.status} />;
+}
 
 interface StatusChipProps {
   row: MatchRow;
@@ -135,32 +146,38 @@ interface RowActionsProps {
   onSkip: (index: number) => void;
 }
 
-const RowActions = ({ row, index, changeButtonRef, onOpenSearch, onSkip }: RowActionsProps) => (
-  <div className="matching-row-actions">
-    <StatusChip row={row} />
-    <button
-      ref={changeButtonRef}
-      type="button"
-      onClick={() => onOpenSearch(index)}
-      aria-label={`Change match for ${trackNameOrFallback(row.setlistEntry.name, 'track')}`}
-      className="button button--quiet button--compact"
-      disabled={row.status === 'pending'}
-    >
-      {row.appleTrack ? 'Change' : 'Search'}
-    </button>
-    {row.status !== 'skipped' && (
+function RowActions({ row, index, changeButtonRef, onOpenSearch, onSkip }: RowActionsProps) {
+  return (
+    <div className="matching-row-actions">
+      <StatusChip row={row} />
       <button
+        ref={changeButtonRef}
         type="button"
-        onClick={() => onSkip(index)}
-        aria-label={`Skip ${trackNameOrFallback(row.setlistEntry.name, 'track')}`}
+        onClick={() => {
+          onOpenSearch(index);
+        }}
+        aria-label={`Change match for ${trackNameOrFallback(row.setlistEntry.name, 'track')}`}
         className="button button--quiet button--compact"
         disabled={row.status === 'pending'}
       >
-        Skip
+        {row.appleTrack ? 'Change' : 'Search'}
       </button>
-    )}
-  </div>
-);
+      {row.status !== 'skipped' && (
+        <button
+          type="button"
+          onClick={() => {
+            onSkip(index);
+          }}
+          aria-label={`Skip ${trackNameOrFallback(row.setlistEntry.name, 'track')}`}
+          className="button button--quiet button--compact"
+          disabled={row.status === 'pending'}
+        >
+          Skip
+        </button>
+      )}
+    </div>
+  );
+}
 
 const MatchRowItemComponent = (props: MatchRowItemProps) => {
   const {
@@ -208,7 +225,7 @@ const MatchRowItemComponent = (props: MatchRowItemProps) => {
           hasSearched={searchContext.hasSearched}
           onSearchQueryChange={onSearchQueryChange}
           onSearch={() => {
-            onSearch(index);
+            void onSearch(index);
           }}
           onChoose={(track) => {
             restoreFocus(() => {
