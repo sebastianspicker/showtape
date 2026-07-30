@@ -2,7 +2,6 @@
 
 import { type ReactNode, type RefObject, useRef, useState } from 'react';
 import { Button } from '@repo/ui';
-import type { Setlist } from '@repo/core';
 import { SetlistAttribution } from '@/components/SetlistAttribution';
 import { StepHeader } from '@/components/StepHeader';
 import { WorkflowRail } from '@/components/WorkflowRail';
@@ -61,7 +60,7 @@ function ImportStage(props: ImportStageProps) {
 
 interface WorkflowStageProps {
   step: FlowStep;
-  setlist: Setlist | null;
+  setlist: SetlistImportState['setlist'];
   matchRows: MatchRow[] | null;
   stepContainerRef: RefObject<HTMLElement | null>;
   goToMatching: UseFlowStateResult['goToMatching'];
@@ -75,7 +74,7 @@ interface WorkflowStageProps {
 }
 
 interface MatchingStageProps {
-  setlist: Setlist | null;
+  setlist: SetlistImportState['setlist'];
   matchRows: MatchRow[] | null;
   stepContainerRef: RefObject<HTMLElement | null>;
   goToExport: UseFlowStateResult['goToExport'];
@@ -117,7 +116,7 @@ function MatchingStage({
 }
 
 interface ExportStageProps {
-  setlist: Setlist | null;
+  setlist: SetlistImportState['setlist'];
   matchRows: MatchRow[] | null;
   stepContainerRef: RefObject<HTMLElement | null>;
   goBackToMatching: UseFlowStateResult['goBackToMatching'];
@@ -153,7 +152,7 @@ function ExportStage({
 }
 
 interface PreviewStageProps {
-  setlist: Setlist | null;
+  setlist: SetlistImportState['setlist'];
   stepContainerRef: RefObject<HTMLElement | null>;
   goToMatching: UseFlowStateResult['goToMatching'];
   startAnotherSetlist: UseFlowStateResult['startAnotherSetlist'];

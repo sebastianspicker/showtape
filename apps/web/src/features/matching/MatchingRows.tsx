@@ -1,16 +1,16 @@
 import { MatchRowItem } from './MatchRowItem';
 import type { MatchRow } from './types';
-import type { TrackSearchContext } from './useTrackSearch';
+import type { TrackSearchContext, UseTrackSearchResult } from './useTrackSearch';
 
 export interface MatchingRowsProps {
   matches: MatchRow[];
   searchContext: TrackSearchContext;
-  onOpenSearch: (index: number) => void;
-  onSkip: (index: number) => void;
-  onSearchQueryChange: (value: string) => void;
-  onSearch: (index: number) => Promise<void>;
-  onChoose: (index: number, track: NonNullable<MatchRow['appleTrack']>) => void;
-  onCancelSearch: () => void;
+  onOpenSearch: UseTrackSearchResult['openSearch'];
+  onSkip: UseTrackSearchResult['skipTrack'];
+  onSearchQueryChange: UseTrackSearchResult['setSearchQuery'];
+  onSearch: UseTrackSearchResult['runSearch'];
+  onChoose: UseTrackSearchResult['chooseTrack'];
+  onCancelSearch: UseTrackSearchResult['closeSearch'];
 }
 
 export function MatchingRows(props: MatchingRowsProps) {
