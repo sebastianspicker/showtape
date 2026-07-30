@@ -6,7 +6,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/sebastianspicker/setlist-to-playlist.git"
+    "url": "https://github.com/sebastianspicker/showtape.git"
   },
   "scripts": {
     "build": "corepack pnpm@9.15.3 -r run build",
@@ -17,6 +17,8 @@
     "test:e2e": "corepack pnpm@9.15.3 --filter web exec playwright test --config=../../playwright.config.ts",
     "test:e2e:screenshots": "corepack pnpm@9.15.3 --filter web exec playwright test --config=../../playwright.config.ts --grep @screenshots",
     "test:e2e:performance": "PLAYWRIGHT_PRODUCTION=1 corepack pnpm@9.15.3 --filter web exec playwright test --config=../../playwright.config.ts --grep @performance",
+    "demo:build": "node scripts/build-pages-demo.mjs",
+    "demo:check": "node scripts/build-pages-demo.mjs --check",
     "bundle:report": "node scripts/report-web-bundle.mjs",
     "diagnostics:export": "tsx scripts/export-diagnostics.ts",
     "fixtures:seed": "tsx scripts/seed-demo-setlists.ts",
