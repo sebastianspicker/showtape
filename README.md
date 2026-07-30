@@ -1,6 +1,6 @@
 # Showtape
 
-[![CI](https://github.com/sebastianspicker/setlist-to-playlist/actions/workflows/ci.yml/badge.svg)](https://github.com/sebastianspicker/setlist-to-playlist/actions/workflows/ci.yml)
+[![CI](https://github.com/sebastianspicker/showtape/actions/workflows/ci.yml/badge.svg)](https://github.com/sebastianspicker/showtape/actions/workflows/ci.yml)
 
 Showtape is a network-dependent web application that imports one concert setlist
 from setlist.fm, matches its songs to the Apple Music catalog, and creates an
@@ -19,6 +19,15 @@ The application implements one workflow:
 The repository is a pnpm workspace at version `0.3.0-alpha.1`. Its workspace
 packages are marked private and are not configured for package publication.
 Interfaces and configuration may change during alpha development.
+
+## Static demo
+
+[Open the Showtape workflow demo](https://sebastianspicker.github.io/showtape/).
+
+The demo is a local-only click-through built from sanitized test fixture data
+and the application's visual system. It does not call setlist.fm, connect to
+Apple Music, or create a playlist. Every interactive action is visibly marked
+as simulated.
 
 ## Current capabilities
 
@@ -60,8 +69,8 @@ Interfaces and configuration may change during alpha development.
 ## Installation
 
 ```bash
-git clone https://github.com/sebastianspicker/setlist-to-playlist.git
-cd setlist-to-playlist
+git clone https://github.com/sebastianspicker/showtape.git
+cd showtape
 cp .env.example .env
 corepack pnpm@9.15.3 install --frozen-lockfile
 corepack pnpm@9.15.3 build

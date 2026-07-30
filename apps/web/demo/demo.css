@@ -1,0 +1,198 @@
+.demo-header,
+.demo-footer,
+.demo-shell {
+  width: min(100% - 2rem, 68rem);
+  margin-inline: auto;
+}
+.demo-header {
+  min-height: var(--header-height);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.demo-notice {
+  margin: 0;
+  padding: 0.45rem 0.7rem;
+  color: var(--stage-text);
+  border: 1px solid var(--stage-border);
+  border-radius: 999px;
+  font-size: 0.82rem;
+}
+.demo-shell {
+  padding-block: 2.5rem 4rem;
+}
+.demo-intro {
+  max-width: 44rem;
+  margin-bottom: 2rem;
+}
+.demo-intro p:last-child {
+  color: var(--stage-text-muted);
+}
+.eyebrow {
+  color: var(--gel);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.steps {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.step {
+  min-height: var(--target);
+  padding: 0.55rem;
+  color: var(--stage-text-muted);
+  background: var(--stage-raised);
+  border: 1px solid var(--stage-border);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+}
+.step:hover,
+.step.is-current {
+  color: var(--paper);
+  border-color: var(--cue);
+  background: color-mix(in srgb, var(--cue) 20%, var(--stage-raised));
+}
+.sheet {
+  padding: clamp(1.25rem, 4vw, 2.5rem);
+  color: var(--ink);
+  background: var(--paper);
+  border-radius: var(--radius-sheet);
+  box-shadow: var(--shadow-sheet);
+}
+.state > :last-child {
+  margin-bottom: 0;
+}
+.event-details {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  padding: 1rem 0;
+  margin: 1.5rem 0;
+  border-block: 1px solid var(--rule);
+}
+.event-details div {
+  min-width: 0;
+}
+.event-details dt {
+  color: var(--ink-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.event-details dd {
+  margin: 0.2rem 0 0;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+.song-list,
+.match-list {
+  padding: 0;
+  margin: 1.5rem 0;
+  list-style: none;
+  border-top: 1px solid var(--rule);
+}
+.song-list li,
+.match-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+.song-list span,
+.match-list span,
+.playlist-card span,
+.playlist-card small {
+  color: var(--ink-muted);
+}
+.match-list span {
+  text-align: end;
+}
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.button {
+  min-height: var(--target);
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  font-weight: 700;
+}
+.button-primary {
+  color: #fff;
+  background: var(--cue);
+  border: 1px solid var(--cue);
+}
+.button-primary:hover {
+  background: var(--cue-hover);
+}
+.button-secondary {
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--rule-strong);
+}
+.button-secondary:hover {
+  background: var(--interactive);
+}
+.playlist-card {
+  display: grid;
+  gap: 0.3rem;
+  padding: 1rem;
+  margin: 1.5rem 0;
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-card);
+}
+.playlist-card strong {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+}
+.success-state {
+  padding: 1.25rem;
+  background: var(--success-bg);
+  border-left: 0.3rem solid var(--success);
+}
+.success-message {
+  color: var(--success);
+  font-size: 1.1rem;
+  font-weight: 750;
+}
+.demo-footer {
+  padding-bottom: 2rem;
+  color: var(--stage-text-muted);
+  font-size: 0.84rem;
+}
+@media (max-width: 42rem) {
+  .steps {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .event-details {
+    grid-template-columns: 1fr;
+  }
+  .song-list li,
+  .match-list li {
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+  .match-list span {
+    text-align: start;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

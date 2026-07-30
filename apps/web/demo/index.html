@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="A local-only Showtape workflow demo." />
+    <title>Showtape static demo</title>
+    <link rel="icon" href="./showtape-mark.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./globals.css" />
+    <link rel="stylesheet" href="./demo.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#demo-main">Skip to demo (Simulated)</a>
+    <header class="demo-header">
+      <a class="product-link" href="./" aria-label="Showtape static demo home">Showtape</a>
+      <p class="demo-notice" role="status">Static demo: all actions are simulated locally.</p>
+    </header>
+    <main id="demo-main" class="demo-shell" tabindex="-1">
+      <section class="demo-intro" aria-labelledby="demo-title">
+        <p class="eyebrow">Click-through workflow</p>
+        <h1 id="demo-title">Turn a setlist into a ready-to-review playlist.</h1>
+        <p>
+          Explore the complete flow with a deterministic three-song fixture. No account, network
+          request, API, or MusicKit connection is used.
+        </p>
+      </section>
+
+      <nav class="steps" aria-label="Demo progress">
+        <button class="step is-current" type="button" data-go="import" aria-current="step">
+          1. Import (Simulated)
+        </button>
+        <button class="step" type="button" data-go="preview">2. Preview (Simulated)</button>
+        <button class="step" type="button" data-go="match">3. Match (Simulated)</button>
+        <button class="step" type="button" data-go="export">4. Export (Simulated)</button>
+      </nav>
+
+      <section class="sheet" aria-live="polite">
+        <section class="state" data-state="import" aria-labelledby="import-title">
+          <p class="eyebrow">Step 1 of 4</p>
+          <h2 id="import-title" tabindex="-1">Import a setlist</h2>
+          <p>Use the prepared venue and date below to load a sanitized fixture.</p>
+          <dl class="event-details">
+            <div>
+              <dt>Artist</dt>
+              <dd>The Example Band</dd>
+            </div>
+            <div>
+              <dt>Venue</dt>
+              <dd>Demo Hall, Sample City</dd>
+            </div>
+            <div>
+              <dt>Date</dt>
+              <dd>23 August 1964</dd>
+            </div>
+          </dl>
+          <button class="button button-primary" type="button" data-go="preview">
+            Load fixture setlist (Simulated)
+          </button>
+        </section>
+
+        <section class="state" data-state="preview" hidden aria-labelledby="preview-title">
+          <p class="eyebrow">Step 2 of 4</p>
+          <h2 id="preview-title" tabindex="-1">Preview the setlist</h2>
+          <p>Three songs were prepared from the local fixture.</p>
+          <ol class="song-list">
+            <li><span>01</span> First Demo Song</li>
+            <li><span>02</span> Second Demo Song</li>
+            <li><span>03</span> Third Demo Song</li>
+          </ol>
+          <div class="button-row">
+            <button class="button button-secondary" type="button" data-go="import">
+              Back to import (Simulated)
+            </button>
+            <button class="button button-primary" type="button" data-go="match">
+              Match all songs (Simulated)
+            </button>
+          </div>
+        </section>
+
+        <section class="state" data-state="match" hidden aria-labelledby="match-title">
+          <p class="eyebrow">Step 3 of 4</p>
+          <h2 id="match-title" tabindex="-1">Review matches</h2>
+          <p>Each result is an intentionally local, preselected match.</p>
+          <ul class="match-list">
+            <li><strong>First Demo Song</strong><span>Matched locally · The Example Band</span></li>
+            <li>
+              <strong>Second Demo Song</strong><span>Matched locally · The Example Band</span>
+            </li>
+            <li><strong>Third Demo Song</strong><span>Matched locally · The Example Band</span></li>
+          </ul>
+          <div class="button-row">
+            <button class="button button-secondary" type="button" data-go="preview">
+              Back to preview (Simulated)
+            </button>
+            <button class="button button-primary" type="button" data-go="export">
+              Continue to export (Simulated)
+            </button>
+          </div>
+        </section>
+
+        <section class="state" data-state="export" hidden aria-labelledby="export-title">
+          <p class="eyebrow">Step 4 of 4</p>
+          <h2 id="export-title" tabindex="-1">Export the playlist</h2>
+          <p>Review the local draft before completing this simulated export.</p>
+          <div class="playlist-card">
+            <span>Playlist draft</span><strong>Demo Hall, 23 Aug 1964</strong
+            ><small>3 matched songs · Local only</small>
+          </div>
+          <div class="button-row">
+            <button class="button button-secondary" type="button" data-go="match">
+              Back to matches (Simulated)
+            </button>
+            <button class="button button-primary" type="button" data-go="success">
+              Create local preview (Simulated)
+            </button>
+          </div>
+        </section>
+
+        <section
+          class="state success-state"
+          data-state="success"
+          hidden
+          aria-labelledby="success-title"
+        >
+          <p class="eyebrow">Simulated export complete</p>
+          <h2 id="success-title" tabindex="-1">Your local preview is ready.</h2>
+          <p class="success-message">No Apple Music playlist was created.</p>
+          <p>The three matched songs remain only in this browser demo.</p>
+          <button class="button button-primary" type="button" data-go="import">
+            Start again (Simulated)
+          </button>
+        </section>
+      </section>
+    </main>
+    <footer class="demo-footer">Showtape static demo · No external services are contacted.</footer>
+    <script src="./demo.js"></script>
+  </body>
+</html>
