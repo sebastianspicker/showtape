@@ -60,7 +60,7 @@ function createStorageMock(): Storage {
       return store.get(key) ?? null;
     },
     key(index: number) {
-      return [...store.keys()][index] ?? null;
+      return Array.from(store.keys()).at(index) ?? null;
     },
     removeItem(key: string) {
       store.delete(key);
