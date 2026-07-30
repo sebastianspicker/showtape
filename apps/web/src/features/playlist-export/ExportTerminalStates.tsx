@@ -2,6 +2,7 @@
 
 import { Button } from '@repo/ui';
 import type { Setlist } from '@repo/core';
+import { getSafeAppleUrl } from './appleUrl';
 
 export interface IncompleteResumeState {
   progress: 'exact' | 'unknown';
@@ -14,26 +15,13 @@ export interface CreatedPlaylist {
   url?: string;
 }
 
-function isSafeAppleUrl(value: string | undefined): value is string {
-  if (!value) return false;
-  try {
-    const url = new URL(value);
-    return (
-      url.protocol === 'https:' &&
-      (url.hostname === 'music.apple.com' || url.hostname.endsWith('.music.apple.com'))
-    );
-  } catch {
-    return false;
-  }
-}
-
 export interface IncompleteExportStateProps {
   incompleteState: IncompleteResumeState;
   songIds: string[];
   addTracksError: string | null;
   loading: boolean;
-  onAddRemainingTracks: () => void;
-  onStartAnother?: () => void;
+  onAddRemainingTracks: VoidFunction;
+  onStartAnother?: VoidFunction;
 }
 
 export function IncompleteExportState({
@@ -47,6 +35,7 @@ export function IncompleteExportState({
   const hasUnknownProgress = incompleteState.progress === 'unknown';
   const remainingCount = incompleteState.remainingIds.length;
   const addedCount = hasUnknownProgress ? null : Math.max(songIds.length - remainingCount, 0);
+  const safeAppleUrl = getSafeAppleUrl(incompleteState.url);
 
   return (
     <section
@@ -80,9 +69,9 @@ export function IncompleteExportState({
             Add remaining songs
           </Button>
         ) : null}
-        {isSafeAppleUrl(incompleteState.url) ? (
+        {safeAppleUrl ? (
           <a
-            href={incompleteState.url}
+            href={safeAppleUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="button button--primary"
@@ -104,7 +93,7 @@ export interface SuccessExportStateProps {
   setlist: Setlist;
   created: CreatedPlaylist;
   songIds: string[];
-  onStartAnother?: () => void;
+  onStartAnother?: VoidFunction;
 }
 
 export function SuccessExportState({
@@ -113,6 +102,8 @@ export function SuccessExportState({
   songIds,
   onStartAnother,
 }: SuccessExportStateProps) {
+  const safeAppleUrl = getSafeAppleUrl(created.url);
+
   return (
     <section
       className="terminal-state terminal-state--success export-terminal"
@@ -125,9 +116,9 @@ export function SuccessExportState({
         {songIds.length === 1 ? '' : 's'} added
       </p>
       <div className="step-actions">
-        {isSafeAppleUrl(created.url) ? (
+        {safeAppleUrl ? (
           <a
-            href={created.url}
+            href={safeAppleUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="button button--primary"
