@@ -59,12 +59,7 @@ function setlistResultResponse(
   });
 }
 
-/**
- * GET /api/setlist/proxy?id=... or ?url=...
- * Returns setlist JSON from setlist.fm (API key server-side only). CORS restricted to frontend origin.
- * Rejects id/url longer than MAX_SETLIST_INPUT_LENGTH. Wrapped in try/catch so errors return JSON with CORS headers.
- */
-export async function GET(request: NextRequest) {
+function getSetlistResponse(request: NextRequest) {
   const { rateHeaders, rateLimitedResponse } = checkRateLimit(
     request,
     SETLIST_PROXY_RATE_LIMIT,
@@ -73,12 +68,21 @@ export async function GET(request: NextRequest) {
   if (rateLimitedResponse) return rateLimitedResponse;
 
   const id = setlistInput(request);
-  const invalidResponse = invalidInputResponse(request, id, rateHeaders);
-  if (invalidResponse) return invalidResponse;
+  return invalidInputResponse(request, id, rateHeaders) ?? { id, rateHeaders };
+}
+
+/**
+ * GET /api/setlist/proxy?id=... or ?url=...
+ * Returns setlist JSON from setlist.fm (API key server-side only). CORS restricted to frontend origin.
+ * Rejects id/url longer than MAX_SETLIST_INPUT_LENGTH. Wrapped in try/catch so errors return JSON with CORS headers.
+ */
+export async function GET(request: NextRequest) {
+  const preflight = getSetlistResponse(request);
+  if ('id' in preflight === false) return preflight;
 
   try {
-    const result = await handleSetlistProxy(id);
-    return setlistResultResponse(result, request, rateHeaders);
+    const result = await handleSetlistProxy(preflight.id);
+    return setlistResultResponse(result, request, preflight.rateHeaders);
   } catch {
     return internalError(request);
   }

@@ -1,23 +1,17 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { buildPlaylistName, dedupeTrackIdsOrdered } from '@repo/core';
-import { getErrorMessage } from '@repo/shared';
+import { dedupeTrackIdsOrdered } from '@repo/core';
 import type { MatchRow } from '@/features/matching/types';
-import {
-  isMusicKitAuthorized,
-  createLibraryPlaylist,
-  addTracksToLibraryPlaylist,
-} from '@/lib/musickit';
 import type { Setlist } from '@repo/core';
 import {
   type ResumeState,
   createSelectionSignature,
-  getAddProgress,
   readResume,
   shouldDiscardResume,
   writeResume,
 } from './playlistResume';
+import { createPlaylistActions } from './playlistCreationActions';
 
 export type { ResumeState };
 
@@ -34,7 +28,7 @@ export interface UseCreatePlaylistStateResult {
   created: { id: string; url?: string } | null;
   resumeState: ResumeState | null;
   dedupeTracks: boolean;
-  setDedupeTracks: (v: boolean) => void;
+  setDedupeTracks: (value: boolean) => void;
   selectedSongIds: string[];
   songIds: string[];
   handleCreate: () => Promise<void>;
@@ -86,90 +80,35 @@ export function useCreatePlaylistState({
     setResumeState(stored);
   }, [selectionSignature, setlist.id, songIds]);
 
-  async function handleCreate() {
+  const playlistActions = createPlaylistActions({
+    setlist,
+    songIds,
+    selectionSignature,
+    resumeState,
+    setLoading,
+    setError,
+    setAddTracksError,
+    setNeedsAuth,
+    setCreated,
+    setResumeState,
+  });
+
+  async function runExclusive(action: () => Promise<void>) {
     if (mutationInFlightRef.current) return;
     mutationInFlightRef.current = true;
-    setError(null);
-    setAddTracksError(null);
-    setNeedsAuth(false);
-    setLoading(true);
     try {
-      const authorized = await isMusicKitAuthorized();
-      if (!authorized) {
-        setNeedsAuth(true);
-        return;
-      }
-
-      if (songIds.length === 0) {
-        setError('No tracks to add. Match at least one track first.');
-        return;
-      }
-
-      const name = buildPlaylistName(setlist);
-      const { id, url } = await createLibraryPlaylist(name);
-      setCreated({ id, url });
-
-      try {
-        await addTracksToLibraryPlaylist(id, songIds);
-        setResumeState(null);
-        writeResume(setlist.id, null);
-      } catch (addErr) {
-        const progress = getAddProgress(addErr, songIds);
-        const resume: ResumeState = {
-          status: 'incomplete',
-          id,
-          url,
-          ...progress,
-          selectionSignature,
-          storedAt: Date.now(),
-        };
-        setResumeState(resume);
-        writeResume(setlist.id, resume);
-        setAddTracksError(getErrorMessage(addErr, 'Adding tracks failed.'));
-      }
-    } catch (err) {
-      setError(getErrorMessage(err, 'Failed to create playlist.'));
+      await action();
     } finally {
-      setLoading(false);
       mutationInFlightRef.current = false;
     }
   }
 
-  async function handleAddRemainingTracks() {
-    if (mutationInFlightRef.current) return;
-    if (!resumeState) return;
-    if (resumeState.progress === 'unknown') {
-      setAddTracksError(
-        'Cannot safely resume because Apple Music did not report which tracks remain.'
-      );
-      return;
-    }
-    if (resumeState.remainingIds.length === 0) return;
+  async function handleCreate() {
+    await runExclusive(playlistActions.handleCreate);
+  }
 
-    mutationInFlightRef.current = true;
-    setAddTracksError(null);
-    setLoading(true);
-    try {
-      await addTracksToLibraryPlaylist(resumeState.id, resumeState.remainingIds);
-      setCreated({ id: resumeState.id, url: resumeState.url });
-      setResumeState(null);
-      writeResume(setlist.id, null);
-      setAddTracksError(null);
-    } catch (err) {
-      const progress = getAddProgress(err, resumeState.remainingIds);
-      const nextResume: ResumeState = {
-        ...resumeState,
-        ...progress,
-        selectionSignature,
-        storedAt: Date.now(),
-      };
-      setResumeState(nextResume);
-      writeResume(setlist.id, nextResume);
-      setAddTracksError(getErrorMessage(err, 'Adding tracks failed.'));
-    } finally {
-      setLoading(false);
-      mutationInFlightRef.current = false;
-    }
+  async function handleAddRemainingTracks() {
+    await runExclusive(playlistActions.handleAddRemainingTracks);
   }
 
   async function handleAuthorized() {

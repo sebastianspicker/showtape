@@ -1,10 +1,10 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
-import { buildSearchQuery } from '@repo/core';
 import type { AppleMusicTrack } from '@/lib/musickit';
 import { searchCatalog } from '@/lib/musickit';
 import type { MatchRow } from './types';
+import { findSearchRow, queryForSearchRow } from './trackSearchRows';
 
 export interface TrackSearchContext {
   searchingIndex: number | null;
@@ -28,16 +28,6 @@ export interface UseTrackSearchResult {
   chooseTrack: (index: number, track: AppleMusicTrack) => void;
   skipTrack: (index: number) => void;
   closeSearch: () => void;
-}
-
-function findSearchRow(matches: MatchRow[], index: number): MatchRow | undefined {
-  return Number.isInteger(index) && index >= 0 && index < matches.length
-    ? matches.at(index)
-    : undefined;
-}
-
-function queryForRow(row: MatchRow, value: string): string {
-  return value.trim() || buildSearchQuery(row.setlistEntry.name, row.setlistEntry.artist);
 }
 
 export function useTrackSearch({ matches, setMatch }: UseTrackSearchParams): UseTrackSearchResult {
@@ -64,7 +54,7 @@ export function useTrackSearch({ matches, setMatch }: UseTrackSearchParams): Use
       if (!row) return;
       invalidateCurrentSearch();
       setSearchingIndex(index);
-      setSearchQuery(buildSearchQuery(row.setlistEntry.name, row.setlistEntry.artist));
+      setSearchQuery(queryForSearchRow(row, ''));
       setSearchResults([]);
       setSearchError(false);
       setHasSearched(false);
@@ -85,7 +75,7 @@ export function useTrackSearch({ matches, setMatch }: UseTrackSearchParams): Use
     async (index: number) => {
       const row = findSearchRow(matches, index);
       if (!row) return;
-      const q = queryForRow(row, searchQueryRef.current);
+      const q = queryForSearchRow(row, searchQueryRef.current);
       if (!q) return;
       const runId = ++searchRunIdCounter.current;
       searchRunIdRef.current = runId;
