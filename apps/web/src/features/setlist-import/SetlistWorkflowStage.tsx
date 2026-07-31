@@ -21,11 +21,15 @@ interface WorkflowStageProps {
   onStartAnother: UseFlowStateResult['startAnotherSetlist'];
 }
 
+const STEP_NUMBERS = new Map<FlowStep, number>([
+  ['import', 1],
+  ['preview', 2],
+  ['matching', 3],
+  ['export', 4],
+]);
+
 export function getStepNumber(step: FlowStep): number {
-  if (step === 'preview') return 2;
-  if (step === 'matching') return 3;
-  if (step === 'export') return 4;
-  return 1;
+  return STEP_NUMBERS.get(step) ?? 1;
 }
 
 export function WorkflowStage({
@@ -35,12 +39,11 @@ export function WorkflowStage({
   importContent,
   ...stageProps
 }: WorkflowStageProps): ReactNode {
-  if (step === 'matching' && setlist) {
+  if (!setlist || step === 'import') return importContent;
+  if (step === 'matching') {
     return <MatchingStage setlist={setlist} matchRows={matchRows} {...stageProps} />;
   }
-  if (step === 'export' && setlist && matchRows) {
-    return <ExportStage setlist={setlist} matchRows={matchRows} {...stageProps} />;
-  }
-  if (step === 'preview' && setlist) return <PreviewStage setlist={setlist} {...stageProps} />;
-  return importContent;
+  if (step === 'preview') return <PreviewStage setlist={setlist} {...stageProps} />;
+  if (!matchRows) return importContent;
+  return <ExportStage setlist={setlist} matchRows={matchRows} {...stageProps} />;
 }

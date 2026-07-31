@@ -17,7 +17,7 @@ export const getRetryDelayMs = (res: Response): number => {
     typeof res.headers?.get === 'function' ? res.headers.get('retry-after') : null;
   const retryAfterMs = parseRetryAfterMs(retryAfterValue);
   const baseDelayMs = Math.min(retryAfterMs ?? BACKOFF_MS, MAX_RETRY_AFTER_DELAY_MS);
-  return Math.max(0, baseDelayMs) + Math.floor(Math.random() * 100);
+  return Math.max(0, baseDelayMs);
 };
 
 export const waitForRetry = (delayMs: number, signal: AbortSignal): Promise<boolean> =>
