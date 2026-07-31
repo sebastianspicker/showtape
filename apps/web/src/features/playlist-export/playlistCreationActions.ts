@@ -22,18 +22,20 @@ interface PlaylistCreationActionsParams {
   setResumeState: Dispatch<SetStateAction<ResumeState | null>>;
 }
 
-export function createPlaylistActions({
-  setlist,
-  songIds,
-  selectionSignature,
-  resumeState,
-  setLoading,
-  setError,
-  setAddTracksError,
-  setNeedsAuth,
-  setCreated,
-  setResumeState,
-}: PlaylistCreationActionsParams) {
+export function createPlaylistActions(params: PlaylistCreationActionsParams) {
+  const {
+    setlist,
+    songIds,
+    selectionSignature,
+    resumeState,
+    setLoading,
+    setError,
+    setAddTracksError,
+    setNeedsAuth,
+    setCreated,
+    setResumeState,
+  } = params;
+
   async function handleCreate() {
     setError(null);
     setAddTracksError(null);

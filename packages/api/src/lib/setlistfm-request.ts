@@ -20,23 +20,23 @@ const fetchAttempt = async ({
   signal,
 }: FetchAttemptOptions): Promise<FetchAttemptResult> => {
   const url = new URL(`${SETLIST_FM_BASE_URL}/setlist/${encodeURIComponent(setlistId)}`);
-  if (!ALLOWED_UPSTREAM_ORIGINS.has(url.origin)) {
-    return {
-      kind: 'failure',
-      error: { ok: false, status: 502, message: 'Invalid setlist.fm upstream URL.' },
-    };
+  if (ALLOWED_UPSTREAM_ORIGINS.has(url.origin)) {
+    try {
+      return fetchResponseResult(await fetch(url, { headers, signal }), setlistId, signal);
+    } catch {
+      return signal.aborted
+        ? timeoutFailure()
+        : {
+            kind: 'failure',
+            error: { ok: false, status: 502, message: 'Unable to reach setlist.fm.' },
+          };
+    }
   }
 
-  try {
-    return fetchResponseResult(await fetch(url, { headers, signal }), setlistId, signal);
-  } catch {
-    return signal.aborted
-      ? timeoutFailure()
-      : {
-          kind: 'failure',
-          error: { ok: false, status: 502, message: 'Unable to reach setlist.fm.' },
-        };
-  }
+  return {
+    kind: 'failure',
+    error: { ok: false, status: 502, message: 'Invalid setlist.fm upstream URL.' },
+  };
 };
 
 export const fetchUncachedSetlist = async (

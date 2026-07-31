@@ -7,8 +7,8 @@ export const getOptionalString = (value: unknown): string | undefined =>
 export const toSafeRecord = (value: unknown): Record<string, unknown> | null => {
   if (value == null || typeof value !== 'object') return null;
   const record = value as Record<string, unknown>;
-  if (Object.prototype.hasOwnProperty.call(record, '__proto__')) return null;
-  return Object.prototype.hasOwnProperty.call(record, 'constructor') ? null : record;
+  if (Object.hasOwn(record, '__proto__')) return null;
+  return Object.hasOwn(record, 'constructor') ? null : record;
 };
 
 export const getArtistName = (value: unknown): string => {
