@@ -1,192 +1,103 @@
 # Dependencies
 node_modules/
 .pnpm-store/
+.pnpm-debug.log*
 
-# Env and secrets
-.env*
-!/.env.example
-.envrc
-.direnv/
-*.pem
-*.key
-*.p8
-*.p12
-*.pfx
-*.cer
-*.crt
-*.der
-*.mobileprovision
-*.jks
-*.keystore
-credentials/
-secrets/
-private/
-
-# Build outputs
+# Build and generated output
 .next/
 out/
 dist/
 build/
 *.tsbuildinfo
 .vercel/
-.netlify/
+.turbo/
+.parcel-cache/
+.sass-cache/
 
-# IDE and OS
-.idea/
-.vscode/
-*.sublime-project
-*.sublime-workspace
-*.swp
-*.swo
-*~
-.DS_Store
-Thumbs.db
-*.lnk
-.Spotlight-V100
-.Trashes
-.cursor/
-
-# Local tool state and internal workflow artifacts
-/.claude/
-/.kilo/
-/.agents/
-/.codex/
-/.codacy/*
-!/.codacy/codacy.config.json
-!/.codacy/codacy.yaml
-!/.codacy/codacy.yml
-/.codacy.yaml
-/.codacy/codacy.config.json
-/.codacy/codacy.yaml
-/.codegraph/
-/.impeccable/
-/.serena/
-/.prompts/
-/.mcp.json
-/AGENTS.md
-/AGENT_*.md
-/AGENT_AUDIT_REPORT.md
-/AUDIT*.md
-/FINDINGS*.md
-/REVIEW*.md
-/Plan.md
-/RELEASE_STATUS.md
-/reports/
-/scratch/
-/deprecated/
-/local/
-/report.json
-/diagnostics*.json
-/support-report*.json
-/*-ledger.md
-/*-report.md
-docs/local/
-docs/private/
-docs/internal/
-docs/status/
-docs/audit/
-docs/fixes/
-docs/archive/
-
-# Logs and debug
-*.log
-npm-debug.log*
-pnpm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
-
-# Test and coverage
+# Test, coverage, and analysis output
 coverage/
-.nyc_output/
 .vitest/
 test-results/
 playwright-report/
 blob-report/
-.playwright/
-playwright/.auth/
-storage-state*.json
+*.lcov
+coverage.xml
+junit*.xml
+*.sarif
 *.har
 *.trace
 *.cpuprofile
 *.heapprofile
-
-# Caches
-.turbo/
-.vite/
 .eslintcache
 .stylelintcache
-.parcel-cache
+
+# Logs, caches, and temporary files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 .cache/
-
-# Generated / seeded fixtures (script output; may contain live API data)
-scripts/fixtures/
-
-# Test-only key material generated at runtime
-packages/api/tests/fixtures/*.pem
-
-# Backup and temp
-*.bak
-*.backup
+.vite/
 .tmp/
 .temp/
 tmp/
 temp/
+*.tmp
+*.temp
+*.bak
+*.backup
+*.orig
+*~
+*.tgz
 
-# PWA / optional
-*.webmanifest.bak
-.repowise/
-/CLAUDE.md
-/GEMINI.md
-/AUDIT_LEDGER.md
-/remediation-ledger.md
-/plan.md
-/progress.md
-!.env.example
+# Local environment and credentials
+.env*
+!/.env.example
 !.env.*.example
-!.env.sample
-!.env.template
-*.kdbx
-*.ppk
-secrets.local.*
-credentials.local.*
-.netrc
+.envrc
+.direnv/
 .npmrc.local
-.coverage
-coverage.xml
-htmlcov/
-junit*.xml
-*.sarif
-target/
-.build/
-*.local.db
-*.local.sqlite
-*.local.sqlite3
-*.sqlite-wal
-*.sqlite-shm
-*.sqlite3-wal
-*.sqlite3-shm
-!/RELEASE_STATUS.md
-__pycache__/
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-*.pyc
-*.pyo
-DerivedData/
-xcuserdata/
-*.db-wal
-*.db-shm
+.netrc
+*.pem
+*.key
+*.p8
+*.p12
+*.pfx
+/credentials/
+/secrets/
 
-# Generated test and coverage output (local only)
-/coverage/
-/htmlcov/
-/.coverage
-/.coverage.*
-/.pytest_cache/
-/test-results/
-/playwright-report/
-/blob-report/
-/coverage.xml
-/junit.xml
-/junit-*.xml
+# Editors and operating systems
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Local tool and editor state deliberately kept off the public tree.
+# These are machine-specific; consider moving your own patterns to a global
+# gitignore (`git config --global core.excludesFile`) instead of adding them here.
+/.agents/
+/.claude/
+/.codacy/
+/.codacy.yaml
+/.codegraph/
+/.codex/
+/.impeccable/
+/.mcp.json
+/.serena/
+
+# Local reports and private notes
+/reports/
+/report.json
+/diagnostics*.json
+/support-report*.json
+/docs/internal/
+/docs/local/
+/docs/private/
+
+# Native generated state
+native/**/.build/
+native/DerivedData/
+**/xcuserdata/
+native/Config/Local.xcconfig

@@ -1,234 +1,186 @@
 # Showtape
 
+**Turn one concert setlist into an ordered Apple Music playlist — with every match in your hands.**
+
 [![CI](https://github.com/sebastianspicker/showtape/actions/workflows/ci.yml/badge.svg)](https://github.com/sebastianspicker/showtape/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Showtape is a network-dependent web application that imports one concert setlist
-from setlist.fm, matches its songs to the Apple Music catalog, and creates an
-ordered Apple Music playlist after user review.
+Showtape starts from a setlist.fm setlist, suggests Apple Music matches, and
+then gets out of the way while you fix what it got wrong. Nothing is written to
+your library until you say so, and a match you have not approved is never
+treated as certain.
 
-## Purpose and scope
+> Showtape is an early alpha (`0.3.0-alpha.1`). Interfaces and configuration can
+> change between releases.
 
-The application implements one workflow:
+## What it does
 
-1. Import a setlist.fm URL or a 4 to 12 character hexadecimal setlist ID.
-2. Review the show metadata and ordered non-tape songs.
-3. Review suggested Apple Music matches, search manually, replace a match, or
-   skip a song.
-4. Authorize Apple Music and create a playlist from the selected tracks.
+1. **Import** — paste a setlist.fm URL, or the 4–12 character hexadecimal setlist ID.
+2. **Preview** — check the artist, venue, date, and the ordered song list. Tape
+   entries are left out.
+3. **Match** — accept the suggestions, search the Apple Music catalog yourself,
+   replace a pick, or skip a song.
+4. **Export** — review your selection, authorize Apple Music, and create the playlist.
 
-The repository is a pnpm workspace at version `0.3.0-alpha.1`. Its workspace
-packages are marked private and are not configured for package publication.
-Interfaces and configuration may change during alpha development.
+At least one selected track is required before anything is written.
 
-## Static demo
+Showtape keeps setlist.fm attribution visible, remembers your eight most recent
+inputs in browser `localStorage`, and can hold a known partial export in
+`sessionStorage` for 30 minutes. It deliberately does not do multiple-setlist
+imports, non-Apple export targets, offline use, background sync, or accounts.
+If an Apple Music write ends with an unknown outcome, Showtape does not retry it
+automatically.
 
-[Open the Showtape workflow demo](https://sebastianspicker.github.io/showtape/).
+## Try it without credentials
 
-The demo is a local-only click-through built from sanitized test fixture data
-and the application's visual system. It does not call setlist.fm, connect to
-Apple Music, or create a playlist. Every interactive action is visibly marked
-as simulated. The user-site GitHub Pages workflow builds a reviewed, immutable
-Showtape revision and publishes only this static demo at `/showtape/`; it does
-not deploy the live application.
+**[Open the interactive demo →](https://sebastianspicker.github.io/showtape/)**
 
-## Current capabilities
+The demo runs entirely in your browser on bundled fictional data. It makes no
+setlist.fm or Apple Music requests and creates nothing. GitHub Pages publishes
+this simulated artifact only — never the live Next.js app.
 
-- Imports one setlist at a time through a server-side setlist.fm proxy.
-- Preserves setlist.fm source attribution throughout the workflow.
-- Searches the Apple Music catalog in batches and preserves manual corrections.
-- Optionally removes duplicate Apple Music track IDs before export.
-- Adds playlist tracks in batches of 100.
-- Stores up to eight recent inputs and parsed setlist IDs in browser
-  `localStorage`.
-- Stores resumable export state in `sessionStorage` for up to 30 minutes when
-  the remaining track IDs are known.
-- Serves `/`, `/privacy`, `/terms`, `/api/health`,
-  `/api/apple/dev-token`, and `/api/setlist/proxy`.
+## Screenshot tour
 
-## Limitations
+Captured from the static demo, so every name and track below is fictional.
 
-- Apple Music is the only export target.
-- Batch import and merging are not implemented.
-- Catalog matching is heuristic and may require manual correction.
-- The application requires network access. It has no service worker, offline
-  mode, or background synchronization.
-- Automated browser tests mock setlist.fm and MusicKit. They do not verify live
-  Apple authorization or playlist creation.
-- Ambiguous Apple Music write failures are not retried automatically because
-  the external operation may already have succeeded.
-- GitHub Pages deployment covers only the static demo. The live application
-  still has no deployment, release, or rollback automation.
+**1. Import a setlist** — paste a setlist.fm URL or ID.
+
+![Import stage: fixture ID field and a load button](docs/screenshots/01-import.png)
+
+**2. Preview the show** — confirm the details and the ordered, tape-free songs.
+
+![Preview stage: artist, venue, date, and the ordered song list](docs/screenshots/02-preview.png)
+
+**3. Match the songs** — accept suggestions, search manually, or skip. Unresolved
+and skipped rows stay visible instead of quietly disappearing.
+
+![Match stage: twelve songs with matched, needs-match, and skipped states](docs/screenshots/03-match.png)
+
+**4. Review the playlist** — check what will be added and name the playlist.
+
+![Export stage: playlist name field and the selected songs](docs/screenshots/04-export.png)
+
+**5. Done** — a success screen that only appears after the write is confirmed.
+
+![Success stage: summary of the created playlist](docs/screenshots/05-success.png)
+
+At narrow widths the same workflow reflows to a single column:
+
+![Match stage at a 390px viewport](docs/screenshots/responsive-390.png)
 
 ## Requirements
 
-- Node.js 20 or later
-- Corepack
-- pnpm 9.15.3
-- A setlist.fm API key
-- An Apple Developer account with MusicKit configured
-- An Apple Music subscription for live playlist creation
+- Node.js 20.9 or later
+- pnpm 9.15.3 via Corepack (on Node 25+, which dropped Corepack, use `npx pnpm@9.15.3`)
+- A setlist.fm API key for live imports
+- An Apple Developer account with MusicKit configured for live Apple use
+- An Apple Music subscription to create playlists
 
-## Installation
+Automated checks never need live credentials.
+
+## Quick start
+
+Run everything from the repository root:
 
 ```bash
 git clone https://github.com/sebastianspicker/showtape.git
 cd showtape
 cp .env.example .env
 corepack pnpm@9.15.3 install --frozen-lockfile
-corepack pnpm@9.15.3 build
 corepack pnpm@9.15.3 dev
 ```
 
-Open `http://localhost:3000`.
+Fill in `.env` before you exercise the live integrations, then open
+`http://localhost:3000`. Keep the populated file out of git.
 
-The Next.js process serves the browser application and its API routes.
-`packages/api` exports reusable request handlers and does not start a separate
-server.
+| Variable                         | Needed for                         | Visibility                    |
+| -------------------------------- | ---------------------------------- | ----------------------------- |
+| `SETLISTFM_API_KEY`              | Live setlist import                | Server only                   |
+| `APPLE_TEAM_ID`                  | Apple developer-token signing      | Server only                   |
+| `APPLE_KEY_ID`                   | Apple developer-token signing      | Server only                   |
+| `APPLE_PRIVATE_KEY`              | Apple developer-token signing      | Server only                   |
+| `NEXT_PUBLIC_APPLE_MUSIC_APP_ID` | MusicKit initialization            | Browser-visible build setting |
+| `ALLOWED_ORIGIN`                 | Production API CORS policy         | Server only                   |
+| `TRUST_PROXY`                    | Trusted forwarded-IP rate limiting | Server only                   |
 
-## Configuration
+The browser always calls same-origin `/api` routes. `ALLOWED_ORIGIN` and
+`TRUST_PROXY` are server HTTP-policy settings, not an alternate API deployment
+model. See [deployment and configuration](docs/DEPLOYMENT.md) for setup and
+production constraints.
 
-Populate the local `.env` copied from `.env.example`. Do not commit the populated
-file.
+## Commands
 
-| Variable                         | Required       | Description                                                                                           |
-| -------------------------------- | -------------- | ----------------------------------------------------------------------------------------------------- |
-| `SETLISTFM_API_KEY`              | Live import    | Server-side setlist.fm API key.                                                                       |
-| `APPLE_TEAM_ID`                  | Live Apple use | Apple Developer Team ID used to sign the developer token.                                             |
-| `APPLE_KEY_ID`                   | Live Apple use | MusicKit key ID.                                                                                      |
-| `APPLE_PRIVATE_KEY`              | Live Apple use | MusicKit private key in PEM form. Keep it server-side.                                                |
-| `NEXT_PUBLIC_APPLE_MUSIC_APP_ID` | Live Apple use | MusicKit application identifier used by the browser.                                                  |
-| `NEXT_PUBLIC_API_URL`            | No             | Alternate API base URL. Leave unset for the included same-origin routes.                              |
-| `ALLOWED_ORIGIN`                 | Production     | Comma-separated CORS allowlist. When unset, only HTTP localhost and `127.0.0.1` origins are accepted. |
-| `TRUST_PROXY`                    | No             | Set to `1` only when a trusted reverse proxy replaces forwarded client IP headers.                    |
+Run all commands from the repository root.
 
-The Apple private key may use literal `\n` sequences, as shown in
-`.env.example`. Restart the development server after changing environment
-variables.
+| Command                                   | Purpose                                                                 |
+| ----------------------------------------- | ----------------------------------------------------------------------- |
+| `corepack pnpm@9.15.3 dev`                | Start the development server.                                           |
+| `corepack pnpm@9.15.3 build`              | Create the production Next.js build.                                    |
+| `corepack pnpm@9.15.3 start`              | Serve an existing production build.                                     |
+| `corepack pnpm@9.15.3 format:check`       | Check Prettier formatting.                                              |
+| `corepack pnpm@9.15.3 hygiene:check`      | Check the publishable tree for sensitive or local-only material.        |
+| `corepack pnpm@9.15.3 lint`               | Run ESLint with zero warnings allowed.                                  |
+| `corepack pnpm@9.15.3 check:architecture` | Check source-layer dependencies and cycles.                             |
+| `corepack pnpm@9.15.3 typecheck`          | Type-check without emitting files.                                      |
+| `corepack pnpm@9.15.3 test`               | Run the Vitest behavior contracts.                                      |
+| `corepack pnpm@9.15.3 demo:check`         | Build and validate the static demo in a temporary directory.            |
+| `corepack pnpm@9.15.3 demo:build`         | Write the validated demo to ignored `dist/pages`.                       |
+| `corepack pnpm@9.15.3 screenshots`        | Regenerate the demo screenshots in `docs/screenshots` (needs Chromium). |
+| `corepack pnpm@9.15.3 audit:security`     | Audit production dependencies at moderate severity or higher.           |
 
-See [Apple Music configuration](docs/tech/apple-music.md),
-[setlist.fm configuration](docs/tech/setlistfm.md), and
-[deployment](docs/tech/deployment.md).
+## How it fits together
 
-## Usage
+One Next.js process serves the browser app and three API routes:
 
-1. Enter a setlist.fm URL or ID and load the setlist.
-2. Confirm the show and song order.
-3. Review each Apple Music suggestion. Search, replace, or skip when needed.
-4. Continue with at least one selected track.
-5. Authorize Apple Music and create the playlist.
+- `/`, `/privacy`, and `/terms`
+- `GET /api/health`
+- `GET /api/apple/dev-token`
+- `GET /api/setlist/proxy`
 
-Recent-import controls perform a new import. They do not load a saved copy of
-the upstream setlist.
+The server holds the Apple signing key and the setlist.fm key; the browser never
+sees them. MusicKit runs in the browser and talks to Apple directly for catalog
+search, authorization, and playlist writes, so your user token, playlist name,
+and selected track IDs never pass through Showtape's API.
 
-## Repository structure
+This is a single private package, not a multi-package monorepo.
 
-| Path              | Responsibility                                                                   |
-| ----------------- | -------------------------------------------------------------------------------- |
-| `apps/web`        | Next.js pages, API Route Handlers, and web tests.                                |
-| `packages/api`    | Reusable server-side handlers for token signing and setlist access.              |
-| `packages/core`   | Setlist parsing, mapping, matching, naming, and track deduplication.             |
-| `packages/shared` | Shared API types, constants, and utilities.                                      |
-| `packages/ui`     | Shared React button component.                                                   |
-| `docs`            | Architecture, integration, operation, product, and screenshot documentation.     |
-| `scripts`         | Repository hygiene, diagnostics, fixture seeding, cleanup, and bundle reporting. |
+| Path                                      | Responsibility                                                               |
+| ----------------------------------------- | ---------------------------------------------------------------------------- |
+| `src/app`                                 | Pages and layouts; API route files only re-export `src/server/routes`.       |
+| `src/contracts`, `src/domain`, `src/http` | Framework-free wire shapes, business transformations, bounded Fetch reading. |
+| `src/server`, `src/client`                | Endpoint behavior and integrations; the browser's API caller and MusicKit.   |
+| `src/workflow`, `src/ui`                  | The import-to-export journey and generic presentation components.            |
+| `tests`                                   | Tests grouped by application boundary.                                       |
+| `demo`, `public`, `scripts`               | Simulated demo source, public assets, and repository checks.                 |
 
-See [architecture](docs/architecture.md) for runtime boundaries and
-[docs/index.md](docs/index.md) for the documentation map.
+Deeper detail lives in [architecture and runtime flows](docs/architecture.md).
 
-## Development workflow
+## Documentation
 
-Run commands from the repository root.
+- [Product and interface contract](PRODUCT.md)
+- [Architecture and runtime flows](docs/architecture.md)
+- [Deployment and configuration](docs/DEPLOYMENT.md)
+- [Apple Music integration](docs/tech/apple-music.md)
+- [setlist.fm integration](docs/tech/setlistfm.md)
+- [Local verification and measurements](docs/verification.md)
+- [Contributing](CONTRIBUTING.md)
+- [Security policy](SECURITY.md)
+- [Privacy](PRIVACY.md) and [terms](TERMS.md)
+- [Changelog](CHANGELOG.md)
 
-| Command                               | Purpose                                                            |
-| ------------------------------------- | ------------------------------------------------------------------ |
-| `corepack pnpm@9.15.3 dev`            | Start the Next.js development server.                              |
-| `corepack pnpm@9.15.3 format:check`   | Check formatting.                                                  |
-| `corepack pnpm@9.15.3 hygiene:check`  | Check the public tree for local state and sensitive file patterns. |
-| `corepack pnpm@9.15.3 lint`           | Run workspace ESLint checks.                                       |
-| `corepack pnpm@9.15.3 typecheck`      | Build typed dependencies and type-check the web app.               |
-| `corepack pnpm@9.15.3 test`           | Run focused workspace contracts.                                   |
-| `corepack pnpm@9.15.3 build`          | Build all workspace packages.                                      |
-| `corepack pnpm@9.15.3 audit:security` | Audit production dependencies at moderate severity or higher.      |
-| `corepack pnpm@9.15.3 bundle:report`  | Report initial `/` JavaScript and CSS sizes after a build.         |
+The automated tests use fakes at the external boundaries. They do not prove a
+complete browser journey, live setlist.fm access, Apple authorization, playlist
+writes, or a deployed environment.
 
-Optional local utilities:
+## Native app
 
-```bash
-SETLISTFM_API_KEY=your_key corepack pnpm@9.15.3 fixtures:seed
-corepack pnpm@9.15.3 diagnostics:export -- --out reports/diagnostics.json
-corepack pnpm@9.15.3 cleanup:repo
-```
+The `native/` project adds SwiftUI clients for iPhone, iPad, and Mac, targeting
+iOS/iPadOS 17 and macOS 14. They reuse this Next.js service for setlist import
+and call native MusicKit directly for Apple Music. See
+[native setup and verification](native/README.md) for build configuration,
+account requirements, recovery behavior, and the mocked test boundary.
 
-Fixture seeding calls setlist.fm and writes
-`scripts/fixtures/demo-setlists.json`. Diagnostics contain environment variable
-names, platform information, and the configured API base URL. Review either
-output before sharing it.
+## License
 
-## Testing
-
-```bash
-corepack pnpm@9.15.3 test
-```
-
-## Deployment and operation
-
-The sanitized static demo is produced by `scripts/build-pages-demo.mjs`. Its
-generated `dist/pages` directory is an ignored deployment artifact, not
-committed source. The established `sebastianspicker.github.io` Pages workflow
-owns deployment: it checks out a reviewed, immutable Showtape revision, builds
-the demo, and stages it at `/showtape/` in the host artifact. Updating this
-repository does not publish the demo until that host-side revision pin is
-reviewed and advanced. See [deployment](docs/tech/deployment.md).
-
-The full application supports a self-hosted Node.js process:
-
-```bash
-corepack pnpm@9.15.3 install --frozen-lockfile
-corepack pnpm@9.15.3 build
-corepack pnpm@9.15.3 --filter web start
-```
-
-Run the process behind TLS, provide the required environment variables, and
-configure the exact browser origin in `ALLOWED_ORIGIN`. The repository does not
-provide a container image, process supervisor, reverse-proxy configuration, or
-full-application deployment workflow.
-
-After deployment, check `GET /api/health`. See
-[docs/tech/deployment.md](docs/tech/deployment.md) for proxy and rate-limit
-requirements.
-
-## Troubleshooting
-
-- `SETLISTFM_API_KEY is not set`: set the server-side key and restart the
-  process.
-- Missing Apple token configuration: set `APPLE_TEAM_ID`, `APPLE_KEY_ID`,
-  `APPLE_PRIVATE_KEY`, and `NEXT_PUBLIC_APPLE_MUSIC_APP_ID`.
-- CORS rejection: add the exact browser origin to `ALLOWED_ORIGIN`. Do not use
-  `*` or `null`.
-- Per-client rate limiting is disabled: this is expected when no trusted client
-  key is available. Set `TRUST_PROXY=1` only behind a proxy that replaces
-  forwarded IP headers.
-- No catalog match: search manually or skip the song.
-- Ambiguous playlist write: inspect the Apple Music library before trying
-  again.
-
-## Security considerations
-
-Keep Apple and setlist.fm credentials on the server. The MusicKit user token
-remains in the browser and is not sent to the Showtape API routes. Use TLS in
-deployment, restrict CORS, review logs and diagnostics before sharing them, and
-do not trust forwarded client IP headers unless the reverse proxy replaces
-them.
-
-Report vulnerabilities through the private process in
-[SECURITY.md](SECURITY.md). Data handling is documented in
-[PRIVACY.md](PRIVACY.md).
-
-## Contributing
-
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. Keep
-changes focused, add tests for behavior changes, update affected documentation,
-and report exact validation commands and results.
-
-Source code is available under the [MIT License](LICENSE). Use of setlist.fm and
-Apple services is also subject to their current terms.
+Showtape is available under the [MIT License](LICENSE). Apple Music and
+setlist.fm use are also subject to their respective terms.

@@ -2,15 +2,10 @@ import js from '@eslint/js';
 import nextVitals from 'eslint-config-next/core-web-vitals';
 import tseslint from 'typescript-eslint';
 
-const webFiles = ['apps/web/**/*.{js,jsx,ts,tsx}'];
-const scopedNextVitals = nextVitals.map((config) => ({
-  ...config,
-  files: webFiles,
-}));
-
 export default tseslint.config(
+  { ignores: ['native/**', '.next/**', 'dist/**', 'playwright-report/**', 'test-results/**'] },
   js.configs.recommended,
-  ...scopedNextVitals,
+  ...nextVitals,
   ...tseslint.configs.recommended,
   {
     languageOptions: {
@@ -20,6 +15,17 @@ export default tseslint.config(
       },
       globals: {
         console: 'readonly',
+        Buffer: 'readonly',
+        URL: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        document: 'readonly',
+        window: 'readonly',
+        navigator: 'readonly',
+        localStorage: 'readonly',
+        requestAnimationFrame: 'readonly',
+        HTMLElement: 'readonly',
+        HTMLInputElement: 'readonly',
         process: 'readonly',
         __dirname: 'readonly',
         module: 'readonly',

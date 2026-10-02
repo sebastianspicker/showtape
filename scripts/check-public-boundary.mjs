@@ -22,9 +22,14 @@ const forbiddenPaths = [
   /(^|\/)(?:node_modules|coverage|test-results|blob-report)(?:\/|$)/,
   /(^|\/)(?:\.next|dist|build|out)(?:\/|$)/,
   /^(?:\.codacy\.yaml|\.mcp\.json)$/,
-  /(^|\/)\.repowise(?:\/|$)/,
-  /(^|\/)(?:\.agents|\.claude|\.codacy|\.codex|\.codegraph|\.cursor|\.impeccable|\.kilo|\.prompts|\.serena)(?:\/|$)/,
-  /(^|\/)AGENTS?[^/]*\.md$/i,
+  /(^|\/)(?:\.agent|\.agents|\.ai|\.claude|\.codacy|\.codex|\.codegraph|\.cursor|\.impeccable|\.kilo|\.prompts|\.serena)(?:\/|$)/,
+  /^(?:agent-prompts|ai-prompts|prompt|prompts)(?:\/|$)/i,
+  /^\.github\/(?:copilot-instructions\.md|prompts(?:\/|$))/i,
+  /(^|\/)(?:CLAUDE|CODEX|GEMINI)\.md$/i,
+  /^(?:agent-instructions|instructions-for-agent)\.[^/]+$/i,
+  /^(?:agent-(?:context|memory|notes|output|report)|AI_(?:AUDIT|NOTES|REPORT|SUMMARY))[^/]*$/i,
+  /^(?:scratchpad|worklog|devlog)[^/]*$/i,
+  /^(?:[^/]+[-_]ledger)\.md$/i,
   /^RELEASE_STATUS\.md$/,
   /(^|\/)docs\/(?:audit|fixes|archive|local|private|internal|status)(?:\/|$)/,
   /(^|\/)(?:diagnostics|support-report)[^/]*\.json$/i,
@@ -33,14 +38,17 @@ const forbiddenPaths = [
 const pathFindings = files.filter((file) => forbiddenPaths.some((pattern) => pattern.test(file)));
 const contentFindings = [];
 const privateKeyMarker = /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/;
+const privateKeyHeader = ['-----BEGIN', 'PRIVATE KEY-----'].join(' ');
+const documentedPrivateKeyPlaceholder = new RegExp(
+  `^APPLE_PRIVATE_KEY="${privateKeyHeader}\\\\n\\.\\.\\.\\\\n-----END PRIVATE KEY-----"$`,
+  'm'
+);
 const absoluteHomePath = /(?:\/Users\/|\/home\/)[A-Za-z0-9._-]+\//;
 const staleRepositorySlug = /sebastianspicker\/setlist-to-playlist/i;
 const actionReference = /^\s*(?:-\s*)?uses:\s*([^\s#]+)(?:\s+#.*)?$/gm;
 const immutableActionVersion = /^[0-9a-f]{40}$/i;
 
 for (const file of files) {
-  if (file === '.env.example') continue;
-
   let content;
   try {
     content = readFileSync(file, 'utf8');
@@ -48,10 +56,19 @@ for (const file of files) {
     continue;
   }
 
-  if (privateKeyMarker.test(content)) contentFindings.push(`${file}: private-key marker`);
+  if (
+    privateKeyMarker.test(content) &&
+    (file !== '.env.example' || !documentedPrivateKeyPlaceholder.test(content))
+  ) {
+    contentFindings.push(`${file}: private-key marker`);
+  }
   if (absoluteHomePath.test(content)) contentFindings.push(`${file}: absolute home path`);
   if (staleRepositorySlug.test(content)) {
     contentFindings.push(`${file}: stale repository identity`);
+  }
+
+  if (/^\.(?:npmrc|yarnrc)$/.test(file) && /(?:_authToken|_password|username)\s*=/i.test(content)) {
+    contentFindings.push(`${file}: package-manager credential directive`);
   }
 
   if (/^\.github\/workflows\/[^/]+\.ya?ml$/.test(file)) {

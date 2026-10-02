@@ -1,0 +1,240 @@
+{
+  "schemaVersion": 1,
+  "inputs": [
+    {
+      "input": "deadbeef",
+      "id": "deadbeef"
+    },
+    {
+      "input": " ABCD1234 ",
+      "id": "ABCD1234"
+    },
+    {
+      "input": "",
+      "id": null
+    },
+    {
+      "input": "xyz",
+      "id": null
+    },
+    {
+      "input": "123",
+      "id": null
+    },
+    {
+      "input": "1234567890123",
+      "id": null
+    },
+    {
+      "input": "https://www.setlist.fm/setlist/artist/2026/live-deadbeef.html",
+      "id": "deadbeef"
+    },
+    {
+      "input": "setlist.fm/setlist/a-b-ABCD.html",
+      "id": "ABCD"
+    },
+    {
+      "input": "https://setlist.fm.evil.org/a-deadbeef.html",
+      "id": null
+    },
+    {
+      "input": "https://setlist.fm@evil.org/a-deadbeef.html",
+      "id": null
+    },
+    {
+      "input": "https://setlist.fm/a-deadbeef.html?x=1",
+      "id": "deadbeef"
+    }
+  ],
+  "matching": [
+    {
+      "name": "Café (Live Version) feat. Guest",
+      "artist": " Artist ",
+      "normalized": "Café",
+      "query": "Café Artist"
+    },
+    {
+      "name": "Song (Live)",
+      "artist": " Artist ",
+      "normalized": "Song",
+      "query": "Song Artist"
+    },
+    {
+      "name": "Song (Acoustic)",
+      "artist": " Artist ",
+      "normalized": "Song",
+      "query": "Song Artist"
+    },
+    {
+      "name": "Song (Part II)",
+      "artist": " Artist ",
+      "normalized": "Song (Part II)",
+      "query": "Song (Part II) Artist"
+    },
+    {
+      "name": "Song (2011 Remaster)",
+      "artist": " Artist ",
+      "normalized": "Song",
+      "query": "Song Artist"
+    },
+    {
+      "name": "Song - Live",
+      "artist": " Artist ",
+      "normalized": "Song",
+      "query": "Song Artist"
+    },
+    {
+      "name": "Song ft. Guest",
+      "artist": " Artist ",
+      "normalized": "Song",
+      "query": "Song Artist"
+    },
+    {
+      "name": "Song – Name",
+      "artist": " Artist ",
+      "normalized": "Song Name",
+      "query": "Song Name Artist"
+    },
+    {
+      "name": "  Song   title  ",
+      "artist": " Artist ",
+      "normalized": "Song title",
+      "query": "Song title Artist"
+    },
+    {
+      "name": "Song (Live",
+      "artist": " Artist ",
+      "normalized": "Song",
+      "query": "Song Artist"
+    },
+    {
+      "name": "Song (Live at Wembley)",
+      "artist": " Artist ",
+      "normalized": "Song",
+      "query": "Song Artist"
+    },
+    {
+      "name": "Song feat. Guest (Part II)",
+      "artist": " Artist ",
+      "normalized": "Song (Part II)",
+      "query": "Song (Part II) Artist"
+    },
+    {
+      "name": "Song - 2020 Remastered",
+      "artist": " Artist ",
+      "normalized": "Song",
+      "query": "Song Artist"
+    },
+    {
+      "name": "東京 (Live)",
+      "artist": " Artist ",
+      "normalized": "東京",
+      "query": "東京 Artist"
+    },
+    {
+      "name": "A feat. B - live",
+      "artist": " Artist ",
+      "normalized": "A live",
+      "query": "A live Artist"
+    },
+    {
+      "name": "Song - acoustic",
+      "artist": " Artist ",
+      "normalized": "Song acoustic",
+      "query": "Song acoustic Artist"
+    },
+    {
+      "name": "Song FEAT. Guest",
+      "artist": "Artist",
+      "normalized": "Song",
+      "query": "Song Artist"
+    },
+    {
+      "name": "Song FT Guest",
+      "artist": "Artist",
+      "normalized": "Song",
+      "query": "Song Artist"
+    },
+    {
+      "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa🎵 encore",
+      "artist": "Artist",
+      "normalized": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa🎵 encore",
+      "query": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa Artist"
+    }
+  ],
+  "dedupe": [
+    {
+      "ids": ["1", "2", "1", " 3 ", "", "2"],
+      "expected": ["1", "2", "3"]
+    }
+  ],
+  "setlists": [
+    {
+      "setlist": {
+        "id": "deadbeef",
+        "artist": "Artist",
+        "eventDate": "07-09-2026",
+        "venue": "Hall",
+        "sourceUrl": "https://www.setlist.fm/setlist/artist/live-deadbeef.html",
+        "sets": [
+          [
+            {
+              "name": "First"
+            },
+            {
+              "name": "Café (Live)",
+              "artist": "Guest"
+            }
+          ],
+          [
+            {
+              "name": "First"
+            },
+            {
+              "name": "Finale",
+              "info": "Encore"
+            }
+          ]
+        ]
+      },
+      "playlistName": "Setlist – Artist – 07-09-2026",
+      "signature": "deadbeef::Artist::07-09-2026::First|Artist|||Café (Live)|Guest|||First|Artist|||Finale|Artist|Encore",
+      "entries": [
+        {
+          "name": "First",
+          "artist": "Artist"
+        },
+        {
+          "name": "Café (Live)",
+          "artist": "Guest"
+        },
+        {
+          "name": "First",
+          "artist": "Artist"
+        },
+        {
+          "name": "Finale",
+          "artist": "Artist",
+          "info": "Encore"
+        }
+      ]
+    }
+  ],
+  "selections": [
+    {
+      "ids": ["1", "2", "1"],
+      "deduplicate": false,
+      "signature": "{\"dedupeTracks\":false,\"songIds\":[\"1\",\"2\",\"1\"]}"
+    },
+    {
+      "ids": ["1", "2"],
+      "deduplicate": true,
+      "signature": "{\"dedupeTracks\":true,\"songIds\":[\"1\",\"2\"]}"
+    },
+    {
+      "ids": ["id/with/slash", "quote\"id", "line\nid"],
+      "deduplicate": false,
+      "signature": "{\"dedupeTracks\":false,\"songIds\":[\"id/with/slash\",\"quote\\\"id\",\"line\\nid\"]}"
+    }
+  ]
+}

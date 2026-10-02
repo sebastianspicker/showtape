@@ -1,52 +1,58 @@
-# Apple Music Integration
+# Apple Music integration
 
-## Configuration
+## Account setup
 
-Configure MusicKit in the Apple Developer account, create a MusicKit private
-key, and set:
-
-```dotenv
-APPLE_TEAM_ID=your-team-id
-APPLE_KEY_ID=your-key-id
-APPLE_PRIVATE_KEY="<PEM contents with literal \\n line breaks>"
-NEXT_PUBLIC_APPLE_MUSIC_APP_ID=your-app-id
-```
-
-Apple documents account and key setup in the
+Configure MusicKit in your Apple Developer account, create a MusicKit private
+key, and set the four Apple variables described in
+[deployment and configuration](../DEPLOYMENT.md). Apple keeps the current account
+and key requirements in the
 [Apple Music API documentation](https://developer.apple.com/documentation/applemusicapi).
-Credential requirements can change, so verify them against Apple's current
-documentation.
 
-## Token handling
+## Token boundary
 
-`packages/api/src/lib/jwt.ts` signs a one-hour ES256 developer token. The Next.js
-route at `GET /api/apple/dev-token` returns it with no-store cache headers. The
-browser caches the token for 55 minutes and shares concurrent refresh requests.
+`src/server/apple-token/sign.ts` signs a one-hour ES256 developer token from the
+server-only team ID, key ID, and private key. The browser caches that token for
+55 minutes and uses it to initialize MusicKit with the browser-visible app
+identifier.
 
-MusicKit obtains the user token in the browser during authorization. Showtape
-does not send that token to its API routes.
+MusicKit obtains the user's authorization token in the browser. Showtape never
+sends the user token, playlist name, selected track IDs, or Apple responses
+through its API routes.
 
-## Browser operations
+## Browser operations and write safety
 
-The browser:
+The browser searches the current storefront, creates a library playlist after
+explicit authorization, and adds selected songs in ordered batches of 100.
+Catalog results stay in a bounded five-minute browser-memory cache.
 
-1. loads MusicKit JS;
-2. fetches the developer token;
-3. configures MusicKit with `NEXT_PUBLIC_APPLE_MUSIC_APP_ID`;
-4. searches the user's storefront catalog;
-5. authorizes the user when export begins;
-6. creates a library playlist;
-7. adds selected song IDs in batches of 100.
+A definite add-tracks failure can keep the exact remaining IDs for one resumable
+operation. A transport failure is ambiguous: Apple may have applied the write
+before the browser saw the response. In that case Showtape asks you to inspect
+your library and does not retry automatically.
 
-Catalog search results remain in a bounded browser-memory cache for five
-minutes. Storefront codes are limited to two letters and fall back to `us`.
+Live authorization and playlist writes need an Apple Music account and sit
+outside the automated test boundary.
 
-## Write safety
+## Native MusicKit
 
-A definite add-tracks error can report the remaining IDs for one resumable
-operation. A rejected transport request is ambiguous because Apple may have
-applied the write before the client received the response. Showtape requires
-library inspection and does not automatically retry that state.
+The iPhone/iPad and native Mac targets use the system MusicKit framework. Enable
+the MusicKit App Service for each registered app bundle identifier in the Apple
+Developer account and supply your development team before signed device testing.
+Native automatic token management does not use the web `/api/apple/dev-token`
+endpoint and embeds no Apple signing key or setlist.fm credential.
+`NSAppleMusicUsageDescription` explains the permission request.
 
-Live authorization and playlist writes require an Apple Music account and are
-not exercised by the repository's automated browser tests.
+Both playlist creation and additions use
+[MusicDataRequest](https://developer.apple.com/documentation/musickit/musicdatarequest)
+on every native platform, because the installed macOS SDK does not expose the
+high-level `MusicLibrary` write methods. Catalog search stays bounded to 500
+five-minute entries keyed by storefront, query, and limit; identical in-flight
+searches share their result.
+
+Native export serializes writes and persists an in-flight record before each
+request. It appends at most 100 ordered IDs per request. A definite rejection can
+keep confirmed progress, while transport, response-decoding, and interrupted
+mutation outcomes all require checking Apple Music. Reopening the app never
+replays an unknown write automatically. Fixture tests use injected fake services
+selected explicitly in Debug builds and cannot prove live account, subscription,
+permission, or signed-device behavior.

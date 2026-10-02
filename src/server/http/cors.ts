@@ -1,0 +1,57 @@
+import type { NextRequest } from 'next/server';
+import { allowedOrigins } from '../config';
+
+const localDevelopmentOrigin = (origin: string | null): string | null => {
+  if (!origin || origin === 'null') return null;
+  try {
+    const parsed = new URL(origin);
+    if (parsed.origin !== origin || parsed.protocol !== 'http:') return null;
+    if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') return origin;
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Shared CORS helper for API routes.
+ * Set ALLOWED_ORIGIN in production (comma-separated list); when unset, only localhost/127.0.0.1 are allowed.
+ * Strips trailing slashes so values match the browser Origin header.
+ * Rejects "*" to avoid allowing any origin (insecure).
+ */
+function getAllowOrigin(origin: string | null): string | null {
+  const allowlist = allowedOrigins();
+  if (allowlist) return origin && allowlist.includes(origin) ? origin : null;
+  return localDevelopmentOrigin(origin);
+}
+
+export function corsHeaders(request: NextRequest, contentType = 'application/json'): HeadersInit {
+  const origin = request.headers.get('origin');
+  const allowOrigin = getAllowOrigin(origin);
+  const headers: Record<string, string> = {
+    'Content-Type': contentType,
+    Vary: 'Origin',
+  };
+  if (allowOrigin) {
+    headers['Access-Control-Allow-Origin'] = allowOrigin;
+  }
+  return headers;
+}
+
+/**
+ * CORS headers for OPTIONS (204 No Content). No Content-Type for 204; includes Allow-Methods and Allow-Headers for preflight.
+ */
+export function corsHeadersForOptions(request: NextRequest): HeadersInit {
+  const origin = request.headers.get('origin');
+  const allowOrigin = getAllowOrigin(origin);
+  const headers: Record<string, string> = {
+    Vary: 'Origin',
+  };
+  if (allowOrigin) {
+    headers['Access-Control-Allow-Origin'] = allowOrigin;
+    headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS';
+    headers['Access-Control-Allow-Headers'] = 'Content-Type';
+    headers['Access-Control-Max-Age'] = '86400';
+  }
+  return headers;
+}

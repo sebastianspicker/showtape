@@ -1,0 +1,5 @@
+/* Web-only decoration. The isolated demo keeps its request-free shared styles. */
+:root {
+  --paper-texture: url('/artwork/paper.webp');
+  --cassette-texture: url('/artwork/cassette.webp');
+}

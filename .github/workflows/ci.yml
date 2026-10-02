@@ -45,11 +45,27 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: Architecture boundaries
+        run: pnpm check:architecture
+
       - name: Typecheck
         run: pnpm typecheck
 
       - name: Build
+        env:
+          NEXT_PUBLIC_APPLE_MUSIC_APP_ID: showtape-ci-contract
         run: pnpm build
 
       - name: Test
         run: pnpm test
+
+      - name: Static demo contract
+        run: pnpm demo:check
+
+      - name: Install browser test engines
+        if: matrix.node-version == '22'
+        run: pnpm exec playwright install --with-deps chromium webkit
+
+      - name: Mocked production browser contracts
+        if: matrix.node-version == '22'
+        run: pnpm test:browser

@@ -8,12 +8,14 @@
 
 ## Testing
 
-- [ ] `pnpm format:check` passes
-- [ ] `pnpm hygiene:check` passes
-- [ ] `pnpm lint` passes
-- [ ] `pnpm typecheck` passes
-- [ ] `pnpm test` passes
-- [ ] `pnpm build` succeeds
-- [ ] `pnpm audit:security` passes
+- [ ] `corepack pnpm@9.15.3 format:check` passes
+- [ ] `corepack pnpm@9.15.3 hygiene:check` passes
+- [ ] `corepack pnpm@9.15.3 lint` passes
+- [ ] `corepack pnpm@9.15.3 check:architecture` passes
+- [ ] `corepack pnpm@9.15.3 typecheck` passes
+- [ ] `corepack pnpm@9.15.3 build` succeeds
+- [ ] `corepack pnpm@9.15.3 test` passes
+- [ ] `corepack pnpm@9.15.3 demo:check` passes
+- [ ] `corepack pnpm@9.15.3 audit:security` passes
 - [ ] Manually verified in browser (if UI change)
-- [ ] Logs, screenshots, fixtures, and diagnostics contain no secrets or personal data
+- [ ] Logs and screenshots contain no secrets or personal data

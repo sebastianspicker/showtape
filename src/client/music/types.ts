@@ -1,0 +1,82 @@
+/** Catalog track shape exposed by the concrete browser MusicKit adapter. */
+export interface AppleMusicTrack {
+  id: string;
+  name: string;
+  artistName?: string;
+}
+
+export function isValidAppleMusicTrack(track: unknown): track is AppleMusicTrack {
+  if (!track || typeof track !== 'object') return false;
+  const id = (track as Record<string, unknown>).id;
+  return typeof id === 'string' && id.trim().length > 0;
+}
+
+export interface MusicKitGlobal {
+  configure(options: MusicKitConfigureOptions): Promise<MusicKitInstance> | MusicKitInstance | void;
+  getInstance(): MusicKitInstance;
+}
+
+declare global {
+  interface Window {
+    MusicKit?: MusicKitGlobal;
+  }
+}
+
+export interface MusicKitConfigureOptions {
+  developerToken: string;
+  app: { name: string; build: string };
+  appId?: string;
+  storefrontId?: string;
+}
+
+export interface MusicKitInstance {
+  authorize(): Promise<string>;
+  unauthorize(): Promise<void>;
+  isAuthorized: boolean;
+  storefrontId: string;
+  music: {
+    api: (path: string, options?: { method?: string; data?: unknown }) => Promise<unknown>;
+  };
+}
+
+export interface CreatePlaylistResult {
+  id: string;
+  url?: string;
+}
+
+export interface MusicKitErrorItem {
+  detail?: string;
+  status?: string;
+}
+
+export function throwIfMusicKitError(res: { errors?: MusicKitErrorItem[] }, context: string): void {
+  if (res?.errors && Array.isArray(res.errors) && res.errors.length > 0) {
+    const detail = res.errors.map((e) => e.detail ?? e.status ?? 'Unknown').join('; ');
+    throw new Error(`${context}: ${detail}`);
+  }
+}
+
+export interface MusicKitSearchResponse {
+  results?: {
+    songs?: {
+      data?: Array<{
+        id?: unknown;
+        attributes?: { name?: string; artistName?: string };
+      }>;
+    };
+  };
+  errors?: MusicKitErrorItem[];
+}
+
+export interface MusicKitPlaylistCreateResponse {
+  data?: Array<{
+    id: string;
+    attributes?: { url?: string };
+  }>;
+  errors?: MusicKitErrorItem[];
+}
+
+export interface MusicKitAddTracksResponse {
+  data?: unknown[];
+  errors?: MusicKitErrorItem[];
+}

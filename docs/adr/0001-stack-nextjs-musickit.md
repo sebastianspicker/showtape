@@ -1,4 +1,4 @@
-# ADR 0001: Next.js and MusicKit
+# ADR 0001: One Next.js application with explicit boundaries
 
 ## Status
 
@@ -6,22 +6,30 @@ Accepted
 
 ## Context
 
-The application needs browser access to Apple Music while keeping the Apple
-private key and setlist.fm API key off the client. The repository also needs one
-deployable HTTP process.
+Showtape needs browser-side Apple Music access while keeping Apple signing and
+setlist.fm credentials private. It also needs a structure that keeps pure setlist
+and matching logic testable without turning every feature into its own package.
 
 ## Decision
 
-- Use Next.js App Router, React, and TypeScript for the web application.
-- Use MusicKit JS in the browser for catalog search, authorization, and playlist
-  writes.
-- Use Next.js Route Handlers as the HTTP entry points.
-- Keep reusable token and setlist handlers in `packages/api`.
-- Keep the application network-dependent and do not register a service worker.
+- Use one root Next.js App Router application with React and TypeScript.
+- Keep `src/app` thin; put pure shapes in `src/contracts` and pure rules in
+  `src/domain`.
+- Put concrete setlist.fm and Apple developer-token work in `src/server`, along
+  with CORS and proxy-trust policy.
+- Put same-origin Showtape HTTP calls and MusicKit JS operations in `src/client`.
+- Put user-flow orchestration in `src/workflow` and shared presentation pieces in
+  `src/ui`.
+- Use MusicKit JS in the browser only, for catalog search, authorization, and
+  playlist writes.
+- Provide no alternate browser API origin and no separately deployable API
+  service.
 
 ## Consequences
 
-One Next.js process serves pages and API routes. `packages/api` remains reusable but
-is not independently deployable from this repository. Apple and setlist.fm
-credentials remain on the server, while the MusicKit user token remains in the
-browser.
+One process serves the pages and the `/api` routes. Browser calls to those routes
+use the current origin, while `ALLOWED_ORIGIN` and `TRUST_PROXY` stay as server
+HTTP policy settings. Apple and setlist.fm credentials remain server-side, and
+the MusicKit user token remains in browser state. The application stays
+network-dependent, and the static demo stays simulated rather than becoming live
+integration proof.
