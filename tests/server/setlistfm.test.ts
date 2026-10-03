@@ -285,6 +285,107 @@ describe('setlist upstream boundary', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+  it('rejects excess distinct concurrent work without blocking same-ID followers', async () => {
+    vi.resetModules();
+    const service = await import('../../src/server/setlistfm/client');
+    const responses = new Map<string, ReturnType<typeof deferred<Response>>>();
+    const fetchMock = vi.fn((url: URL) => {
+      const id = url.pathname.split('/').at(-1)!;
+      const response = deferred<Response>();
+      responses.set(id, response);
+      return response.promise;
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const ids = Array.from({ length: service.SETLIST_UPSTREAM_MAX_CONCURRENT + 1 }, (_, index) =>
+      (0x20000000 + index).toString(16)
+    );
+
+    const active = ids
+      .slice(0, service.SETLIST_UPSTREAM_MAX_CONCURRENT)
+      .map((id) => service.fetchSetlistFromApi(id, 'secret'));
+    const follower = service.fetchSetlistFromApi(ids[0]!, 'secret');
+
+    await expect(service.fetchSetlistFromApi(ids.at(-1)!, 'secret')).resolves.toEqual({
+      ok: false,
+      status: 429,
+      message: 'Showtape is handling too many setlist requests. Please retry shortly.',
+      retryAfterSeconds: 1,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(service.SETLIST_UPSTREAM_MAX_CONCURRENT);
+
+    responses.get(ids[0]!)!.resolve(new Response(JSON.stringify(validUpstreamSetlist(ids[0]!))));
+    await expect(active[0]).resolves.toMatchObject({ ok: true });
+    await expect(follower).resolves.toMatchObject({ ok: true });
+
+    const admittedAfterCompletion = service.fetchSetlistFromApi(ids.at(-1)!, 'secret');
+    expect(fetchMock).toHaveBeenCalledTimes(service.SETLIST_UPSTREAM_MAX_CONCURRENT + 1);
+    responses
+      .get(ids.at(-1)!)!
+      .resolve(new Response(JSON.stringify(validUpstreamSetlist(ids.at(-1)!))));
+    for (const id of ids.slice(1, service.SETLIST_UPSTREAM_MAX_CONCURRENT)) {
+      responses.get(id)!.resolve(new Response(JSON.stringify(validUpstreamSetlist(id))));
+    }
+    await expect(admittedAfterCompletion).resolves.toMatchObject({ ok: true });
+    const remaining = await Promise.all(active.slice(1));
+    expect(remaining).toHaveLength(service.SETLIST_UPSTREAM_MAX_CONCURRENT - 1);
+    expect(remaining.every((result) => result.ok)).toBe(true);
+  });
+
+  it('releases distinct-work capacity after an upstream timeout', async () => {
+    vi.resetModules();
+    vi.useFakeTimers();
+    const service = await import('../../src/server/setlistfm/client');
+    const fetchMock = vi.fn(
+      (_url: URL, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () =>
+            reject(new DOMException('Aborted', 'AbortError'))
+          );
+        })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const first = service.fetchSetlistFromApi('30000000', 'secret');
+    await vi.advanceTimersByTimeAsync(10_000);
+    await expect(first).resolves.toMatchObject({ ok: false, status: 504 });
+
+    const second = service.fetchSetlistFromApi('30000000', 'secret');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(10_000);
+    await expect(second).resolves.toMatchObject({ ok: false, status: 504 });
+  });
+
+  it('bounds new upstream operations in each fixed window', async () => {
+    vi.resetModules();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-07T12:00:00Z'));
+    const service = await import('../../src/server/setlistfm/client');
+    const fetchMock = vi.fn((url: URL) => {
+      const id = url.pathname.split('/').at(-1)!;
+      return Promise.resolve(new Response(JSON.stringify(validUpstreamSetlist(id))));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    for (let index = 0; index < service.SETLIST_UPSTREAM_MAX_STARTS_PER_MINUTE; index++) {
+      await expect(
+        service.fetchSetlistFromApi((0x40000000 + index).toString(16), 'secret')
+      ).resolves.toMatchObject({ ok: true });
+    }
+
+    await expect(service.fetchSetlistFromApi('50000000', 'secret')).resolves.toEqual({
+      ok: false,
+      status: 429,
+      message: 'Showtape is handling too many setlist requests. Please retry shortly.',
+      retryAfterSeconds: 60,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(service.SETLIST_UPSTREAM_MAX_STARTS_PER_MINUTE);
+
+    await vi.advanceTimersByTimeAsync(60_000);
+    await expect(service.fetchSetlistFromApi('50000000', 'secret')).resolves.toMatchObject({
+      ok: true,
+    });
+  });
+
   it('uses fixed cache expiry and refreshes LRU order without extending TTL', async () => {
     vi.resetModules();
     vi.useFakeTimers();
@@ -297,7 +398,12 @@ describe('setlist upstream boundary', () => {
     vi.stubGlobal('fetch', fetchMock);
     const ids = Array.from({ length: 201 }, (_, index) => (0x10000000 + index).toString(16));
 
-    for (const id of ids.slice(0, 200)) await service.fetchSetlistFromApi(id, 'secret');
+    for (const [index, id] of ids.slice(0, 200).entries()) {
+      await service.fetchSetlistFromApi(id, 'secret');
+      if (index + 1 === service.SETLIST_UPSTREAM_MAX_STARTS_PER_MINUTE) {
+        await vi.advanceTimersByTimeAsync(60_000);
+      }
+    }
     await service.fetchSetlistFromApi(ids[0]!, 'secret');
     await service.fetchSetlistFromApi(ids[200]!, 'secret');
     await service.fetchSetlistFromApi(ids[0]!, 'secret');

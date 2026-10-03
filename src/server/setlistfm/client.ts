@@ -1,5 +1,6 @@
 import type { Setlist } from '@/domain/setlist';
 import { readTextWithinLimit } from '@/http/read-text-within-limit';
+import { createInMemoryRateLimiter } from '../http/rate-limit';
 import { mapSetlistFmResponse } from './map-response';
 
 type FetchSetlistFailure = {
@@ -20,8 +21,15 @@ const maxRetries = 2;
 const cacheTtl = 60 * 60 * 1000;
 const cacheLimit = 200;
 const maxCachedChars = 500_000;
+export const SETLIST_UPSTREAM_MAX_CONCURRENT = 32;
+export const SETLIST_UPSTREAM_MAX_STARTS_PER_MINUTE = 120;
 const cache = new Map<string, { setlist: Setlist; expires: number }>();
 const inFlight = new Map<string, Promise<FetchSetlistResult>>();
+const upstreamStartLimiter = createInMemoryRateLimiter(
+  SETLIST_UPSTREAM_MAX_STARTS_PER_MINUTE,
+  60_000,
+  { cleanupThreshold: 1, maxBuckets: 1 }
+);
 const failure = (
   status: number,
   message: string,
@@ -36,6 +44,20 @@ const timeoutFailure = (): Attempt => ({
   kind: 'failure',
   error: failure(504, 'setlist.fm request timed out.'),
 });
+const upstreamAdmissionFailure = (): FetchSetlistFailure | null => {
+  if (inFlight.size >= SETLIST_UPSTREAM_MAX_CONCURRENT) {
+    return failure(429, 'Showtape is handling too many setlist requests. Please retry shortly.', 1);
+  }
+
+  const admission = upstreamStartLimiter.take('setlist.fm');
+  return admission.limited
+    ? failure(
+        429,
+        'Showtape is handling too many setlist requests. Please retry shortly.',
+        admission.retryAfterSeconds
+      )
+    : null;
+};
 const responseResult = async (
   response: Response,
   expectedId: string,
@@ -152,6 +174,8 @@ export async function fetchSetlistFromApi(id: string, apiKey: string): Promise<F
   }
   const existing = inFlight.get(id);
   if (existing) return existing;
+  const admissionFailure = upstreamAdmissionFailure();
+  if (admissionFailure) return admissionFailure;
   const pending = fetchUncachedSetlist(id, apiKey, (setlist) => {
     if (JSON.stringify(setlist).length > maxCachedChars) return;
     cache.set(id, { setlist, expires: Date.now() + cacheTtl });

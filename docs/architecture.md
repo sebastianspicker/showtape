@@ -139,6 +139,9 @@ The upstream request has a 10-second total deadline and at most two bounded
 retries for HTTP 429. Successful responses are cached in a per-process,
 200-entry fixed-TTL LRU cache for one hour when their serialized mapped form is
 at most 500,000 characters. Identical in-flight IDs share a single request.
+After those fast paths, each process admits at most 32 distinct upstream
+operations concurrently and 120 new operations per minute. Retries remain part
+of one admitted operation; excess work receives HTTP 429 with `Retry-After`.
 
 ### Matching and playlist export
 
@@ -172,7 +175,8 @@ exception is a missing `id` or `url`, whose response has no `code`.
 `ALLOWED_ORIGIN` lists the exact allowed origins. When it is unset, only
 plain-HTTP `localhost` and `127.0.0.1` origins are allowed; wildcard and `null`
 origins are rejected. Per-client rate limiting stays off unless `TRUST_PROXY=1`
-and a trusted forwarded client address is available.
+and a trusted forwarded client address is available. The process-wide setlist.fm
+admission policy is independent of this per-client setting.
 
 ## State ownership and failure boundaries
 

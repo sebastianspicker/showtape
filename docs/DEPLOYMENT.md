@@ -69,6 +69,12 @@ report:
 X-RateLimit-Policy: disabled-direct-no-trusted-client-key
 ```
 
+An independent setlist.fm admission policy remains active in direct deployments.
+After cache hits and identical in-flight IDs are coalesced, each process admits
+at most 32 distinct upstream operations concurrently and 120 new operations per
+minute. Retries stay within the admitted operation rather than spending another
+admission.
+
 Setlist caches and rate-limit buckets live in process memory. Restarts clear
 them, and multiple processes do not share them.
 
