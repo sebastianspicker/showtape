@@ -29,7 +29,7 @@ export function buildCsp(nonce, hashes = [], development = false) {
 // Emitted Next HTML is controlled build output. Reject unsupported extraction
 // shapes instead of silently allowing an incomplete policy after an upgrade.
 export function inlineHashes(html) {
-  const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)];
+  const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script[^>]*>/gi)];
   if (scripts.length !== (html.match(/<script\b/gi) ?? []).length)
     throw new Error('Invalid script extraction');
   if (/\son[a-z]+\s*=/i.test(html)) throw new Error('Inline event attribute in static HTML');
