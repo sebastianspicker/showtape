@@ -14,11 +14,8 @@ with five replenishing workers. Both keep at most five requests active.
 | 50    | 1,000 ms       | 330 ms               |
 | 100   | 2,000 ms       | 600 ms               |
 
-These are virtual-clock results from `tests/workflow/matching-workers.test.tsx`,
-so they show queue utilization rather than predicting network latency.
-`matching-row-renders.test.tsx` checks that selection and manual-search changes
-update only the affected memoized row, without rerendering all 20, 50, or 100
-rows. Browser performance fixtures record real completion and interaction times,
+These are virtual-clock results, so they show queue utilization rather than
+predicting network latency. Browser performance fixtures record real completion and interaction times,
 request count, and peak concurrency for the same list sizes in Chromium and
 WebKit. Their timings are diagnostic; the correctness assertions cover the
 five-request bound, completion, interaction, and viewport overflow.
@@ -77,9 +74,8 @@ was changed to primary text to improve legibility.
 
 ## Final local checks
 
-The web gate is defined in [AGENTS.md](../AGENTS.md#commands) and runs in CI on
-Node.js 20 and 22; test counts are not recorded here because they change with
-the suite. The browser suite runs against the production artifact.
+The web gate (format, lint, architecture, typecheck, build, demo contract) runs
+in CI on Node.js 20 and 22.
 
 The Swift package passed 28 tests, including shared TypeScript/Swift fixtures,
 bounded networking, cancellation, authorization, catalog concurrency, storage

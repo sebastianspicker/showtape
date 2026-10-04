@@ -113,7 +113,7 @@ flowchart BT
   for `/` contains no MusicKit or catalog code. Apart from those two step
   shells, eager files (`ShowtapeWorkflow`, `journey.tsx`, `import/`) import
   from `matching/` and `playlist/` only with `import type`. This is a
-  convention; `tests/browser/bundle-boundary.spec.ts` checks the built chunks.
+  convention.
 
 New code goes where its responsibility already lives: a new endpoint is a
 `src/server/routes` module plus a one-line `route.ts`, and its path must be

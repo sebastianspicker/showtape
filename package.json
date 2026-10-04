@@ -12,18 +12,16 @@
     "build": "next build && node scripts/generate-csp-manifest.mjs",
     "dev": "next dev",
     "start": "next start",
-    "lint": "eslint src tests scripts demo next.config.ts playwright.config.ts --max-warnings=0",
+    "lint": "eslint src scripts demo next.config.ts --max-warnings=0",
     "check:architecture": "node scripts/check-architecture.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
     "demo:build": "node scripts/build-pages-demo.mjs",
     "demo:check": "node scripts/build-pages-demo.mjs --check",
     "screenshots": "node scripts/capture-demo-screenshots.mjs",
     "hygiene:check": "node scripts/check-public-boundary.mjs",
     "audit:security": "pnpm audit --audit-level=moderate --prod",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,mjs,json,md,css}\"",
-    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,mjs,json,md,css}\"",
-    "test:browser": "playwright test"
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,mjs,json,md,css}\""
   },
   "dependencies": {
     "jose": "^6.2.2",

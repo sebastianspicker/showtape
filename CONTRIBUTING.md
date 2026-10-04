@@ -4,7 +4,8 @@ Thanks for helping. Please open an issue or start a discussion before you build
 changes that touch the workflow, public interfaces, data retention, or
 third-party integrations — it is much easier to agree on an approach first.
 
-Repository conventions and layer rules are summarized in [AGENTS.md](AGENTS.md).
+Repository conventions and layer rules are summarized in
+[docs/architecture.md](docs/architecture.md).
 
 ## Development setup
 
@@ -16,10 +17,9 @@ no longer ships Corepack; there, replace `corepack pnpm@9.15.3` with
 cp .env.example .env
 corepack pnpm@9.15.3 install --frozen-lockfile
 corepack pnpm@9.15.3 build
-corepack pnpm@9.15.3 test
 ```
 
-Automated contract tests do not need live service credentials. Live setlist
+Automated checks do not need live service credentials. Live setlist
 import, browser accessibility work, and Apple Music operations do.
 
 ## Change requirements
@@ -48,9 +48,6 @@ corepack pnpm@9.15.3 build
 corepack pnpm@9.15.3 audit:security
 corepack pnpm@9.15.3 demo:check
 ```
-
-While developing, narrow the test run with Vitest's file selection, for example
-`corepack pnpm@9.15.3 test -- tests/domain/setlist.test.ts`.
 
 `demo:check` builds and validates a temporary static artifact. Use `demo:build`
 only when you need an ignored `dist/pages` artifact locally.
@@ -96,13 +93,6 @@ Do not open a public issue for a vulnerability, exposed credential, or private
 user data. Follow [SECURITY.md](SECURITY.md).
 
 ## Browser and native verification
-
-Install the pinned Playwright browsers with
-`corepack pnpm@9.15.3 exec playwright install chromium webkit`. Build with
-`NEXT_PUBLIC_APPLE_MUSIC_APP_ID=showtape-local-test corepack pnpm@9.15.3 build`,
-then run `corepack pnpm@9.15.3 test:browser`. The browser suite uses explicitly
-mocked services and a local production server. Vitest includes only
-`tests/**/*.test.{ts,tsx}` and excludes `tests/browser`.
 
 The native app targets iOS/iPadOS 17 and macOS 14 with Swift 6. Follow
 [native setup](native/README.md). For the local Xcode 26.6 workflow, pass

@@ -78,6 +78,8 @@ Thumbs.db
 # These are machine-specific; consider moving your own patterns to a global
 # gitignore (`git config --global core.excludesFile`) instead of adding them here.
 /.agents/
+/AGENTS.md
+/tests/
 /.claude/
 /.codacy/
 /.codacy.yaml

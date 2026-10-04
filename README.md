@@ -122,7 +122,6 @@ Run all commands from the repository root.
 | `corepack pnpm@9.15.3 lint`               | Run ESLint with zero warnings allowed.                                  |
 | `corepack pnpm@9.15.3 check:architecture` | Check source-layer dependencies and cycles.                             |
 | `corepack pnpm@9.15.3 typecheck`          | Type-check without emitting files.                                      |
-| `corepack pnpm@9.15.3 test`               | Run the Vitest behavior contracts.                                      |
 | `corepack pnpm@9.15.3 demo:check`         | Build and validate the static demo in a temporary directory.            |
 | `corepack pnpm@9.15.3 demo:build`         | Write the validated demo to ignored `dist/pages`.                       |
 | `corepack pnpm@9.15.3 screenshots`        | Regenerate the demo screenshots in `docs/screenshots` (needs Chromium). |
@@ -150,7 +149,6 @@ This is a single private package, not a multi-package monorepo.
 | `src/contracts`, `src/domain`, `src/http` | Framework-free wire shapes, business transformations, bounded Fetch reading. |
 | `src/server`, `src/client`                | Endpoint behavior and integrations; the browser's API caller and MusicKit.   |
 | `src/workflow`, `src/ui`                  | The import-to-export journey and generic presentation components.            |
-| `tests`                                   | Tests grouped by application boundary.                                       |
 | `demo`, `public`, `scripts`               | Simulated demo source, public assets, and repository checks.                 |
 
 Deeper detail lives in [architecture and runtime flows](docs/architecture.md).
@@ -168,9 +166,8 @@ Deeper detail lives in [architecture and runtime flows](docs/architecture.md).
 - [Privacy](PRIVACY.md) and [terms](TERMS.md)
 - [Changelog](CHANGELOG.md)
 
-The automated tests use fakes at the external boundaries. They do not prove a
-complete browser journey, live setlist.fm access, Apple authorization, playlist
-writes, or a deployed environment.
+The automated checks do not prove a complete browser journey, live setlist.fm
+access, Apple authorization, playlist writes, or a deployed environment.
 
 ## Native app
 

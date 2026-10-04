@@ -123,7 +123,7 @@ rebuilds the demo artifact first).
 ## Verification boundary
 
 CI checks production dependency advisories, public-tree hygiene, formatting,
-linting, architecture boundaries, types, the production build, Vitest contracts,
+linting, architecture boundaries, types, the production build,
 and the static demo contract on Node.js 20 and 22. It does not deploy the live
 application or run a complete browser journey against either external service.
 
