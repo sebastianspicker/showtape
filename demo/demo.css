@@ -1,7 +1,7 @@
 /* Demo-only rules. Everything else comes from the shared globals.css. */
 .demo-notice {
   width: min(100%, var(--page-max));
-  margin: 0 auto 0.75rem;
+  margin: 0 auto 1.75rem;
   color: var(--stage-text-muted);
   font-family: var(--font-mono);
   font-size: 0.75rem;
