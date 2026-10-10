@@ -49,6 +49,12 @@ function setlistResultResponse(
     return jsonResponse(result.value, 200, request, { ...rateHeaders, ...CACHE_HIT });
   }
 
+  // Clients only see the generic message, so log the internal reason (never the key or input).
+  if (result.error.status >= 500) {
+    console.error(
+      `setlist.fm request failed (${result.error.status}): ${result.error.error.error}`
+    );
+  }
   const payload =
     result.error.status >= 500
       ? { error: UPSTREAM_UNAVAILABLE, code: result.error.error.code }

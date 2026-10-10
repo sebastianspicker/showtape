@@ -7,18 +7,8 @@ const rootDirectory = path.resolve(scriptDirectory, '..');
 const sourceDirectory = path.join(rootDirectory, 'demo');
 const publishedOutputDirectory = path.join(rootDirectory, 'dist/pages');
 const publishedDemoFiles = ['index.html', 'demo.css', 'demo.js'];
-const screenshotDirectory = path.join(rootDirectory, 'docs', 'screenshots');
-const screenshotFiles = [
-  '01-import.png',
-  '02-preview.png',
-  '03-match.png',
-  '04-export.png',
-  '05-success.png',
-  'responsive-390.png',
-];
 const requiredOutputFiles = [
   ...publishedDemoFiles,
-  ...screenshotFiles,
   'globals.css',
   'showtape-mark.svg',
   '.nojekyll',
@@ -55,7 +45,6 @@ function assertLocalUrls(html) {
     ['a:href', new Set(['./', '#demo-main'])],
     ['link:href', new Set(['./showtape-mark.svg', './globals.css', './demo.css'])],
     ['script:src', new Set(['./demo.js'])],
-    ['img:src', new Set(screenshotFiles.map((file) => `./${file}`))],
   ]);
   const tags = html.matchAll(/<([a-z][\w:-]*)\b([^>]*)>/gi);
   for (const [, tagName, attributes] of tags) {
@@ -113,11 +102,6 @@ async function buildArtifact(directory) {
   await writeFile(
     path.join(directory, 'showtape-mark.svg'),
     await readFile(path.join(rootDirectory, 'public/icons/showtape-mark.svg'))
-  );
-  await Promise.all(
-    screenshotFiles.map(async (file) =>
-      writeFile(path.join(directory, file), await readFile(path.join(screenshotDirectory, file)))
-    )
   );
   await writeFile(path.join(directory, '.nojekyll'), '');
 }

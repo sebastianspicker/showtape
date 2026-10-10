@@ -18,166 +18,181 @@
   </head>
   <body>
     <a class="skip-link" href="#demo-main">Skip to main content</a>
-    <header class="site-header">
-      <a class="product-link" href="./" aria-label="Showtape demo home">Showtape</a>
-      <p class="product-descriptor" aria-hidden="true">Setlist <span>→</span> Apple Music</p>
-      <p class="site-header__meta" aria-hidden="true"><span class="status-dot"></span>Demo</p>
-    </header>
     <p class="demo-notice" role="status">
       Demo data · Runs entirely in this browser · No external requests
     </p>
+    <div class="backstage-sheet">
+      <header class="site-header">
+        <a class="product-link" href="./" aria-label="Showtape demo home">
+          <span>Showtape</span>
+          <span class="product-descriptor">Setlist to Apple Music</span>
+        </a>
+      </header>
 
-    <main id="demo-main" tabindex="-1">
-      <nav class="settimes" aria-label="Playlist creation progress">
-        <ol>
-          <li>
-            <button type="button" data-go="import" data-step="import" aria-current="step">
-              <span class="step-no">01</span><span class="step-name">Import</span>
-            </button>
-          </li>
-          <li>
-            <button type="button" data-go="preview" data-step="preview">
-              <span class="step-no">02</span><span class="step-name">Preview</span>
-            </button>
-          </li>
-          <li>
-            <button type="button" data-go="match" data-step="match">
-              <span class="step-no">03</span><span class="step-name">Match</span>
-            </button>
-          </li>
-          <li>
-            <button type="button" data-go="export" data-step="export">
-              <span class="step-no">04</span><span class="step-name">Export</span>
-            </button>
-          </li>
-        </ol>
-      </nav>
-
-      <div class="sheet">
+      <main id="demo-main" tabindex="-1">
+        <h1 class="sr-only">Showtape demo</h1>
         <p class="sr-only" id="workflow-status" aria-live="polite"></p>
-        <section class="stage-view" data-state="import" aria-labelledby="import-title">
-          <span class="eyebrow">Step 01 / 04 — Start with a show</span>
-          <h1 class="stage-title" id="import-title" tabindex="-1">Import a setlist</h1>
-          <p class="lede">Load a prepared concert fixture by its local ID.</p>
-          <div class="import-grid">
-            <div>
-              <form id="import-form" novalidate>
+        <nav class="workflow-rail" aria-label="Playlist creation progress">
+          <ol>
+            <li class="workflow-rail__step workflow-rail__step--current" aria-current="step">
+              <button type="button" data-go="import" data-step="import">Import</button>
+            </li>
+            <li class="workflow-rail__step">
+              <button type="button" data-go="preview" data-step="preview">Preview</button>
+            </li>
+            <li class="workflow-rail__step">
+              <button type="button" data-go="match" data-step="match">Match</button>
+            </li>
+            <li class="workflow-rail__step">
+              <button type="button" data-go="export" data-step="export">Export</button>
+            </li>
+          </ol>
+        </nav>
+
+        <section
+          class="workflow-section stage-view"
+          data-state="import"
+          aria-labelledby="import-title"
+        >
+          <header class="step-header">
+            <h2 id="import-title" tabindex="-1">Import a setlist</h2>
+            <p class="step-context">
+              Load the prepared concert fixture by its ID. Showtape turns the show into a playlist,
+              in the order it was played.
+            </p>
+          </header>
+          <div class="import-form-panel">
+            <form id="import-form" class="import-form" novalidate>
+              <div>
                 <label class="input-label" for="setlist-input">Fixture ID</label>
-                <div class="import-field">
-                  <input
-                    class="input"
-                    id="setlist-input"
-                    name="fixture"
-                    type="text"
-                    value="HV-FLM-260314"
-                    required
-                    aria-describedby="setlist-hint import-error"
-                  />
-                  <button class="btn btn--primary" type="submit">Load setlist</button>
-                </div>
+                <input
+                  class="input"
+                  id="setlist-input"
+                  name="fixture"
+                  type="text"
+                  value="HV-FLM-260314"
+                  required
+                  aria-describedby="setlist-hint import-error"
+                />
                 <p class="input-hint" id="setlist-hint">
                   Prepared fixture: <code>HV-FLM-260314</code>
                 </p>
-                <p class="input-error" id="import-error" role="alert" hidden></p>
-              </form>
-            </div>
-            <aside class="how-panel" aria-labelledby="workflow-title">
-              <h2 id="workflow-title">Backstage pass</h2>
-              <ol>
-                <li>Load the concert fixture.</li>
-                <li>Check the set order.</li>
-                <li>Choose catalog matches.</li>
-                <li>Finish a local playlist preview.</li>
-              </ol>
-            </aside>
+              </div>
+              <p class="error-text" id="import-error" role="alert" hidden></p>
+              <div class="import-actions">
+                <button class="button button--primary" type="submit">Load setlist</button>
+              </div>
+            </form>
           </div>
         </section>
 
-        <section class="stage-view" data-state="preview" aria-labelledby="preview-title" hidden>
-          <button class="back-btn" type="button" data-go="import">← Change fixture</button>
-          <span class="eyebrow">Step 02 / 04 — Preview</span>
-          <h2 class="stage-title" id="preview-title" tabindex="-1">Review setlist</h2>
-          <p class="lede">Confirm the show and song order before matching.</p>
-          <h3 class="artist-name" id="preview-artist"></h3>
-          <div class="preview-meta">
-            <div class="preview-meta-item">
-              <span class="meta-label">Venue</span><strong id="preview-venue"></strong>
-            </div>
-            <div class="preview-meta-item">
-              <span class="meta-label">Date</span><strong id="preview-date"></strong>
-            </div>
-            <div class="preview-meta-item">
-              <span class="meta-label">Songs</span><strong id="preview-count"></strong>
-            </div>
-          </div>
-          <p class="attribution">Source: prepared local fixture</p>
-          <ol class="track-list" id="preview-tracks"></ol>
+        <section
+          class="workflow-section stage-view"
+          data-state="preview"
+          aria-labelledby="preview-title"
+          hidden
+        >
+          <header class="step-header step-header--setlist">
+            <h2 id="preview-title" tabindex="-1"></h2>
+            <p class="step-context" id="preview-context"></p>
+          </header>
+          <ol class="preview-track-list" id="preview-tracks"></ol>
+          <p class="source-attribution">Source: prepared local fixture</p>
           <div class="step-actions">
-            <button class="btn btn--secondary" type="button" data-go="import">Change fixture</button
-            ><button class="btn btn--primary" type="button" data-go="match">Match songs</button>
+            <button class="button button--primary" type="button" data-go="match">
+              Match songs
+            </button>
+            <button class="button button--quiet" type="button" data-go="import">
+              Change fixture
+            </button>
           </div>
         </section>
 
-        <section class="stage-view" data-state="match" aria-labelledby="match-title" hidden>
-          <button class="back-btn" type="button" data-go="preview">← Back to preview</button>
-          <span class="eyebrow">Step 03 / 04 — Match catalog tracks</span>
-          <h2 class="stage-title" id="match-title" tabindex="-1">Confirm each song</h2>
-          <p class="lede" id="match-show"></p>
-          <div class="match-grid">
-            <div>
-              <p class="match-progress" aria-live="polite">
-                <span id="match-progress-label"></span
-                ><span class="progress-track" aria-hidden="true"
-                  ><span class="progress-fill" id="match-progress-fill"></span
-                ></span>
-              </p>
-              <div class="banner-warning" id="match-warning" role="status" hidden></div>
-              <ol class="match-list" id="match-list" aria-label="Song matches"></ol>
-            </div>
-            <aside class="stub" aria-label="Matching summary">
-              <span class="eyebrow">Songs ready</span>
-              <p class="stub-metric">
-                <strong id="stub-count"></strong><span id="stub-total"></span>
-              </p>
-              <p class="stub-caption">matched and selected</p>
-              <span class="progress-track" aria-hidden="true"
-                ><span class="progress-fill" id="stub-progress-fill"></span
-              ></span>
-              <div class="stub-actions">
-                <button class="btn btn--secondary btn--sm" type="button" data-rematch>
-                  Restore suggestions</button
-                ><button class="btn btn--secondary btn--sm" type="button" data-skip-unresolved>
-                  Skip unresolved</button
-                ><button class="btn btn--primary" type="button" data-go="export">
-                  Review playlist
+        <section
+          class="workflow-section stage-view"
+          data-state="match"
+          aria-labelledby="match-title"
+          hidden
+        >
+          <button class="button button--quiet back-button" type="button" data-go="preview">
+            Back to preview
+          </button>
+          <header class="step-header step-header--setlist">
+            <h2 id="match-title" tabindex="-1"></h2>
+            <p class="step-context" id="match-context"></p>
+          </header>
+          <div class="matching-ledger">
+            <div class="matching-ledger-header">
+              <div>
+                <h3 class="matching-ledger-title">Choose the recordings</h3>
+                <p class="matching-help-text">
+                  Each song gets one suggested Apple Music recording. Change any that look like the
+                  wrong version, or skip songs you do not want.
+                </p>
+              </div>
+              <div class="matching-actions" role="group" aria-label="Bulk matching actions">
+                <button class="button button--quiet" type="button" data-rematch>
+                  Restore suggestions
+                </button>
+                <button class="button button--quiet" type="button" data-skip-unresolved>
+                  Skip unresolved
                 </button>
               </div>
-              <p class="stub-note" id="stub-note"></p>
-            </aside>
+            </div>
+            <p class="warning-banner" id="match-warning" role="status" hidden></p>
+            <ul class="matching-list" id="match-list"></ul>
           </div>
+          <aside class="matching-summary-panel" aria-label="Matching summary">
+            <p
+              class="status-text matching-progress"
+              id="match-progress"
+              role="status"
+              aria-live="polite"
+            ></p>
+            <div class="matching-proceed">
+              <p class="support-text matching-help" id="match-help" hidden></p>
+              <button
+                class="button button--primary proceed-button"
+                type="button"
+                data-go="export"
+                id="proceed-button"
+              >
+                Review playlist
+              </button>
+            </div>
+          </aside>
         </section>
 
-        <section class="stage-view" data-state="export" aria-labelledby="export-title" hidden>
-          <button class="back-btn" type="button" data-go="match">← Back to matching</button>
-          <span class="eyebrow">Step 04 / 04 — Export</span>
-          <h2 class="stage-title" id="export-title" tabindex="-1">Finish local preview</h2>
-          <p class="lede" id="export-lede"></p>
-          <div class="export-grid">
-            <div>
-              <label class="input-label" for="playlist-name">Playlist name</label
-              ><input
-                class="input playlist-name-input"
-                id="playlist-name"
-                type="text"
-                maxlength="80"
-              />
+        <section
+          class="workflow-section stage-view"
+          data-state="export"
+          aria-labelledby="export-title"
+          hidden
+        >
+          <header class="step-header">
+            <h2 id="export-title" tabindex="-1">Finish local preview</h2>
+            <p class="step-context" id="export-context"></p>
+          </header>
+          <div class="export-layout">
+            <section class="export-review">
+              <label class="export-label" for="playlist-name">Playlist name</label>
+              <input class="input" id="playlist-name" type="text" maxlength="80" />
               <p class="export-meta" id="export-meta"></p>
-              <ol class="export-list" id="export-list" aria-label="Selected songs"></ol>
-            </div>
-            <aside class="stub export-stub" aria-label="Local export details">
-              <span class="eyebrow">Local-only output</span>
-              <p class="stub-caption">This creates a preview in the current page only.</p>
-              <button class="btn btn--primary btn--block" type="button" data-create-preview>
+              <ol class="export-track-list" id="export-list" aria-label="Selected songs"></ol>
+              <button class="button button--quiet back-button" type="button" data-go="match">
+                Back to matching
+              </button>
+            </section>
+            <aside class="export-action-panel" aria-label="Local export details">
+              <p class="export-service">Local preview</p>
+              <p class="support-text">
+                This creates a preview in this page only. Nothing is sent to Apple Music.
+              </p>
+              <button
+                class="button button--primary export-create"
+                type="button"
+                data-create-preview
+              >
                 Create local preview
               </button>
             </aside>
@@ -185,119 +200,33 @@
         </section>
 
         <section
-          class="stage-view encore"
+          class="workflow-section stage-view"
           data-state="success"
           aria-labelledby="success-title"
           hidden
         >
-          <div class="mosaic" aria-hidden="true">
-            <span class="g1"></span><span class="g2"></span><span class="g3"></span
-            ><span class="g4"></span><span class="g5"></span><span class="g6"></span
-            ><span class="g7"></span><span class="g8"></span><span class="g9"></span>
+          <div class="terminal-state terminal-state--success export-terminal">
+            <p class="completion-stamp">Completed</p>
+            <h2 id="success-title" tabindex="-1">Your local playlist preview is ready.</h2>
+            <p class="playlist-name" id="success-name"></p>
+            <p class="success-count">
+              <strong id="success-count"></strong>
+              <span>In the order you reviewed.</span>
+            </p>
+            <p class="support-text">No Apple Music playlist was created.</p>
+            <div class="step-actions">
+              <button class="button button--primary" type="button" data-reset>
+                Start another setlist
+              </button>
+            </div>
           </div>
-          <span class="eyebrow">Preview ready</span>
-          <h2 id="success-title" tabindex="-1">Your local playlist preview is ready.</h2>
-          <p class="lede" id="success-summary"></p>
-          <p class="success-message">No Apple Music playlist was created.</p>
-          <button class="btn btn--primary" type="button" data-reset>Start another setlist</button>
         </section>
-      </div>
-    </main>
+      </main>
+    </div>
 
-    <section class="sheet tour" aria-labelledby="tour-title">
-      <span class="eyebrow">The whole workflow</span>
-      <h2 class="tour-title" id="tour-title">Every stage, start to finish</h2>
-      <p class="lede">
-        Stills of the four stages above, captured from this demo at a desktop width. Every name and
-        track is fictional.
-      </p>
-      <ol class="tour-list">
-        <li>
-          <figure>
-            <img
-              src="./01-import.png"
-              alt="Import stage with a fixture ID field and a Load setlist button"
-              width="1280"
-              height="900"
-              loading="lazy"
-            />
-            <figcaption><strong>Import</strong> — paste a setlist.fm URL or ID.</figcaption>
-          </figure>
-        </li>
-        <li>
-          <figure>
-            <img
-              src="./02-preview.png"
-              alt="Preview stage showing the artist, venue, date, and ordered song list"
-              width="1280"
-              height="1540"
-              loading="lazy"
-            />
-            <figcaption>
-              <strong>Preview</strong> — confirm the show and the ordered, tape-free songs.
-            </figcaption>
-          </figure>
-        </li>
-        <li>
-          <figure>
-            <img
-              src="./03-match.png"
-              alt="Match stage listing songs as matched, needs match, or skipped"
-              width="1280"
-              height="1832"
-              loading="lazy"
-            />
-            <figcaption>
-              <strong>Match</strong> — accept a suggestion, search manually, or skip.
-            </figcaption>
-          </figure>
-        </li>
-        <li>
-          <figure>
-            <img
-              src="./04-export.png"
-              alt="Export stage with a playlist name field and the selected songs"
-              width="1280"
-              height="1343"
-              loading="lazy"
-            />
-            <figcaption>
-              <strong>Review</strong> — check what will be added and name the playlist.
-            </figcaption>
-          </figure>
-        </li>
-        <li>
-          <figure>
-            <img
-              src="./05-success.png"
-              alt="Success stage summarising the finished local playlist preview"
-              width="1280"
-              height="900"
-              loading="lazy"
-            />
-            <figcaption>
-              <strong>Finish</strong> — a success screen that appears once the write is confirmed.
-            </figcaption>
-          </figure>
-        </li>
-        <li class="tour-item--narrow">
-          <figure>
-            <img
-              src="./responsive-390.png"
-              alt="Match stage reflowed to a single column at a narrow viewport"
-              width="390"
-              height="844"
-              loading="lazy"
-            />
-            <figcaption>
-              <strong>Narrow screens</strong> — the same workflow stacks into one column.
-            </figcaption>
-          </figure>
-        </li>
-      </ol>
-    </section>
-
-    <footer class="demo-footer">Showtape demo · Fictional fixture data only</footer>
+    <footer class="site-footer">
+      <p>Showtape demo · Fictional fixture data only</p>
+    </footer>
     <script src="./demo.js"></script>
   </body>
 </html>

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Permanent_Marker, Inter, IBM_Plex_Mono } from 'next/font/google';
+import { Permanent_Marker, IBM_Plex_Sans, IBM_Plex_Mono } from 'next/font/google';
 import Link from 'next/link';
 import { PRODUCT_DESCRIPTION, PRODUCT_NAME } from '@/content/brand';
 import '../styles/globals.css';
@@ -12,7 +12,8 @@ const marker = Permanent_Marker({
   variable: '--font-marker',
 });
 
-const inter = Inter({
+const sans = IBM_Plex_Sans({
+  weight: ['400', '500', '600'],
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-sans',
@@ -57,9 +58,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${marker.variable} ${inter.variable} ${mono.variable}`}>
+    <html lang="en" className={`${marker.variable} ${sans.variable} ${mono.variable}`}>
       <head>
-        <meta name="theme-color" content="#242522" />
+        <meta name="theme-color" content="#232421" />
       </head>
       <body>
         <a href="#main" className="skip-link">

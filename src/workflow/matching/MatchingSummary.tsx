@@ -1,69 +1,54 @@
 import { Button } from '@/ui/Button';
+import { StatusText } from '@/ui/StatusText';
 import type { MatchRow } from './model';
-
-interface MatchingBulkActionsProps {
-  loading: boolean;
-  onAutoMatchAll: () => void;
-  onSkipUnmatched: () => void;
-}
-
-function MatchingBulkActions({
-  loading,
-  onAutoMatchAll,
-  onSkipUnmatched,
-}: MatchingBulkActionsProps) {
-  return (
-    <div className="matching-actions" role="group" aria-label="Bulk matching actions">
-      <Button
-        type="button"
-        onClick={onAutoMatchAll}
-        loading={loading}
-        loadingChildren="Re-matching…"
-        variant="secondary"
-      >
-        Re-match all
-      </Button>
-      <Button type="button" onClick={onSkipUnmatched} variant="secondary" disabled={loading}>
-        Skip remaining
-      </Button>
-    </div>
-  );
-}
 
 export interface MatchingSummaryProps {
   matches: MatchRow[];
-  loadingSuggestions: boolean;
   matchedCount: number;
+  settledCount: number;
   isSettled: boolean;
   canProceed: boolean;
-  onAutoMatchAll: () => Promise<void>;
-  onSkipUnmatched: () => void;
   onProceed: () => void;
 }
 
+function MatchingProgress({
+  matches,
+  matchedCount,
+  settledCount,
+  isSettled,
+}: Pick<MatchingSummaryProps, 'matches' | 'matchedCount' | 'settledCount' | 'isSettled'>) {
+  if (!isSettled) {
+    return (
+      <>
+        Searching Apple Music · {settledCount} of {matches.length} checked
+      </>
+    );
+  }
+  const unresolved = matches.filter((match) => match.status === 'unmatched').length;
+  const skipped = matches.filter((match) => match.status === 'skipped').length;
+  return (
+    <>
+      <strong>
+        {matchedCount} of {matches.length} selected
+      </strong>
+      {unresolved ? ` · ${unresolved} ${unresolved === 1 ? 'needs' : 'need'} a choice` : ''}
+      {skipped ? ` · ${skipped} skipped` : ''}
+    </>
+  );
+}
+
+/** Sticky footer for the ledger: live progress on the left, the one next action on the right. */
 export function MatchingSummary(props: MatchingSummaryProps) {
-  const { matches, loadingSuggestions, matchedCount, isSettled, canProceed } = props;
+  const { isSettled, canProceed } = props;
   return (
     <aside className="matching-summary-panel" aria-label="Matching summary">
-      <p className="summary-eyebrow">Songs ready</p>
-      <p className="summary-metric" aria-label={`${matchedCount} of ${matches.length} selected`}>
-        <strong>{matchedCount}</strong>
-        <span>/{matches.length}</span>
-      </p>
-      <p className="summary-caption">recordings selected</p>
-      <MatchingBulkActions
-        loading={loadingSuggestions}
-        onAutoMatchAll={() => {
-          void props.onAutoMatchAll();
-        }}
-        onSkipUnmatched={props.onSkipUnmatched}
-      />
-      <p className="matching-summary-note">
-        {isSettled
-          ? 'Suggestions may be different versions. Review your choices before creating the playlist.'
-          : 'Apple Music matching is still in progress. You can review results as they arrive.'}
-      </p>
+      <StatusText className="matching-progress">
+        <MatchingProgress {...props} />
+      </StatusText>
       <div className="matching-proceed">
+        {!canProceed && isSettled ? (
+          <p className="support-text matching-help">Match at least one song to continue.</p>
+        ) : null}
         <Button
           onClick={props.onProceed}
           disabled={!canProceed}
@@ -72,9 +57,6 @@ export function MatchingSummary(props: MatchingSummaryProps) {
         >
           Review playlist
         </Button>
-        {!canProceed && isSettled ? (
-          <p className="support-text matching-help">Match at least one song to continue.</p>
-        ) : null}
       </div>
     </aside>
   );

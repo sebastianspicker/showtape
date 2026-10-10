@@ -52,13 +52,17 @@ behavior.
 
 ## Interface direction
 
-The ordered setlist is the primary visual structure. The interface sets a dark
-stage around a textured paper setlist surface, uses marker-style display
-headings, sans-serif body text, and monospaced order and status metadata. Paper
-scraps, red pencil marks, and cassette artwork give it a backstage-mixtape
-identity. Controls and event labels stay as real interface elements; cassette
-artwork is decorative and does not imply playback. It avoids dashboard grids and
-visual effects that compete with the song list.
+The ordered setlist is the primary visual structure. The interface tapes one
+textured paper sheet with deckled edges to a dark stage. A marker face is used for
+the artist's name, the gaffer-tape wordmark, and the cassette label; headings and
+body text use a sans-serif, and order numbers, event details, and status words
+use a monospaced face. Red is the only accent: the wordmark, primary actions and
+recording choices, red pencil marks under the artist and the current stage, and a
+pencil circle around songs that still need a choice. Tape, stamps, and cassette
+artwork give it character, but only where they do not compete with the song list:
+the cassette appears on import and success, never next to the list, and is
+decorative rather than a playback control. It avoids dashboard grids, stat cards,
+and step labels that repeat the progress rail.
 
 Use continuous lists and dividers instead of wrapping every song in a card. Move
 focus to the active stage heading after a stage change. Preserve choices when

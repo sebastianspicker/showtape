@@ -2,8 +2,8 @@
 
 import { useEffect, useRef } from 'react';
 import { buildPlaylistName, type Setlist } from '@/domain/setlist';
-import { CassetteArtwork } from '@/ui/CassetteArtwork';
 import { Button } from '@/ui/Button';
+import { CassetteArtwork } from '@/ui/CassetteArtwork';
 import { getSafeAppleUrl } from './appleUrl';
 
 interface CreatedPlaylist {
@@ -35,17 +35,17 @@ export function SuccessExportState({
       className="terminal-state terminal-state--success export-terminal"
       aria-labelledby="success-title"
     >
-      <p className="completion-stamp">Completed</p>
-      <h3 id="success-title" ref={headingRef} tabIndex={-1}>
-        Made you a mixtape.
-      </h3>
-      <p>Your Apple Music playlist is ready.</p>
       <CassetteArtwork
         artist={setlist.artist}
         venue={setlist.venue}
         eventDate={setlist.eventDate}
         className="success-artwork"
       />
+      <p className="completion-stamp">Completed</p>
+      <h3 id="success-title" ref={headingRef} tabIndex={-1}>
+        Made you a mixtape.
+      </h3>
+      <p className="success-lede">Your Apple Music playlist is ready.</p>
       <p className="playlist-name success-playlist-name">{buildPlaylistName(setlist)}</p>
       <p className="sr-only">Venue: {setlist.venue}</p>
       <p className="success-count">

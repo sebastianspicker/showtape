@@ -1,6 +1,5 @@
 import { lazy, Suspense, type RefObject } from 'react';
 import type { Setlist } from '@/domain/setlist';
-import { CassetteArtwork } from '@/ui/CassetteArtwork';
 import { Button } from '@/ui/Button';
 import { SetlistAttribution } from '@/ui/SetlistAttribution';
 import { StepHeader } from '@/workflow/journey';
@@ -32,26 +31,15 @@ export function MatchingStep({
 }: MatchingStepProps) {
   return (
     <section className="workflow-section" aria-label="Confirm each song">
-      <div className="matching-event-header">
-        <div className="matching-event-details">
-          <Button variant="secondary" onClick={onBack} className="back-button">
-            Back to preview
-          </Button>
-          <StepHeader
-            step="matching"
-            title={setlist.artist}
-            context={[setlist.venue, setlist.eventDate].filter(Boolean).join(' · ')}
-            headingRef={headingRef}
-          />
-          <SetlistAttribution sourceUrl={setlist.sourceUrl} />
-        </div>
-        <CassetteArtwork
-          artist={setlist.artist}
-          venue={setlist.venue}
-          eventDate={setlist.eventDate}
-          className="matching-event-artwork"
-        />
-      </div>
+      <Button variant="quiet" onClick={onBack} className="back-button">
+        Back to preview
+      </Button>
+      <StepHeader
+        setlistTitle="Confirm each song"
+        title={setlist.artist || 'Untitled setlist'}
+        context={[setlist.venue, setlist.eventDate].filter((part): part is string => Boolean(part))}
+        headingRef={headingRef}
+      />
       <Suspense fallback={<p role="status">Loading track matching…</p>}>
         <MatchingWorkflow
           setlist={setlist}
@@ -60,6 +48,7 @@ export function MatchingStep({
           onProceedToCreatePlaylist={onProceed}
         />
       </Suspense>
+      <SetlistAttribution sourceUrl={setlist.sourceUrl} />
     </section>
   );
 }

@@ -105,7 +105,7 @@ corepack pnpm@9.15.3 demo:build
 `demo:check` creates and validates a temporary artifact without keeping it.
 `demo:build` writes the ignored `dist/pages` directory. The artifact contains
 only the allowlisted demo HTML, CSS, JavaScript, shared global stylesheet,
-Showtape mark, the tour screenshots from `docs/screenshots`, and `.nojekyll`.
+Showtape mark, and `.nojekyll`.
 Its content-security policy and build check reject network access, MusicKit,
 navigation, and persistent browser storage.
 

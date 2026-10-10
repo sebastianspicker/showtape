@@ -8,6 +8,8 @@ import { TrackSearchPanel } from './TrackSearchPanel';
 export interface CatalogMatchRowProps {
   row: MatchRow;
   index: number;
+  /** The headliner; a song's artist is shown only when it differs, as for covers. */
+  setlistArtist: string;
   isSearching: boolean;
   searchContext: TrackSearchState | null;
   onOpenSearch: (index: number) => void;
@@ -28,14 +30,18 @@ const STATUS_CLASS: Record<MatchRow['status'], string> = {
 const trackNameOrFallback = (value: unknown, fallback: string): string =>
   typeof value === 'string' ? value : fallback;
 
-function TrackMetadata({ row, index }: Pick<CatalogMatchRowProps, 'row' | 'index'>) {
+function TrackMetadata({
+  row,
+  index,
+  setlistArtist,
+}: Pick<CatalogMatchRowProps, 'row' | 'index' | 'setlistArtist'>) {
   return (
     <div className="matching-track-meta">
       <span className="matching-row-number">{String(index + 1).padStart(2, '0')}</span>
       <strong>{trackNameOrFallback(row.setlistEntry.name, 'Untitled track')}</strong>
-      {row.setlistEntry.artist && (
-        <span className="muted-inline"> · {row.setlistEntry.artist}</span>
-      )}
+      {row.setlistEntry.artist && row.setlistEntry.artist !== setlistArtist ? (
+        <span className="muted-inline">{row.setlistEntry.artist}</span>
+      ) : null}
     </div>
   );
 }
@@ -96,7 +102,7 @@ function StatusChip({ row }: Pick<CatalogMatchRowProps, 'row'>) {
   if (row.status === 'pending')
     return (
       <span className="match-pending">
-        <span className="match-status">Searching</span>
+        <span className="match-status">Searching…</span>
       </span>
     );
   return (
@@ -125,7 +131,7 @@ function RowActions({
           onOpenSearch(index);
         }}
         aria-label={`Change match for ${trackNameOrFallback(row.setlistEntry.name, 'track')}`}
-        className="button button--quiet button--compact"
+        className={`button ${row.appleTrack ? 'button--quiet' : 'button--secondary'} button--compact`}
         disabled={row.status === 'pending'}
       >
         {row.appleTrack ? 'Change' : 'Search'}
@@ -151,6 +157,7 @@ function CatalogMatchRowComponent(props: CatalogMatchRowProps) {
   const {
     row,
     index,
+    setlistArtist,
     isSearching,
     searchContext,
     onOpenSearch,
@@ -172,7 +179,7 @@ function CatalogMatchRowComponent(props: CatalogMatchRowProps) {
       className={`matching-row ${STATUS_CLASS[row.status]}${expanded ? ' matching-row--expanded' : ''}`}
     >
       <div className="matching-row-main">
-        <TrackMetadata row={row} index={index} />
+        <TrackMetadata row={row} index={index} setlistArtist={setlistArtist} />
         {row.appleTrack ? (
           <button
             type="button"

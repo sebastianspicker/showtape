@@ -7,15 +7,14 @@ export interface JourneyStep {
   id: JourneyStepId;
   number: number;
   railLabel: string;
-  stageLabel: string;
 }
 
-/** The four stages of the Showtape journey, in order, with their rail and stage copy. */
+/** The four stages of the Showtape journey, in order, with their rail copy. */
 export const JOURNEY_STEPS: readonly JourneyStep[] = [
-  { id: 'import', number: 1, railLabel: 'Import', stageLabel: '01 / Import' },
-  { id: 'preview', number: 2, railLabel: 'Preview', stageLabel: 'Step 02 / 04 — Preview' },
-  { id: 'matching', number: 3, railLabel: 'Match', stageLabel: '03 / Review recordings' },
-  { id: 'export', number: 4, railLabel: 'Export', stageLabel: 'Step 04 / 04 — Export' },
+  { id: 'import', number: 1, railLabel: 'Import' },
+  { id: 'preview', number: 2, railLabel: 'Preview' },
+  { id: 'matching', number: 3, railLabel: 'Match' },
+  { id: 'export', number: 4, railLabel: 'Export' },
 ];
 
 function journeyStep(id: JourneyStepId): JourneyStep {
@@ -54,24 +53,37 @@ export function JourneyRail({ current }: { current: JourneyStepId }) {
 }
 
 interface StepHeaderProps {
-  step: JourneyStepId;
   title: string;
-  /** Optional lede / supporting text below the title. */
-  context?: string;
+  /** Optional lede below the title; a list renders as event details kept whole per item. */
+  context?: string | readonly string[];
+  /**
+   * Set the title as the handwritten setlist heading (the artist name). The stage name is then
+   * announced before it, since the visible heading no longer says which stage this is.
+   */
+  setlistTitle?: string;
   headingRef?: RefObject<HTMLElement | null>;
 }
 
-export function StepHeader({ step, title, context, headingRef }: StepHeaderProps) {
+/** The rail already shows the stage, so the header carries only the title and its context. */
+export function StepHeader({ title, context, setlistTitle, headingRef }: StepHeaderProps) {
   return (
-    <header className="step-header">
-      <p className="step-indicator stage-label">
-        <span className="step-indicator__dot" aria-hidden="true" />
-        {journeyStep(step).stageLabel}
-      </p>
+    <header className={setlistTitle ? 'step-header step-header--setlist' : 'step-header'}>
       <h2 ref={headingRef as RefObject<HTMLHeadingElement | null>} tabIndex={-1}>
+        {setlistTitle ? <span className="sr-only">{setlistTitle}: </span> : null}
         {title}
       </h2>
-      {context ? <p className="step-context">{context}</p> : null}
+      {context?.length ? (
+        <p className="step-context">
+          {typeof context === 'string'
+            ? context
+            : context.map((part, index) => (
+                <span key={`${index}-${part}`}>
+                  <span className="step-context__part">{part}</span>
+                  {index < context.length - 1 ? ' · ' : null}
+                </span>
+              ))}
+        </p>
+      ) : null}
     </header>
   );
 }

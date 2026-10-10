@@ -15,28 +15,6 @@ export const SetlistPreview = memo(function SetlistPreview({ setlist }: SetlistP
 
   return (
     <section aria-label="Setlist preview" className="setlist-preview">
-      <header className="setlist-preview__header">
-        <h3 className="setlist-preview__artist">{setlist.artist}</h3>
-        <div className="preview-meta">
-          {setlist.venue ? (
-            <span className="preview-meta-item">
-              <span className="preview-meta-label">Venue</span>
-              <strong>{setlist.venue}</strong>
-            </span>
-          ) : null}
-          {setlist.eventDate ? (
-            <span className="preview-meta-item">
-              <span className="preview-meta-label">Date</span>
-              <strong>{setlist.eventDate}</strong>
-            </span>
-          ) : null}
-          <span className="preview-meta-item">
-            <span className="preview-meta-label">Songs</span>
-            <strong>{tracks.length}</strong>
-          </span>
-        </div>
-      </header>
-      <SetlistAttribution sourceUrl={setlist.sourceUrl} />
       {tracks.length === 0 ? (
         <p className="empty-state">This setlist has no songs listed. Try a different setlist.</p>
       ) : (
@@ -47,11 +25,12 @@ export const SetlistPreview = memo(function SetlistPreview({ setlist }: SetlistP
               {t.artist && t.artist !== setlist.artist ? (
                 <span className="preview-track-artist">{t.artist}</span>
               ) : null}
-              {t.info ? <span className="muted-inline"> - {t.info}</span> : null}
+              {t.info ? <span className="preview-track-info">{t.info}</span> : null}
             </li>
           ))}
         </ol>
       )}
+      <SetlistAttribution sourceUrl={setlist.sourceUrl} />
     </section>
   );
 });

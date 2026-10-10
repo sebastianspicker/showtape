@@ -31,8 +31,10 @@ export function mapSetlistFmResponse(raw: unknown, expectedId: string): Setlist 
   )
     return null;
 
+  // The live API nests sets as `sets.set`; the published docs show a top-level `set`.
+  const rawSets = record(payload.sets)?.set ?? payload.set;
   const sets: SetlistEntry[][] = [];
-  for (const rawSet of Array.isArray(payload.set) ? payload.set : []) {
+  for (const rawSet of Array.isArray(rawSets) ? rawSets : []) {
     const set = record(rawSet);
     if (!set || !Array.isArray(set.song)) continue;
     const songs: SetlistEntry[] = [];

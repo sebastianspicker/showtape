@@ -213,8 +213,7 @@ The root package builds the web application; Xcode builds the two native
 targets. `next build` produces the live application artifact, while
 `scripts/build-pages-demo.mjs` produces the separate, ignored `dist/pages`
 artifact. The demo builder permits exactly the three files under `demo`, the
-shared global stylesheet, the Showtape mark, the tour screenshots under
-`docs/screenshots`, and `.nojekyll`; it rejects network, navigation,
+shared global stylesheet, the Showtape mark, and `.nojekyll`; it rejects network, navigation,
 persistent-storage, and MusicKit APIs.
 
 The repository has CI but no live-application deployment workflow, container,

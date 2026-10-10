@@ -1,7 +1,7 @@
 'use client';
 
 import type { RefObject } from 'react';
-import type { Setlist } from '@/domain/setlist';
+import { flattenSetlistToEntries, type Setlist } from '@/domain/setlist';
 import { Button } from '@/ui/Button';
 import { StepHeader } from '@/workflow/journey';
 import { SetlistPreview } from './SetlistPreview';
@@ -19,23 +19,29 @@ export function PreviewStep({
   onChangeSetlist,
   onMatchSongs,
 }: PreviewStepProps) {
-  const songCount = setlist.sets.reduce((count, set) => count + set.length, 0);
+  // Count what the list shows, so the header and the rows always agree.
+  const songCount = flattenSetlistToEntries(setlist).length;
+  const context = [
+    setlist.venue,
+    setlist.eventDate,
+    `${songCount} ${songCount === 1 ? 'song' : 'songs'}`,
+  ].filter((part): part is string => Boolean(part));
 
   return (
     <section className="workflow-section" aria-label="Review setlist">
       <StepHeader
-        step="preview"
-        title="Review setlist"
-        context="Confirm the show and song order before matching."
+        setlistTitle="Review setlist"
+        title={setlist.artist || 'Untitled setlist'}
+        context={context}
         headingRef={headingRef}
       />
       <SetlistPreview setlist={setlist} />
       <div className="step-actions">
-        <Button variant="secondary" onClick={onChangeSetlist}>
-          Change setlist
-        </Button>
         <Button onClick={onMatchSongs} disabled={songCount === 0}>
           Match songs on Apple Music
+        </Button>
+        <Button variant="quiet" onClick={onChangeSetlist}>
+          Change setlist
         </Button>
       </div>
     </section>

@@ -40,8 +40,8 @@ export function ExportReviewPanel({
       </ol>
 
       {onBack ? (
-        <Button variant="secondary" onClick={onBack} disabled={loading} className="export-back">
-          ← Back to matching
+        <Button variant="quiet" onClick={onBack} disabled={loading} className="back-button">
+          Back to matching
         </Button>
       ) : null}
     </section>

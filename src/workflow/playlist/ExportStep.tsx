@@ -29,9 +29,8 @@ export function ExportStep({
   return (
     <section className="workflow-section export-section" aria-label="Export playlist">
       <StepHeader
-        step="export"
         title="Save to Apple Music"
-        context={`${setlist.artist} · ${matchRows.filter((row) => row.appleTrack).length} selected`}
+        context={`${setlist.artist} · ${matchRows.filter((row) => row.appleTrack).length} songs selected`}
         headingRef={headingRef}
       />
       <Suspense fallback={<p role="status">Loading playlist export…</p>}>

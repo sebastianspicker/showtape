@@ -59,9 +59,9 @@ async function freezeMotion(page) {
 }
 
 async function captureStages(page, baseUrl, captures) {
-  for (const { file, action, heading, fullPage = true } of captures) {
+  for (const { file, action, state, fullPage = true } of captures) {
     if (action) await action();
-    await page.getByRole('heading', { name: heading, exact: true }).waitFor();
+    await page.locator(`[data-state="${state}"]`).waitFor({ state: 'visible' });
     await page.screenshot({ path: path.join(outputDirectory, file), fullPage });
   }
 }
@@ -76,26 +76,26 @@ async function captureDesktop(browser, baseUrl) {
   await page.goto(baseUrl, { waitUntil: 'load' });
   await freezeMotion(page);
   await captureStages(page, baseUrl, [
-    { file: '01-import.png', heading: 'Import a setlist' },
+    { file: '01-import.png', state: 'import' },
     {
       file: '02-preview.png',
       action: () => page.getByRole('button', { name: 'Load setlist' }).click(),
-      heading: 'Review setlist',
+      state: 'preview',
     },
     {
       file: '03-match.png',
       action: () => page.getByRole('button', { name: 'Match songs', exact: true }).click(),
-      heading: 'Confirm each song',
+      state: 'match',
     },
     {
       file: '04-export.png',
       action: () => page.getByRole('button', { name: 'Review playlist' }).click(),
-      heading: 'Finish local preview',
+      state: 'export',
     },
     {
       file: '05-success.png',
       action: () => page.getByRole('button', { name: 'Create local preview' }).click(),
-      heading: 'Your local playlist preview is ready.',
+      state: 'success',
     },
   ]);
   await context.close();
@@ -118,7 +118,7 @@ async function captureNarrow(browser, baseUrl) {
         await page.getByRole('button', { name: 'Match songs', exact: true }).click();
         await page.evaluate(() => window.scrollTo(0, 0));
       },
-      heading: 'Confirm each song',
+      state: 'match',
       fullPage: false,
     },
   ]);

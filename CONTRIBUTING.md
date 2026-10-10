@@ -57,8 +57,7 @@ error, and terminal states at both narrow and desktop widths.
 
 ## Screenshots
 
-`docs/screenshots` holds the workflow stills used by the README and the static
-demo. They are generated, not hand-edited — regenerate them with:
+`docs/screenshots` holds the workflow stills used by the README. They are generated, not hand-edited — regenerate them with:
 
 ```bash
 corepack pnpm@9.15.3 screenshots
@@ -66,9 +65,7 @@ corepack pnpm@9.15.3 screenshots
 
 That script builds the demo artifact, serves it locally, and drives it with
 Playwright Chromium. Install the browser once with
-`corepack pnpm@9.15.3 exec playwright install chromium`. Because
-`demo:check` copies these files into the published artifact, a failed
-`demo:check` can also mean a screenshot is missing or renamed.
+`corepack pnpm@9.15.3 exec playwright install chromium`.
 
 ## Pull requests
 

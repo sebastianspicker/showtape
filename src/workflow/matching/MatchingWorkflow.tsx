@@ -51,11 +51,13 @@ export function MatchingWorkflow({
     <section aria-label="Match tracks" className="matching-section">
       <MatchingLedger
         matches={matches}
+        setlistArtist={setlist.artist}
         loadingSuggestions={loadingSuggestions}
         suggestionError={suggestionError}
-        matchedCount={matchedCount}
-        settledCount={settledCount}
-        isSettled={isSettled}
+        onAutoMatchAll={() => {
+          void autoMatchAll();
+        }}
+        onSkipUnmatched={skipUnmatched}
         searchContext={searchContext}
         onOpenSearch={openSearch}
         onSkip={skipTrack}
@@ -66,12 +68,10 @@ export function MatchingWorkflow({
       />
       <MatchingSummary
         matches={matches}
-        loadingSuggestions={loadingSuggestions}
         matchedCount={matchedCount}
+        settledCount={settledCount}
         isSettled={isSettled}
         canProceed={canProceed}
-        onAutoMatchAll={autoMatchAll}
-        onSkipUnmatched={skipUnmatched}
         onProceed={() => {
           onProceedToCreatePlaylist(matches);
         }}

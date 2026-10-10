@@ -2,7 +2,7 @@
 
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
-export type ButtonVariant = 'primary' | 'secondary';
+export type ButtonVariant = 'primary' | 'secondary' | 'quiet';
 
 export interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> {
   /** Visual variant. */
@@ -15,8 +15,8 @@ export interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement
 }
 
 /**
- * Design-system button with primary/secondary variant and optional loading state.
- * Use for consistent CTAs; consumer classes are merged with the component classes.
+ * Design-system button with primary, secondary, or quiet (text) variant and optional loading
+ * state. Use for consistent CTAs; consumer classes are merged with the component classes.
  */
 export function Button({
   variant = 'primary',
@@ -28,9 +28,7 @@ export function Button({
   type = 'button',
   ...rest
 }: ButtonProps) {
-  const variantClass =
-    variant === 'secondary' ? 'button button--secondary' : 'button button--primary';
-  const mergedClassName = [variantClass, className].filter(Boolean).join(' ');
+  const mergedClassName = ['button', `button--${variant}`, className].filter(Boolean).join(' ');
   return (
     <button
       type={type}

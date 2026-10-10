@@ -39,7 +39,6 @@ const fixture = {
 
 const stageOrder = ['import', 'preview', 'match', 'export'];
 const matchStates = new Set(['matched', 'skipped', 'unmatched']);
-const artworkClasses = new Set(Array.from({ length: 12 }, (_, index) => `g${index + 1}`));
 const stages = Object.fromEntries(
   [...document.querySelectorAll('section[data-state]')].map((element) => [
     element.dataset.state,
@@ -55,6 +54,7 @@ const matchList = document.getElementById('match-list');
 const playlistName = document.getElementById('playlist-name');
 let currentStage = 'import';
 let openSearchIndex = null;
+const expandedRows = new Set();
 let matches = [];
 
 function element(tagName, { className, text, attributes, dataset } = {}) {
@@ -66,13 +66,15 @@ function element(tagName, { className, text, attributes, dataset } = {}) {
   return node;
 }
 
-function artwork(art, empty = false) {
-  const className = artworkClasses.has(art) ? `artwork ${art}` : 'artwork artwork--ghost';
-  return element('span', {
-    className,
-    text: empty ? '?' : '',
-    attributes: { 'aria-hidden': 'true' },
-  });
+function setContext(id, parts) {
+  document
+    .getElementById(id)
+    .replaceChildren(
+      ...parts.flatMap((part, index) => [
+        element('span', { className: 'step-context__part', text: part }),
+        ...(index < parts.length - 1 ? [' · '] : []),
+      ])
+    );
 }
 
 function button(text, className, dataset = {}) {
@@ -89,9 +91,7 @@ function defaults() {
     ...track,
     state: track.skipped ? 'skipped' : track.unmatched ? 'unmatched' : 'matched',
     selected:
-      track.skipped || track.unmatched
-        ? null
-        : { title: track.title, artist: fixture.artist, art: track.art },
+      track.skipped || track.unmatched ? null : { title: track.title, artist: fixture.artist },
   }));
 }
 
@@ -99,41 +99,24 @@ function selected() {
   return matches.filter((match) => match.state === 'matched' && match.selected);
 }
 
-function appendTrackTitle(container, track) {
-  container.append(track.title);
-  if (!track.note) return;
-  container.append(
-    element('span', {
-      className: 'track-note',
-      text: `— ${track.note}`,
-    })
-  );
-}
-
 function updatePreview() {
-  document.getElementById('preview-artist').textContent = fixture.artist;
-  document.getElementById('preview-venue').textContent = fixture.venue;
-  document.getElementById('preview-date').textContent = fixture.date;
-  document.getElementById('preview-count').textContent = String(fixture.tracks.length);
+  document.getElementById('preview-title').textContent = fixture.artist;
+  setContext('preview-context', [fixture.venue, fixture.date, `${fixture.tracks.length} songs`]);
   const trackNodes = fixture.tracks.map((track) => {
-    const title = element('span');
-    appendTrackTitle(title, track);
-    return element('li').appendChild(title).parentElement;
+    const item = element('li', { className: 'preview-track-item' });
+    item.append(element('span', { className: 'preview-track-name', text: track.title }));
+    if (track.note)
+      item.append(element('span', { className: 'preview-track-info', text: track.note }));
+    return item;
   });
   document.getElementById('preview-tracks').replaceChildren(...trackNodes);
-}
-
-function stateLabel(match) {
-  if (match.state === 'matched') return ['Matched', 'matched'];
-  if (match.state === 'skipped') return ['Skipped', 'skipped'];
-  return ['Needs match', 'unmatched'];
 }
 
 function candidatesFor(match) {
   return (
     match.alternatives ?? [
-      { title: match.title, artist: fixture.artist, art: match.art },
-      { title: `${match.title} (Live)`, artist: fixture.artist, art: 'g10' },
+      { title: match.title, artist: fixture.artist },
+      { title: `${match.title} (Live)`, artist: fixture.artist },
     ]
   );
 }
@@ -147,7 +130,10 @@ function searchPanel(match, index) {
   const results = candidates.filter(({ candidate }) =>
     `${candidate.title} ${candidate.artist}`.toLowerCase().includes(query.toLowerCase())
   );
-  const panel = element('div', { className: 'search-panel', attributes: { role: 'search' } });
+  const panel = element('div', {
+    className: 'track-search-panel',
+    attributes: { role: 'search' },
+  });
   const searchId = `search-${index}`;
   panel.append(
     element('label', {
@@ -156,32 +142,33 @@ function searchPanel(match, index) {
       attributes: { for: searchId },
     })
   );
-  const controls = element('div', { className: 'search-controls' });
+  const controls = element('div', { className: 'track-search-controls' });
   const input = element('input', {
-    className: 'input',
+    className: 'input search-input',
     attributes: { id: searchId, type: 'search' },
     dataset: { searchInput: index },
   });
   input.value = query;
-  controls.append(input, button('Cancel', 'btn btn--secondary btn--sm', { searchClose: index }));
+  controls.append(input, button('Cancel', 'button button--secondary', { searchClose: index }));
   panel.append(controls);
   const list = element('ul', {
-    className: 'search-results',
+    className: 'search-results-list',
     attributes: { 'aria-label': 'Local catalog options' },
   });
   for (const { candidate, candidateIndex } of results.length ? results : candidates) {
-    const result = button('', 'search-result', { pick: index, candidate: candidateIndex });
+    const result = button('', 'search-result-button', { pick: index, candidate: candidateIndex });
     const resultText = element('span');
     resultText.append(
-      element('span', { className: 'result-name', text: candidate.title }),
-      element('span', { className: 'result-sub', text: candidate.artist })
+      candidate.title,
+      element('span', { className: 'match-result-artist', text: candidate.artist })
     );
     result.append(
-      artwork(candidate.art),
       resultText,
-      element('span', { className: 'pick', text: 'Select', attributes: { 'aria-hidden': 'true' } })
+      element('span', { className: 'search-result-action', text: 'Use this recording' })
     );
-    list.append(element('li').appendChild(result).parentElement);
+    const item = element('li');
+    item.append(result);
+    list.append(item);
   }
   panel.append(list);
   return panel;
@@ -194,49 +181,108 @@ function renderWarning(unresolved) {
     warning.replaceChildren();
     return;
   }
-  const message = element('p');
-  message.append(
-    element('strong', {
-      text: unresolved === 1 ? 'One song needs your ear. ' : `${unresolved} songs need your ear. `,
-    }),
-    'Search the local catalog options or skip the track.'
+  warning.replaceChildren(
+    unresolved === 1 ? 'One song needs a choice. ' : `${unresolved} songs need a choice. `,
+    'Use the ',
+    element('strong', { text: 'Search' }),
+    ' button to find a recording, or skip the song.'
   );
-  warning.replaceChildren(message);
+}
+
+function statusChip(className, text) {
+  const chip = element('span', { className });
+  chip.append(element('span', { className: 'match-status', text }));
+  return chip;
 }
 
 function matchRow(match, index) {
   const state = matchStates.has(match.state) ? match.state : 'unmatched';
-  const [label, statusClass] = stateLabel({ ...match, state });
   const result = match.selected;
+  const expanded = expandedRows.has(index) || openSearchIndex === index;
+  const detailsId = `match-details-${index}`;
+  const row = element('li', {
+    className: `matching-row matching-row--${state}${expanded ? ' matching-row--expanded' : ''}`,
+  });
+  const main = element('div', { className: 'matching-row-main' });
+  const meta = element('div', { className: 'matching-track-meta' });
+  meta.append(
+    element('span', { className: 'matching-row-number', text: String(index + 1).padStart(2, '0') }),
+    element('strong', { text: match.title })
+  );
+  if (match.note) meta.append(element('span', { className: 'muted-inline', text: match.note }));
+  main.append(meta);
+  if (result) {
+    const toggle = element('button', {
+      className: 'matching-row-toggle',
+      attributes: {
+        type: 'button',
+        'aria-label': `Review recording for ${match.title}`,
+        'aria-expanded': String(expanded),
+        'aria-controls': detailsId,
+      },
+      dataset: { rowToggle: index },
+    });
+    toggle.append(
+      'Selected ',
+      element('span', { text: expanded ? '−' : '+', attributes: { 'aria-hidden': 'true' } })
+    );
+    main.append(toggle);
+  }
+  const resultCell = element('div', {
+    className: 'matching-track-result',
+    attributes: { id: detailsId },
+  });
+  if (result) {
+    const primary = element('span', { className: 'match-result-primary', text: result.title });
+    primary.append(element('span', { className: 'match-result-artist', text: result.artist }));
+    const found = element('span', { className: 'match-found' });
+    found.append(primary);
+    resultCell.append(found);
+  } else {
+    const missing = element('span', {
+      className: state === 'skipped' ? 'match-skipped' : 'match-missing',
+    });
+    missing.append(
+      element('span', {
+        className: 'match-result-primary',
+        text: state === 'skipped' ? 'No match selected' : 'No suggestion',
+      })
+    );
+    resultCell.append(missing);
+  }
+  main.append(resultCell);
+  const actions = element('div', { className: 'matching-row-actions' });
+  actions.append(
+    result
+      ? statusChip('match-found', 'Selected')
+      : state === 'skipped'
+        ? statusChip('match-skipped', 'Skipped')
+        : statusChip('match-missing', 'Needs a choice')
+  );
   const action = state === 'skipped' ? 'Restore' : result ? 'Change' : 'Search';
-  const row = element('li', { className: 'match-row', dataset: { matchState: state } });
-  const main = element('div', { className: 'match-row-main' });
-  const songCell = element('div', { className: 'song-cell' });
-  const songTitle = element('strong');
-  appendTrackTitle(songTitle, match);
-  songCell.append(songTitle);
-  const resultText = element('div', { className: 'result-text' });
-  resultText.append(
-    element('span', {
-      className: 'result-name',
-      text: result ? result.title : state === 'skipped' ? 'No match selected' : 'No match found',
+  const actionClass = result || state === 'skipped' ? 'button--quiet' : 'button--secondary';
+  actions.append(
+    element('button', {
+      className: `button ${actionClass} button--compact`,
+      text: action,
+      attributes: {
+        type: 'button',
+        'aria-label': `${action === 'Restore' ? 'Restore' : 'Change match for'} ${match.title}`,
+      },
+      dataset: { toggleSearch: index },
     })
   );
-  if (result) resultText.append(element('span', { className: 'result-sub', text: result.artist }));
-  resultText.append(
-    element('span', { className: `status-chip status-chip--${statusClass}`, text: label })
-  );
-  const resultCell = element('div', { className: 'result-cell' });
-  resultCell.append(artwork(result?.art, !result), resultText);
-  const actions = element('div', { className: 'row-actions' });
-  actions.append(button(action, 'btn btn--quiet', { toggleSearch: index }));
-  if (state !== 'skipped') actions.append(button('Skip', 'btn btn--quiet', { skip: index }));
-  main.append(
-    element('span', { className: 'row-no', text: String(index + 1).padStart(2, '0') }),
-    songCell,
-    resultCell,
-    actions
-  );
+  if (state !== 'skipped') {
+    actions.append(
+      element('button', {
+        className: 'button button--quiet button--compact',
+        text: 'Skip',
+        attributes: { type: 'button', 'aria-label': `Skip ${match.title}` },
+        dataset: { skip: index },
+      })
+    );
+  }
+  main.append(actions);
   row.append(main);
   if (openSearchIndex === index) row.append(searchPanel(match, index));
   return row;
@@ -246,29 +292,37 @@ function renderMatches() {
   const count = selected().length;
   const total = matches.length;
   const unresolved = matches.filter((match) => match.state === 'unmatched').length;
-  const progress = `${(count / total) * 100}%`;
-  document.getElementById('match-show').textContent = `${fixture.artist} at ${fixture.venue}`;
-  document.getElementById('match-progress-label').textContent =
-    `${count} of ${total} songs matched`;
-  document.getElementById('match-progress-fill').style.width = progress;
-  document.getElementById('stub-progress-fill').style.width = progress;
-  document.getElementById('stub-count').textContent = String(count);
-  document.getElementById('stub-total').textContent = `/${total}`;
-  document.getElementById('stub-note').textContent = unresolved
-    ? `${unresolved} song${unresolved === 1 ? '' : 's'} still need${unresolved === 1 ? 's' : ''} a choice.`
-    : 'Every row is settled. Review the selected songs before continuing.';
+  const skipped = matches.filter((match) => match.state === 'skipped').length;
+  document.getElementById('match-title').textContent = fixture.artist;
+  setContext('match-context', [fixture.venue, fixture.date]);
+  const progress = document.getElementById('match-progress');
+  progress.replaceChildren(element('strong', { text: `${count} of ${total} selected` }));
+  if (unresolved) {
+    progress.append(` · ${unresolved} ${unresolved === 1 ? 'needs' : 'need'} a choice`);
+  }
+  if (skipped) progress.append(` · ${skipped} skipped`);
+  document.getElementById('match-help').hidden = count > 0;
+  document.getElementById('match-help').textContent = 'Match at least one song to continue.';
+  document.getElementById('proceed-button').disabled = count === 0;
   renderWarning(unresolved);
   matchList.replaceChildren(...matches.map(matchRow));
 }
 
 function updateExport() {
   const ready = selected();
-  document.getElementById('export-lede').textContent =
-    `${fixture.artist} · ${ready.length} selected`;
+  document.getElementById('export-context').textContent =
+    `${fixture.artist} · ${ready.length} songs selected`;
   document.getElementById('export-meta').textContent = `${fixture.venue} · ${fixture.date}`;
-  document
-    .getElementById('export-list')
-    .replaceChildren(...ready.map((match) => element('li', { text: match.selected.title })));
+  document.getElementById('export-list').replaceChildren(
+    ...ready.map((match, index) => {
+      const item = element('li');
+      item.append(
+        element('span', { text: String(index + 1).padStart(2, '0') }),
+        element('strong', { text: match.selected.title })
+      );
+      return item;
+    })
+  );
   if (!playlistName.value) playlistName.value = `Setlist – ${fixture.artist} – ${fixture.date}`;
 }
 
@@ -280,13 +334,12 @@ function showStage(next, { moveFocus = true } = {}) {
   });
   const index = stageOrder.indexOf(next);
   stageButtons.forEach((stageButton, stepIndex) => {
-    stageButton.dataset.state =
-      next === 'success' || stepIndex < index
-        ? 'complete'
-        : stepIndex === index
-          ? 'current'
-          : 'upcoming';
-    stageButton.toggleAttribute('aria-current', stepIndex === index && next !== 'success');
+    const step = stageButton.closest('li');
+    const isCurrent = stepIndex === index && next !== 'success';
+    step.classList.toggle('workflow-rail__step--current', isCurrent);
+    step.classList.toggle('workflow-rail__step--complete', next === 'success' || stepIndex < index);
+    if (isCurrent) step.setAttribute('aria-current', 'step');
+    else step.removeAttribute('aria-current');
   });
   if (next === 'preview') updatePreview();
   if (next === 'match') renderMatches();
@@ -311,6 +364,7 @@ function loadFixture() {
   matches = defaults();
   playlistName.value = '';
   openSearchIndex = null;
+  expandedRows.clear();
   showStage('preview');
   workflowStatus.textContent = `${fixture.tracks.length}-song fixture loaded locally.`;
 }
@@ -328,6 +382,17 @@ document.addEventListener('click', (event) => {
     showStage(control.dataset.go);
     return;
   }
+  if (control.dataset.rowToggle !== undefined) {
+    const index = Number(control.dataset.rowToggle);
+    if (!Number.isInteger(index) || !matches[index]) return;
+    const open = !expandedRows.has(index);
+    if (open) expandedRows.add(index);
+    else expandedRows.delete(index);
+    control.closest('li').classList.toggle('matching-row--expanded', open);
+    control.setAttribute('aria-expanded', String(open));
+    control.lastElementChild.textContent = open ? '−' : '+';
+    return;
+  }
   if (control.dataset.toggleSearch !== undefined) {
     const index = Number(control.dataset.toggleSearch);
     if (!Number.isInteger(index) || !matches[index]) return;
@@ -335,7 +400,7 @@ document.addEventListener('click', (event) => {
       matches[index] = {
         ...matches[index],
         state: 'matched',
-        selected: { title: matches[index].title, artist: fixture.artist, art: matches[index].art },
+        selected: { title: matches[index].title, artist: fixture.artist },
       };
       workflowStatus.textContent = `${matches[index].title} restored with its local suggestion.`;
     } else {
@@ -370,6 +435,7 @@ document.addEventListener('click', (event) => {
     )
       return;
     matches[index] = { ...matches[index], state: 'matched', selected: candidates[candidateIndex] };
+    expandedRows.add(index);
     openSearchIndex = null;
     renderMatches();
     workflowStatus.textContent = `${matches[index].title} updated with a local catalog choice.`;
@@ -378,6 +444,7 @@ document.addEventListener('click', (event) => {
   if (control.hasAttribute('data-rematch')) {
     matches = defaults();
     openSearchIndex = null;
+    expandedRows.clear();
     renderMatches();
     workflowStatus.textContent = 'Local suggestions restored.';
     return;
@@ -392,8 +459,11 @@ document.addEventListener('click', (event) => {
     return;
   }
   if (control.hasAttribute('data-create-preview')) {
-    document.getElementById('success-summary').textContent =
-      `${playlistName.value.trim() || 'Untitled playlist'} contains ${selected().length} locally selected songs.`;
+    const count = selected().length;
+    document.getElementById('success-name').textContent =
+      playlistName.value.trim() || 'Untitled playlist';
+    document.getElementById('success-count').textContent =
+      `${count} ${count === 1 ? 'song' : 'songs'}`;
     showStage('success');
     return;
   }
@@ -403,6 +473,7 @@ document.addEventListener('click', (event) => {
     matches = defaults();
     playlistName.value = '';
     openSearchIndex = null;
+    expandedRows.clear();
     showStage('import');
   }
 });
