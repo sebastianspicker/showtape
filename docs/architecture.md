@@ -216,7 +216,8 @@ artifact. The demo builder permits exactly the three files under `demo`, the
 shared global stylesheet, the Showtape mark, and `.nojekyll`; it rejects network, navigation,
 persistent-storage, and MusicKit APIs.
 
-The repository has CI but no live-application deployment workflow, container,
+The repository has CI and a Pages workflow for the static demo, but no
+live-application deployment workflow, container,
 process supervisor, reverse-proxy configuration, or rollback automation. See
 [deployment and configuration](DEPLOYMENT.md).
 

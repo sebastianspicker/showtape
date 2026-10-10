@@ -109,12 +109,12 @@ Showtape mark, and `.nojekyll`.
 Its content-security policy and build check reject network access, MusicKit,
 navigation, and persistent browser storage.
 
-This repository intentionally has no Pages deployment workflow. A separate
-`sebastianspicker.github.io` host workflow checks out a reviewed, immutable
-Showtape revision, rebuilds the artifact, and stages it at `/showtape/`. Pushing
-this repository does not publish the demo; advancing the host's pinned
-`SHOWTAPE_REF` and validating the combined host artifact are separate release
-actions.
+`.github/workflows/pages.yml` publishes the demo as this repository's GitHub
+Pages project site at `https://sebastianspicker.github.io/showtape/`. It runs on
+pushes to `main` that touch the demo, its builder, the shared stylesheet or the
+mark, and on manual dispatch. It validates the artifact with `--check`, rebuilds
+`dist/pages`, and deploys only that directory; the live Next.js app is never
+published to Pages. The repository's Pages source must be set to GitHub Actions.
 
 To regenerate the tour screenshots, run
 `corepack pnpm@9.15.3 screenshots` (it needs a Playwright Chromium install and
