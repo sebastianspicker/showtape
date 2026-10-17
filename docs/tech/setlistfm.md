@@ -14,10 +14,6 @@ Showtape accepts a 4 to 12 character hexadecimal setlist ID, or a setlist.fm URL
 that contains one. `GET /api/setlist/proxy` accepts `id` or `url`; if both are
 present, `id` wins.
 
-The native URLSession client uses the same endpoint at its configured HTTPS
-backend. Requests without an `Origin` header are accepted, but this does not
-grant cross-origin browser access or change the browser's same-origin API model.
-
 Before returning or caching a response, the server verifies the requested ID,
 event date, artist name, and set structure, maps the upstream body to the smaller
 domain `Setlist` shape, and removes songs marked as tape entries. It rejects

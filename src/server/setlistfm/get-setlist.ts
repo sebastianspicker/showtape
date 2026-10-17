@@ -17,6 +17,18 @@ export async function getSetlist(input: string, apiKey: string): Promise<GetSetl
     };
   const result = await fetchSetlistFromApi(id, apiKey);
   if (result.ok) return { ok: true, value: result.setlist };
+  // 401/403 mean the server's key was rejected, not the user's input: treat it as an outage.
+  if (result.status === 401 || result.status === 403)
+    return {
+      ok: false,
+      error: {
+        status: 503,
+        error: {
+          error: `setlist.fm rejected the configured API key (HTTP ${result.status}).`,
+          code: API_ERROR.SERVICE_UNAVAILABLE,
+        },
+      },
+    };
   const status = result.status === 404 ? 404 : result.status >= 500 ? 503 : result.status;
   const code =
     result.status === 404

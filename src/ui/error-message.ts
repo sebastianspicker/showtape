@@ -7,5 +7,6 @@ const isErrorLike = (value: unknown): value is { message: string } =>
 export function getErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error && error.message) return error.message;
   if (isErrorLike(error)) return error.message;
-  return error != null ? String(error) : fallback;
+  // Objects without a message would stringify to "[object Object]".
+  return error != null && typeof error !== 'object' ? String(error) : fallback;
 }

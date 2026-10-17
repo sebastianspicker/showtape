@@ -169,14 +169,6 @@ Deeper detail lives in [architecture and runtime flows](docs/architecture.md).
 The automated checks do not prove a complete browser journey, live setlist.fm
 access, Apple authorization, playlist writes, or a deployed environment.
 
-## Native app
-
-The `native/` project adds SwiftUI clients for iPhone, iPad, and Mac, targeting
-iOS/iPadOS 17 and macOS 14. They reuse this Next.js service for setlist import
-and call native MusicKit directly for Apple Music. See
-[native setup and verification](native/README.md) for build configuration,
-account requirements, recovery behavior, and the mocked test boundary.
-
 ## License
 
 Showtape is available under the [MIT License](LICENSE). Apple Music and

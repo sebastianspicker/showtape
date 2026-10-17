@@ -16,10 +16,6 @@ The workflow has four stages:
 
 At least one selected track is required to export.
 
-The web client and the native iPhone, iPad, and Mac clients share this workflow.
-Native MusicKit access is requested before catalog matching and rechecked before
-playlist writes. The native targets require iOS 17 or macOS 14.
-
 ## Product rules
 
 - Keep one active stage and one clear next action.
@@ -73,12 +69,6 @@ The maintained color, type, spacing, and responsive tokens live in
 `src/styles/globals.css`; that file is the source of truth for exact values.
 Reusable controls live in `src/ui`, while workflow-specific presentation stays
 with its feature under `src/workflow`.
-
-The native clients use system typography and controls around the same ordered
-song list. iPhone uses stack navigation; iPad and Mac use split navigation. The
-Mac app has one primary window. Native appearance follows the system, with
-Dynamic Type, accessibility labels, keyboard actions, and reduced-motion support
-in the shared SwiftUI presentation.
 
 ## Accessibility and responsive behavior
 

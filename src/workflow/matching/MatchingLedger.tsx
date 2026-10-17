@@ -69,7 +69,7 @@ function MatchingBulkActions({
 
 export interface MatchingLedgerProps extends MatchingRowsProps {
   loadingSuggestions: boolean;
-  suggestionError: unknown;
+  suggestionError: string | null;
   onAutoMatchAll: () => void;
   onSkipUnmatched: () => void;
 }
@@ -95,7 +95,7 @@ export function MatchingLedger(props: MatchingLedgerProps) {
       {suggestionError && !loadingSuggestions ? (
         <p role="alert" className="warning-banner">
           Some songs could not be matched automatically. Use the <strong>Search</strong> button next
-          to unmatched songs to find them manually.
+          to unmatched songs to find them manually. Details: {suggestionError}
         </p>
       ) : null}
       <MatchingRows {...props} />

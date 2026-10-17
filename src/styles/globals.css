@@ -549,7 +549,8 @@ summary:focus-visible,
   gap: 1rem;
 }
 .import-actions .button--primary {
-  min-width: 10rem;
+  /* Capped so enlarged text on a 320px viewport cannot force horizontal scrolling. */
+  min-width: min(10rem, 100%);
 }
 .import-subscription-note {
   margin: 1rem 0 0;
@@ -915,7 +916,7 @@ summary:focus-visible,
   font-size: 0.8125rem;
 }
 .proceed-button {
-  min-width: 10rem;
+  min-width: min(10rem, 100%);
 }
 /* The reviewed songs precede explicit authorization and write controls. */
 .export-layout {

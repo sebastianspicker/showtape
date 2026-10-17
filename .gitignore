@@ -97,9 +97,3 @@ Thumbs.db
 /docs/internal/
 /docs/local/
 /docs/private/
-
-# Native generated state
-native/**/.build/
-native/DerivedData/
-**/xcuserdata/
-native/Config/Local.xcconfig

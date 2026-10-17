@@ -2,10 +2,9 @@
 
 ## How it fits together
 
-Showtape is one root Next.js application plus a shared Swift package that backs
-the iPhone, iPad, and Mac targets. A single Node.js process serves the browser
-interface and three API Route Handlers — there is no separate API service,
-database, or queue.
+Showtape is one root Next.js application. A single Node.js process serves the
+browser interface and three API Route Handlers — there is no separate API
+service, database, or queue.
 
 The browser uses Showtape's same-origin API for two things: importing a setlist
 and signing an Apple developer token. Everything else Apple-related — catalog
@@ -33,8 +32,7 @@ flowchart LR
 ## Repository boundaries
 
 The web app is a single private pnpm package; its dependency overrides live in
-`package.json` under `pnpm.overrides`. Native code lives under `native/` as one
-local Swift package with four modules.
+`package.json` under `pnpm.overrides`.
 
 | Path            | Responsibility                                                                    |
 | --------------- | --------------------------------------------------------------------------------- |
@@ -209,10 +207,9 @@ Reporting policy and operator responsibilities live in [SECURITY.md](../SECURITY
 
 ## Build and delivery boundaries
 
-The root package builds the web application; Xcode builds the two native
-targets. `next build` produces the live application artifact, while
-`scripts/build-pages-demo.mjs` produces the separate, ignored `dist/pages`
-artifact. The demo builder permits exactly the three files under `demo`, the
+The root package builds the web application. `next build` produces the live
+application artifact, while `scripts/build-pages-demo.mjs` produces the
+separate, ignored `dist/pages` artifact. The demo builder permits exactly the three files under `demo`, the
 shared global stylesheet, the Showtape mark, and `.nojekyll`; it rejects network, navigation,
 persistent-storage, and MusicKit APIs.
 
@@ -221,12 +218,16 @@ live-application deployment workflow, container,
 process supervisor, reverse-proxy configuration, or rollback automation. See
 [deployment and configuration](DEPLOYMENT.md).
 
+Static web HTML is paired with an immutable script-hash manifest and a fresh
+response nonce. The startup and runtime verifier fails closed if the artifact is
+incomplete. See [deployment](DEPLOYMENT.md) for the hybrid policy and the checks
+required on every upgrade.
+
 ## Invariants and non-goals
 
 - Browser calls to Showtape always use same-origin `/api` paths.
 - Apple and setlist.fm credentials never enter browser application state.
-- The browser MusicKit user token stays in the browser; native MusicKit manages
-  its own authorization.
+- The browser MusicKit user token stays in the browser.
 - Setlist order and explicit user corrections are preserved.
 - The static demo is simulated and is not live-integration evidence.
 - A separately deployed API, multiple-setlist workflow, non-Apple export,
@@ -234,23 +235,3 @@ process supervisor, reverse-proxy configuration, or rollback automation. See
 
 The reasoning behind the application shape is recorded in
 [ADR 0001](adr/0001-stack-nextjs-musickit.md).
-
-## Native module boundaries
-
-`ShowtapeCore` holds immutable Sendable values, pure transformations, and
-service protocols. `ShowtapeBackend` uses URLSession for setlist import.
-`ShowtapeMusic` owns native MusicKit, catalog caching, local recovery, and
-serialized export coordination. `ShowtapeUI` owns the MainActor observable
-journey and adaptive SwiftUI screens. Thin platform shells provide app scenes;
-the Mac uses one primary window, without Catalyst.
-
-Native import uses the same mapped setlist contract, including tape exclusion.
-The native backend URL is a build-time setting and does not change the browser's
-same-origin model. Apple search, authorization, and writes go directly from each
-client to Apple. Native recovery stays on the device, and unknown writes require
-checking Apple Music before starting another export.
-
-Static web HTML is paired with an immutable script-hash manifest and a fresh
-response nonce. The startup and runtime verifier fails closed if the artifact is
-incomplete. See [deployment](DEPLOYMENT.md) for the hybrid policy and the checks
-required on every upgrade.

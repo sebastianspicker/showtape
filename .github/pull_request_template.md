@@ -14,7 +14,6 @@
 - [ ] `corepack pnpm@9.15.3 check:architecture` passes
 - [ ] `corepack pnpm@9.15.3 typecheck` passes
 - [ ] `corepack pnpm@9.15.3 build` succeeds
-- [ ] `corepack pnpm@9.15.3 test` passes
 - [ ] `corepack pnpm@9.15.3 demo:check` passes
 - [ ] `corepack pnpm@9.15.3 audit:security` passes
 - [ ] Manually verified in browser (if UI change)

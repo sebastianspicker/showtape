@@ -5,9 +5,11 @@ import { buildSearchQuery } from '@/domain/matching';
 import { flattenSetlistToEntries, getSetlistSignature, type Setlist } from '@/domain/setlist';
 import { searchCatalog } from '@/client/music/catalog';
 import { isValidAppleMusicTrack, type AppleMusicTrack } from '@/client/music/types';
+import { getErrorMessage } from '@/ui/error-message';
 import { matchesReducer, toPendingRows, type MatchRow } from './model';
 
 const MAX_CONCURRENT_SEARCHES = 5;
+const CATALOG_SEARCH_FAILED = 'Catalog search failed.';
 
 type CatalogMatch = AppleMusicTrack | null;
 
@@ -44,7 +46,7 @@ export function useAutoMatch(setlist: Setlist, initialDraft?: MatchRow[] | null)
     () => restoredDraft ?? toPendingRows(flattenSetlistToEntries(setlist))
   );
   const [loadingSuggestions, setLoadingSuggestions] = useState(!draftIsSettled);
-  const [suggestionError, setSuggestionError] = useState(false);
+  const [suggestionError, setSuggestionError] = useState<string | null>(null);
   const runIdRef = useRef(0);
   const runIdCounter = useRef(0);
   const scheduledSignatureRef = useRef<string | null>(null);
@@ -64,23 +66,29 @@ export function useAutoMatch(setlist: Setlist, initialDraft?: MatchRow[] | null)
     runIdRef.current = runId;
     const isCurrent = () => runIdRef.current === runId;
     const searches = new Map<string, Promise<CatalogMatch>>();
-    setSuggestionError(false);
+    setSuggestionError(null);
     setLoadingSuggestions(true);
     let next = 0;
+    let firstFailure: string | null = null;
     const runWorker = async () => {
       while (isCurrent() && next < indices.length) {
         const index = indices[next++] as number;
         const entry = rows[index]?.setlistEntry;
         let track: CatalogMatch = null;
-        let failed = false;
+        let failure: string | null = null;
         try {
           track = entry ? await searchEntry(entry, searches) : null;
-        } catch {
-          failed = true;
+        } catch (error) {
+          failure = getErrorMessage(error, CATALOG_SEARCH_FAILED) || CATALOG_SEARCH_FAILED;
         }
         if (!isCurrent()) return;
         dispatch({ type: 'autoResult', index, track });
-        if (failed) setSuggestionError(true);
+        // Keep the first reason: a configuration or MusicKit load failure fails every row alike.
+        if (failure !== null && firstFailure === null) {
+          firstFailure = failure;
+          console.warn('Automatic matching failed:', failure);
+          setSuggestionError(failure);
+        }
       }
     };
     await Promise.all(

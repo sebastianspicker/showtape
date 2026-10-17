@@ -75,7 +75,7 @@ interface SearchResultsProps {
   searchResults: AppleMusicTrack[];
   hasSearched: boolean;
   searching: boolean;
-  searchError: boolean;
+  searchError: string | null;
   onChoose: (track: AppleMusicTrack) => void;
 }
 
@@ -133,7 +133,7 @@ export interface TrackSearchPanelProps {
   index: number;
   searchQuery: string;
   searching: boolean;
-  searchError: boolean;
+  searchError: string | null;
   searchResults: AppleMusicTrack[];
   hasSearched: boolean;
   onSearchQueryChange: (value: string) => void;
@@ -179,7 +179,7 @@ export function TrackSearchPanel(props: TrackSearchPanelProps) {
       {searching && <StatusText className="inline-status">Searching…</StatusText>}
       {searchError && !searching && (
         <p role="alert" className="error-text">
-          Search failed. Check your connection and try again.
+          Search failed. Check your connection and try again. Details: {searchError}
         </p>
       )}
       <TrackSearchResults

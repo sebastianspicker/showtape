@@ -43,7 +43,6 @@ corepack pnpm@9.15.3 hygiene:check
 corepack pnpm@9.15.3 lint
 corepack pnpm@9.15.3 check:architecture
 corepack pnpm@9.15.3 typecheck
-corepack pnpm@9.15.3 test
 corepack pnpm@9.15.3 build
 corepack pnpm@9.15.3 audit:security
 corepack pnpm@9.15.3 demo:check
@@ -89,12 +88,7 @@ Architecture changes must stay consistent with
 Do not open a public issue for a vulnerability, exposed credential, or private
 user data. Follow [SECURITY.md](SECURITY.md).
 
-## Browser and native verification
+## Browser verification
 
-The native app targets iOS/iPadOS 17 and macOS 14 with Swift 6. Follow
-[native setup](native/README.md). For the local Xcode 26.6 workflow, pass
-`DEVELOPER_DIR=/Applications/Xcode-26.6.0.app/Contents/Developer` per command;
-do not change the machine's global Xcode selection. `fixtures/domain-parity.json`
-is the single corpus shared by the TypeScript and Swift domain tests — update
-both implementations and the shared expectations together when you intentionally
-change a domain contract.
+For UI changes, inspect keyboard operation, focus movement, and the loading,
+empty, error, and terminal states at narrow and desktop widths.

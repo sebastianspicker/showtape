@@ -43,6 +43,9 @@ export interface PlaylistExport {
   authorized: () => Promise<void>;
 }
 
+const selectedIdsOf = (matchRows: MatchRow[]): string[] =>
+  matchRows.flatMap((row) => (row.appleTrack ? [row.appleTrack.id] : []));
+
 function isAmbiguousMusicMutationError(error: unknown): boolean {
   return error instanceof Error && error.name === 'AmbiguousMusicMutationError';
 }
@@ -55,12 +58,19 @@ export function usePlaylistExport({ setlist, matchRows }: UsePlaylistExportParam
   const [created, setCreated] = useState<CreatedPlaylist | null>(null);
   const [needsAuth, setNeedsAuth] = useState(false);
   const [addTracksError, setAddTracksError] = useState<string | null>(null);
-  const [dedupeTracks, setDedupeTracks] = useState(false);
+  const [storedResume] = useState(() => readResume(setlist.id));
+  // Restore the duplicate policy a stored partial export ran with, so remounting keeps it.
+  const [dedupeTracks, setDedupeTracks] = useState(() => {
+    if (!storedResume) return false;
+    const dedupedIds = dedupeTrackIdsOrdered(selectedIdsOf(matchRows));
+    return !shouldDiscardResume(
+      storedResume,
+      createSelectionSignature(dedupedIds, true),
+      dedupedIds
+    );
+  });
   const mutationInFlightRef = useRef(false);
-  const selectedSongIds = useMemo(
-    () => matchRows.flatMap((row) => (row.appleTrack ? [row.appleTrack.id] : [])),
-    [matchRows]
-  );
+  const selectedSongIds = useMemo(() => selectedIdsOf(matchRows), [matchRows]);
   const songIds = useMemo(
     () => (dedupeTracks ? dedupeTrackIdsOrdered(selectedSongIds) : selectedSongIds),
     [dedupeTracks, selectedSongIds]
@@ -70,12 +80,11 @@ export function usePlaylistExport({ setlist, matchRows }: UsePlaylistExportParam
     [dedupeTracks, songIds]
   );
   const [resumeState, setResumeState] = useState<ResumeState | null>(() => {
-    const stored = readResume(setlist.id);
-    if (!stored || shouldDiscardResume(stored, selectionSignature, songIds)) {
-      if (stored) writeResume(setlist.id, null);
+    if (!storedResume || shouldDiscardResume(storedResume, selectionSignature, songIds)) {
+      if (storedResume) writeResume(setlist.id, null);
       return null;
     }
-    return stored;
+    return storedResume;
   });
 
   const storeResume = (next: ResumeState | null) => {

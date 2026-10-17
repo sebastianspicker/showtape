@@ -95,7 +95,11 @@ export async function GET(request: NextRequest) {
     const apiKey = setlistFmApiKey();
     if (!apiKey) return missingApiKeyResponse(request, rateHeaders);
     return setlistResultResponse(await getSetlist(id, apiKey), request, rateHeaders);
-  } catch {
+  } catch (error) {
+    console.error(
+      'Setlist proxy request failed unexpectedly:',
+      error instanceof Error ? error.message : String(error)
+    );
     return internalError(request);
   }
 }

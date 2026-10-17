@@ -4,5 +4,3 @@ coverage/
 .impeccable/
 pnpm-lock.yaml
 next-env.d.ts
-native/**/.build/
-native/DerivedData/

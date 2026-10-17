@@ -9,7 +9,11 @@ export function initializeCsp(): readonly string[] | null {
   initialized = true;
   try {
     hashes = validateArtifact(join(process.cwd(), '.next'));
-  } catch {
+  } catch (error) {
+    console.error(
+      'CSP artifact validation failed; serving 503 until the build is fixed:',
+      error instanceof Error ? error.message : String(error)
+    );
     hashes = null;
   }
   return hashes;

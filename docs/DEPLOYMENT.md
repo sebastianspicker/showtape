@@ -167,12 +167,3 @@ the manifest, verify all emitted documents and the policy size, and run the
 production Chromium and WebKit tests. Check hydration, navigation, error pages,
 rejected injected scripts, fresh response nonces with identical HTML, and
 fail-closed startup with missing or mismatched artifacts before you ship.
-
-## Native clients
-
-See [native setup](../native/README.md) for Xcode targets, MusicKit account
-configuration, and local testing. `SHOWTAPE_API_BASE_URL` is a native build
-setting that points at this same Next.js service. Native requests without an
-`Origin` header are accepted without emitting a browser CORS allowance, so
-browser CORS and its same-origin API model are unchanged. Native clients use
-only the setlist endpoint; native MusicKit handles Apple token management.

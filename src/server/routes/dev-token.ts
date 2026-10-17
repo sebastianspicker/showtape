@@ -25,7 +25,11 @@ export async function GET(request: NextRequest) {
       Pragma: 'no-cache',
       ...rateHeaders,
     });
-  } catch {
+  } catch (error) {
+    console.error(
+      'Developer token request failed unexpectedly:',
+      error instanceof Error ? error.message : String(error)
+    );
     return internalError(request);
   }
 }

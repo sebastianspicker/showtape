@@ -3,7 +3,10 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { searchCatalog } from '@/client/music/catalog';
 import type { AppleMusicTrack } from '@/client/music/types';
+import { getErrorMessage } from '@/ui/error-message';
 import { rowAt, searchQueryFor, type MatchRow, type TrackSearchState } from './model';
+
+const CATALOG_SEARCH_FAILED = 'Catalog search failed.';
 
 export interface UseTrackSearchParams {
   matches: MatchRow[];
@@ -30,7 +33,7 @@ export function useTrackSearch({ matches, onChoose, onSkip }: UseTrackSearchPara
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<AppleMusicTrack[]>([]);
   const [searching, setSearching] = useState(false);
-  const [searchError, setSearchError] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
   const searchRunIdRef = useRef(0);
   const currentRef = useRef({ matches, searchQuery, searchingIndex, onChoose, onSkip });
@@ -48,7 +51,7 @@ export function useTrackSearch({ matches, onChoose, onSkip }: UseTrackSearchPara
     setSearchingIndex(null);
     setSearchQuery('');
     setSearchResults([]);
-    setSearchError(false);
+    setSearchError(null);
     setHasSearched(false);
   }, [invalidateCurrentSearch]);
 
@@ -60,7 +63,7 @@ export function useTrackSearch({ matches, onChoose, onSkip }: UseTrackSearchPara
       setSearchingIndex(index);
       setSearchQuery(searchQueryFor(row, ''));
       setSearchResults([]);
-      setSearchError(false);
+      setSearchError(null);
       setHasSearched(false);
     },
     [invalidateCurrentSearch]
@@ -74,16 +77,18 @@ export function useTrackSearch({ matches, onChoose, onSkip }: UseTrackSearchPara
     const runId = searchRunIdRef.current + 1;
     searchRunIdRef.current = runId;
     setSearching(true);
-    setSearchError(false);
+    setSearchError(null);
     try {
       const tracks = await searchCatalog(query, 8);
       if (searchRunIdRef.current !== runId) return;
       setSearchResults(tracks);
       setHasSearched(true);
-    } catch {
+    } catch (error) {
       if (searchRunIdRef.current !== runId) return;
+      const message = getErrorMessage(error, CATALOG_SEARCH_FAILED) || CATALOG_SEARCH_FAILED;
+      console.warn('Catalog search failed:', message);
       setSearchResults([]);
-      setSearchError(true);
+      setSearchError(message);
       setHasSearched(true);
     } finally {
       if (searchRunIdRef.current === runId) setSearching(false);

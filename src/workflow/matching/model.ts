@@ -14,7 +14,7 @@ export interface TrackSearchState {
   searchQuery: string;
   searchResults: AppleMusicTrack[];
   searching: boolean;
-  searchError: boolean;
+  searchError: string | null;
   hasSearched: boolean;
 }
 

@@ -9,6 +9,8 @@ Current root-package version: `0.3.0-alpha.1`, untagged and unpublished.
 
 ### Added
 
+- `ALPHA_KNOWN_ISSUES.md`: known rough edges, workarounds, and what to include
+  in a bug report.
 - Public `/privacy` and `/terms` routes backed by maintained root documents.
 - Showtape product metadata, web manifest icons, and browser mark.
 - Visible setlist.fm source attribution using the validated response URL or the
@@ -19,6 +21,17 @@ Current root-package version: `0.3.0-alpha.1`, untagged and unpublished.
 
 ### Changed
 
+- Redesigned the web app and static demo around one taped-down setlist sheet.
+- The matching stage shows why automatic matching or a manual search failed,
+  after "Details:", and logs the reason to the browser console.
+- A rejected setlist.fm API key (HTTP 401 or 403) is now treated like a missing
+  key: logged on the server and shown as a retryable "temporarily unavailable"
+  error instead of an input error.
+- Unexpected API route errors and CSP artifact validation failures are logged on
+  the server.
+- Overrode `source-map-js` to 1.2.2 (GHSA-68fv-2mgg-jv7q).
+- The documentation and privacy page no longer describe native clients, which
+  are not part of this repository.
 - Reconstructed the codebase around explicit boundaries: one module per API
   endpoint under `src/server/routes` with a single environment reader, one
   same-origin API caller in the browser, and one state owner per workflow stage.
@@ -47,6 +60,13 @@ Current root-package version: `0.3.0-alpha.1`, untagged and unpublished.
 
 ### Fixed
 
+- Reaching the export step again for a setlist with a known partial export
+  that ran with duplicate removal turned on (for example after a reload) no
+  longer discards that export.
+- Primary buttons no longer force horizontal scrolling at a 320px width with
+  enlarged text.
+- Error messages from rejections without a message show the fallback text
+  instead of "[object Object]".
 - Ambiguous Apple Music create or add failures no longer offer an unsafe automatic
   retry that could duplicate playlists or tracks.
 - Late setlist and matching responses no longer overwrite newer user work.

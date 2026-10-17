@@ -32,27 +32,3 @@ your library and does not retry automatically.
 
 Live authorization and playlist writes need an Apple Music account and sit
 outside the automated test boundary.
-
-## Native MusicKit
-
-The iPhone/iPad and native Mac targets use the system MusicKit framework. Enable
-the MusicKit App Service for each registered app bundle identifier in the Apple
-Developer account and supply your development team before signed device testing.
-Native automatic token management does not use the web `/api/apple/dev-token`
-endpoint and embeds no Apple signing key or setlist.fm credential.
-`NSAppleMusicUsageDescription` explains the permission request.
-
-Both playlist creation and additions use
-[MusicDataRequest](https://developer.apple.com/documentation/musickit/musicdatarequest)
-on every native platform, because the installed macOS SDK does not expose the
-high-level `MusicLibrary` write methods. Catalog search stays bounded to 500
-five-minute entries keyed by storefront, query, and limit; identical in-flight
-searches share their result.
-
-Native export serializes writes and persists an in-flight record before each
-request. It appends at most 100 ordered IDs per request. A definite rejection can
-keep confirmed progress, while transport, response-decoding, and interrupted
-mutation outcomes all require checking Apple Music. Reopening the app never
-replays an unknown write automatically. Fixture tests use injected fake services
-selected explicitly in Debug builds and cannot prove live account, subscription,
-permission, or signed-device behavior.

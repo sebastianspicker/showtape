@@ -57,45 +57,10 @@ responses. CSP tests cover static HTML reuse, distinct response nonces,
 hydration, navigation, script blocking and nonce allowance, emitted error
 documents, runtime-rendered errors, and missing or mismatched manifests.
 
-Swift tests consume the shared domain corpus and inject networking, catalog,
-authorization, mutation, and persistence behavior. Native UI fixtures require an
-explicit Debug launch argument. Live Apple authorization, subscriptions, playlist
-writes, registered bundle identifiers, signing, and deployment all need separate
-configured-device verification.
-
-Native import and preview audits run every available accessibility check except
-the installed SDK's contrast audit. That audit also reports failures for visibly
-black SwiftUI song numbers and sidebar labels on white; inspecting its own element
-screenshot found foreground RGB (4, 4, 4) against approximately (253, 253, 253),
-over 19:1 contrast. Contrast is therefore inspected separately from rendered
-screenshots and is not counted as a passing automated check. The primary indigo
-button measured approximately 5.1:1 against its white label, and secondary copy
-was changed to primary text to improve legibility.
+Live Apple authorization, subscriptions, playlist writes, and deployment all
+need separate verification.
 
 ## Final local checks
 
 The web gate (format, lint, architecture, typecheck, build, demo contract) runs
 in CI on Node.js 20 and 22.
-
-The Swift package passed 28 tests, including shared TypeScript/Swift fixtures,
-bounded networking, cancellation, authorization, catalog concurrency, storage
-failure, record expiry, exact recovery, and unknown mutation outcomes. Ten native
-UI scenarios per simulator destination passed across the workflow and focused
-accessibility runs on iPhone 17 Pro and iPad Air 13-inch (M3), using explicit
-Debug fixtures on iOS 26.5. These cover import, preview, manual replacement,
-skip/back preservation, export, partial resume, unknown outcomes, permission
-denial, storage failure, cancellation, and background interruption.
-Accessibility coverage carries the contrast exception described above.
-
-Xcode 26.6 built both native Release targets without signing, including arm64 and
-x86_64 for macOS. The backend configuration guard rejected missing and HTTP
-Release URLs. Minimum deployment targets remain iOS 17 and macOS 14; those older
-OS versions were not available for runtime verification here.
-
-Mac UI test execution remains unverified: two sequential XCTest runs timed out
-while enabling host automation before running any tests. The UI-control connector
-also reported no window, while a direct WindowServer inspection and a captured
-screenshot confirmed the native Import window was visible. That is launch and
-rendering evidence, not proof of the complete Mac interaction suite. The normal
-SwiftUI singleton `Window` remains in use; no custom launch bridge or
-operating-system permission change was added.

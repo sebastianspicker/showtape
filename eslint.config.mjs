@@ -3,7 +3,7 @@ import nextVitals from 'eslint-config-next/core-web-vitals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['native/**', '.next/**', 'dist/**', 'playwright-report/**', 'test-results/**'] },
+  { ignores: ['.next/**', 'dist/**', 'playwright-report/**', 'test-results/**'] },
   js.configs.recommended,
   ...nextVitals,
   ...tseslint.configs.recommended,
