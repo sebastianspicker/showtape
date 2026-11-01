@@ -110,9 +110,10 @@ Its content-security policy and build check reject network access, MusicKit,
 navigation, and persistent browser storage.
 
 `.github/workflows/pages.yml` publishes the demo as this repository's GitHub
-Pages project site at `https://sebastianspicker.github.io/showtape/`. It runs on
-pushes to `main` that touch the demo, its builder, the shared stylesheet or the
-mark, and on manual dispatch. It validates the artifact with `--check`, rebuilds
+Pages project site at `https://sebastianspicker.github.io/showtape/`. Publication
+is manual: dispatch the workflow on `main`. Both jobs reject other branches,
+and pushes or pull requests do not trigger deployment. It validates the artifact
+with `--check`, rebuilds
 `dist/pages`, and deploys only that directory; the live Next.js app is never
 published to Pages. The repository's Pages source must be set to GitHub Actions.
 
@@ -121,6 +122,12 @@ To regenerate the tour screenshots, run
 rebuilds the demo artifact first).
 
 ## Verification boundary
+
+CI runs automatically only for pull requests authored by `dependabot[bot]`,
+or when dispatched manually. The author check uses the pull-request author,
+so a human rerun of a Dependabot request remains eligible. Ordinary pushes and
+human-authored pull requests do not run these jobs. Weekly Dependabot updates
+cover npm packages and GitHub Actions; no update is merged automatically.
 
 CI checks production dependency advisories, public-tree hygiene, formatting,
 linting, architecture boundaries, types, the production build,

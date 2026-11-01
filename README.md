@@ -10,8 +10,23 @@ then gets out of the way while you fix what it got wrong. Nothing is written to
 your library until you say so, and a match you have not approved is never
 treated as certain.
 
-> Showtape is an early alpha (`0.3.0-alpha.1`). Interfaces and configuration can
-> change between releases.
+<details>
+<summary>Status and limitations</summary>
+
+Showtape is an independent experimental project for reviewing
+concert-setlist matches before creating an Apple Music playlist. Developed
+independently alongside my main professional work. This early alpha
+(`0.3.0-alpha.1`) is a work in progress and a starting point for adaptation;
+interfaces and configuration may change. Its static demo uses fictional
+data, while local checks do not verify live Apple authorization or playlist
+writes.
+
+**Disclaimer.** Suggested matches need your review and do not establish
+recording identity or music rights. You are responsible for account access,
+approved playlist changes and compliance with the services you connect. Test
+your integrations before relying on them.
+
+</details>
 
 ## What it does
 
@@ -128,6 +143,14 @@ Run all commands from the repository root.
 | `corepack pnpm@9.15.3 audit:security`     | Audit production dependencies at moderate severity or higher.           |
 
 ## How it fits together
+
+```mermaid
+flowchart LR
+    Setlist[setlist.fm setlist] --> API[Showtape server API]
+    API --> Review[Browser matching and review]
+    Review --> Confirm[User confirms and authorizes]
+    Confirm --> Apple[Apple Music playlist]
+```
 
 One Next.js process serves the browser app and three API routes:
 

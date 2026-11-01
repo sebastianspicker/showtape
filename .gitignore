@@ -97,3 +97,17 @@ Thumbs.db
 /docs/internal/
 /docs/local/
 /docs/private/
+
+# Private planning records and agent scratch stay local by default.
+/*_LEDGER.md
+/*_ledger.md
+/ALPHA_AUDIT*.md
+/ALPHA_IMPLEMENTATION_LEDGER.md
+/ALPHA_PR_DESCRIPTION.md
+/.ai/
+/scratchpad/
+
+# Root assistant instructions remain local.
+/CLAUDE.md
+/CODEX.md
+/GEMINI.md
