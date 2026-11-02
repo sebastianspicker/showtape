@@ -164,21 +164,23 @@ export async function fetchUncachedSetlist(
   }
 }
 export async function fetchSetlistFromApi(id: string, apiKey: string): Promise<FetchSetlistResult> {
-  const cached = cache.get(id);
+  // setlist.fm IDs are hex, so "63DE4613" and "63de4613" name the same setlist.
+  const cacheKey = id.toLowerCase();
+  const cached = cache.get(cacheKey);
   if (cached) {
-    cache.delete(id);
+    cache.delete(cacheKey);
     if (Date.now() < cached.expires) {
-      cache.set(id, cached);
+      cache.set(cacheKey, cached);
       return { ok: true, setlist: cached.setlist };
     }
   }
-  const existing = inFlight.get(id);
+  const existing = inFlight.get(cacheKey);
   if (existing) return existing;
   const admissionFailure = upstreamAdmissionFailure();
   if (admissionFailure) return admissionFailure;
   const pending = fetchUncachedSetlist(id, apiKey, (setlist) => {
     if (JSON.stringify(setlist).length > maxCachedChars) return;
-    cache.set(id, { setlist, expires: Date.now() + cacheTtl });
+    cache.set(cacheKey, { setlist, expires: Date.now() + cacheTtl });
     if (cache.size > cacheLimit) {
       const now = Date.now();
       for (const [key, entry] of cache) if (now > entry.expires) cache.delete(key);
@@ -189,10 +191,10 @@ export async function fetchSetlistFromApi(id: string, apiKey: string): Promise<F
       }
     }
   });
-  inFlight.set(id, pending);
+  inFlight.set(cacheKey, pending);
   try {
     return await pending;
   } finally {
-    if (inFlight.get(id) === pending) inFlight.delete(id);
+    if (inFlight.get(cacheKey) === pending) inFlight.delete(cacheKey);
   }
 }

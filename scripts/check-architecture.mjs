@@ -25,7 +25,7 @@ const EXTERNAL_ALLOWLISTS = {
   contracts: [],
   domain: [],
   http: [],
-  server: ['jose', 'next/server', 'node:'],
+  server: ['next/server', 'node:'],
   'server-security': ['node:'],
   client: [],
   content: [],

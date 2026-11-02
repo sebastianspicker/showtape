@@ -11,14 +11,16 @@ export interface Setlist {
   sourceUrl?: string;
   sets: SetlistEntry[][];
 }
-const record = (value: unknown): Record<string, unknown> | null =>
+/** A plain object from untrusted data, or null (rejects arrays and prototype-pollution keys). */
+export const record = (value: unknown): Record<string, unknown> | null =>
   value != null &&
   typeof value === 'object' &&
+  !Array.isArray(value) &&
   !Object.hasOwn(value, '__proto__') &&
   !Object.hasOwn(value, 'constructor')
     ? (value as Record<string, unknown>)
     : null;
-const text = (value: unknown): string | undefined =>
+export const text = (value: unknown): string | undefined =>
   typeof value === 'string' ? value : undefined;
 const attributionFallback = 'https://www.setlist.fm/';
 

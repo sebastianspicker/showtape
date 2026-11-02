@@ -3,7 +3,8 @@ import type { AppleSigningConfig } from '../config';
 import { signDeveloperToken } from './sign';
 
 export async function issueDeveloperToken(
-  credentials: AppleSigningConfig
+  credentials: AppleSigningConfig,
+  origins: readonly string[] | null = null
 ): Promise<DevTokenResponse> {
   if (!credentials.ok) {
     return {
@@ -11,7 +12,7 @@ export async function issueDeveloperToken(
     };
   }
   try {
-    return { token: await signDeveloperToken(credentials) };
+    return { token: signDeveloperToken({ ...credentials, origins }) };
   } catch (error) {
     console.error('Apple Developer Token signing failed:', {
       teamId: credentials.teamId,

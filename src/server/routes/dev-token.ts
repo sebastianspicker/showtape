@@ -1,7 +1,7 @@
 import type { NextRequest } from 'next/server';
 import { API_ERROR, isDevTokenSuccess } from '@/contracts/api';
 import { issueDeveloperToken } from '../apple-token/developer-token';
-import { appleSigningCredentials } from '../config';
+import { allowedOrigins, appleSigningCredentials } from '../config';
 import { checkRateLimit, internalError, optionsNoContent } from '../http/helpers';
 import { createInMemoryRateLimiter } from '../http/rate-limit';
 import { jsonResponse } from '../http/response';
@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
   if (rateLimitedResponse) return rateLimitedResponse;
 
   try {
-    const result = await issueDeveloperToken(appleSigningCredentials());
+    const result = await issueDeveloperToken(appleSigningCredentials(), allowedOrigins());
     const status = isDevTokenSuccess(result) ? 200 : 503;
     const payload = 'error' in result ? { ...result, code: API_ERROR.SERVICE_UNAVAILABLE } : result;
     return jsonResponse(payload, status, request, {

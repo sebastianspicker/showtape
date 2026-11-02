@@ -79,6 +79,8 @@ const featuredMetadataCandidates = (value: string): FeaturedMetadataCandidate[] 
 };
 
 const featureMarkerEnd = (value: string, index: number): number | null => {
+  // "Left" or "Defeat" end in a marker spelling but are not a featuring credit.
+  if (isAsciiWord(value[index - 1])) return null;
   const marker = startsWithIgnoreCase(value, index, 'feat')
     ? 'feat'
     : startsWithIgnoreCase(value, index, 'ft')

@@ -57,13 +57,21 @@ document those in your own environment.
 ### Reverse proxy requirements
 
 Terminate TLS before the Next.js process and preserve the request origin. Set
-`ALLOWED_ORIGIN` to every exact browser origin that may call the API.
+`ALLOWED_ORIGIN` to every exact browser origin that may call the API. The same
+list goes into the Apple developer token's `origin` claim, so Apple accepts the
+token only from those origins; list every origin the page is served from (for
+example both the apex and `www` host), or MusicKit fails there. When
+`ALLOWED_ORIGIN` is unset, as in local development, the token has no `origin`
+claim.
 
 Leave `TRUST_PROXY` unset for direct deployments. Set `TRUST_PROXY=1` only when
 the proxy removes client-supplied forwarding headers and writes trusted
 `X-Forwarded-For` or `X-Real-IP` values; otherwise clients can evade or influence
-per-client limiting. Without a trusted client key, the routes stay available but
-report:
+per-client limiting. Showtape keys on the last `X-Forwarded-For` entry, the one
+the proxy appends, so it assumes exactly one trusted proxy hop in front of
+Next.js. Behind a CDN plus a proxy, that entry is the CDN's address and every
+client shares one bucket. Without a trusted client key, the routes stay
+available but report:
 
 ```text
 X-RateLimit-Policy: disabled-direct-no-trusted-client-key

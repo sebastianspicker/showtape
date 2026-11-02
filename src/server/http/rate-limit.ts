@@ -100,8 +100,10 @@ export function extractClientKeyFromHeaders(
 
   const xff = headers.get('x-forwarded-for');
   if (xff) {
-    const first = xff.split(',')[0]?.trim();
-    if (first) return first;
+    // The trusted proxy appends the address it saw; earlier entries are client-supplied.
+    // shortcut: assumes exactly one trusted proxy hop; read further left once a CDN sits in front.
+    const last = xff.split(',').at(-1)?.trim();
+    if (last) return last;
   }
   return headers.get('x-real-ip') ?? fallback;
 }

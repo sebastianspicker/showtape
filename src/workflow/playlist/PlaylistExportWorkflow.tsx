@@ -24,6 +24,14 @@ export function PlaylistExportWorkflow({
 }: PlaylistExportWorkflowProps) {
   const state = usePlaylistExport({ setlist, matchRows });
   const selectedMatches = matchRows.filter((match) => match.appleTrack);
+  // Review exactly what will be written: one row per track when duplicates are removed.
+  const reviewedMatches = state.dedupeTracks
+    ? selectedMatches.filter(
+        (match, index) =>
+          selectedMatches.findIndex((other) => other.appleTrack?.id === match.appleTrack?.id) ===
+          index
+      )
+    : selectedMatches;
   const incompleteState =
     state.resumeState &&
     (state.resumeState.progress === 'unknown' || state.resumeState.remainingIds.length > 0)
@@ -59,7 +67,7 @@ export function PlaylistExportWorkflow({
       <ExportReviewPanel
         playlistName={buildPlaylistName(setlist)}
         setlist={setlist}
-        selectedMatches={selectedMatches}
+        selectedMatches={reviewedMatches}
         loading={state.loading}
         onBack={onBack}
       />
@@ -67,7 +75,7 @@ export function PlaylistExportWorkflow({
         needsAuth={state.needsAuth}
         dedupeTracks={state.dedupeTracks}
         setDedupeTracks={state.setDedupeTracks}
-        dedupeSavings={state.selectedSongIds.length - state.songIds.length}
+        duplicateCount={state.duplicateCount}
         count={selectedMatches.length}
         loading={state.loading}
         error={state.error}

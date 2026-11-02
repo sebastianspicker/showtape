@@ -34,26 +34,18 @@ export interface MusicKitInstance {
   unauthorize(): Promise<void>;
   isAuthorized: boolean;
   storefrontId: string;
-  music: {
-    api: (path: string, options?: { method?: string; data?: unknown }) => Promise<unknown>;
+  api: {
+    music: (
+      path: string,
+      queryParameters?: Record<string, string>,
+      options?: { fetchOptions?: RequestInit }
+    ) => Promise<{ data?: unknown } | undefined>;
   };
 }
 
 export interface CreatePlaylistResult {
   id: string;
   url?: string;
-}
-
-export interface MusicKitErrorItem {
-  detail?: string;
-  status?: string;
-}
-
-export function throwIfMusicKitError(res: { errors?: MusicKitErrorItem[] }, context: string): void {
-  if (res?.errors && Array.isArray(res.errors) && res.errors.length > 0) {
-    const detail = res.errors.map((e) => e.detail ?? e.status ?? 'Unknown').join('; ');
-    throw new Error(`${context}: ${detail}`);
-  }
 }
 
 export interface MusicKitSearchResponse {
@@ -65,7 +57,6 @@ export interface MusicKitSearchResponse {
       }>;
     };
   };
-  errors?: MusicKitErrorItem[];
 }
 
 export interface MusicKitPlaylistCreateResponse {
@@ -73,10 +64,4 @@ export interface MusicKitPlaylistCreateResponse {
     id: string;
     attributes?: { url?: string };
   }>;
-  errors?: MusicKitErrorItem[];
-}
-
-export interface MusicKitAddTracksResponse {
-  data?: unknown[];
-  errors?: MusicKitErrorItem[];
 }

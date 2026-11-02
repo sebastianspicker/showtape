@@ -29,12 +29,10 @@ function isApiErrorCode(value: unknown): value is ApiErrorCode {
   return typeof value === 'string' && Object.values(API_ERROR).includes(value as ApiErrorCode);
 }
 
+/** Showtape's own routes send Retry-After as whole seconds only. */
 function retryAfterSeconds(value: string | null): number | undefined {
-  if (!value) return undefined;
-  const seconds = Number(value);
-  if (Number.isSafeInteger(seconds) && seconds >= 0) return seconds;
-  const retryAt = Date.parse(value);
-  return Number.isNaN(retryAt) ? undefined : Math.max(0, Math.ceil((retryAt - Date.now()) / 1000));
+  const seconds = value ? Number(value) : NaN;
+  return Number.isSafeInteger(seconds) && seconds >= 0 ? seconds : undefined;
 }
 
 function apiFailure(response: Response, data: unknown, fallback: string): ApiFailure {

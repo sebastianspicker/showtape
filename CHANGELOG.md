@@ -21,6 +21,15 @@ Current root-package version: `0.3.0-alpha.1`, untagged and unpublished.
 
 ### Changed
 
+- When `ALLOWED_ORIGIN` is set, the Apple developer token carries those origins
+  in its `origin` claim, so Apple accepts the token only from them.
+- The Apple developer token is signed with Node's built-in crypto; `jose` is now
+  a development dependency only.
+- With `TRUST_PROXY=1`, per-client rate limiting keys on the last
+  `X-Forwarded-For` entry, the one the trusted proxy appends, instead of the
+  first, client-supplied one. This assumes exactly one trusted proxy hop.
+- Browser import history in the pre-v3 formats is no longer migrated; clearing
+  history still removes the old keys.
 - Redesigned the web app and static demo around one taped-down setlist sheet.
 - The matching stage shows why automatic matching or a manual search failed,
   after "Details:", and logs the reason to the browser console.
@@ -60,6 +69,20 @@ Current root-package version: `0.3.0-alpha.1`, untagged and unpublished.
 
 ### Fixed
 
+- Catalog search, playlist creation and adding tracks use MusicKit v3's
+  `api.music` call. The previous call path does not exist in MusicKit v3, so
+  every live Apple Music request failed. When Apple refuses a write with an HTTP
+  4xx status other than 408, Showtape now reports a definite failure instead of
+  an unconfirmed one.
+- Song titles with a word that ends in "ft" or "feat", such as
+  "Left Behind - Live", are no longer cut short in the Apple Music search query.
+- The duplicate-songs hint no longer says "No duplicates found" while duplicates
+  are kept, and the review list shows each track once when duplicates are
+  removed.
+- After Apple Music leaves a playlist create unconfirmed, going back and
+  returning to the export step in the same tab no longer offers a plain
+  "Create playlist" again.
+- Setlist IDs that differ only in letter case share one server cache entry.
 - Reaching the export step again for a setlist with a known partial export
   that ran with duplicate removal turned on (for example after a reload) no
   longer discards that export.

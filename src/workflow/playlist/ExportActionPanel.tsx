@@ -8,7 +8,7 @@ export interface ExportActionPanelProps {
   needsAuth: boolean;
   dedupeTracks: boolean;
   setDedupeTracks: (value: boolean) => void;
-  dedupeSavings: number;
+  duplicateCount: number;
   count: number;
   loading: boolean;
   error: string | null;
@@ -34,6 +34,12 @@ function MutationNote() {
   );
 }
 
+function duplicateHint(count: number, removing: boolean): string {
+  if (count === 0) return 'No duplicates found in the current selection.';
+  const songs = `${count} duplicate song${count === 1 ? '' : 's'}`;
+  return removing ? `${songs} will be removed.` : `${songs} in this selection.`;
+}
+
 export function ExportActionPanel(props: ExportActionPanelProps) {
   return (
     <section className="export-action-panel" aria-label="Apple Music playlist creation">
@@ -53,11 +59,7 @@ export function ExportActionPanel(props: ExportActionPanelProps) {
         />
         <span>
           <strong>Remove duplicate songs</strong>
-          <small>
-            {props.dedupeTracks && props.dedupeSavings > 0
-              ? `${props.dedupeSavings} duplicate song${props.dedupeSavings === 1 ? '' : 's'} will be removed.`
-              : 'No duplicates found in the current selection.'}
-          </small>
+          <small>{duplicateHint(props.duplicateCount, props.dedupeTracks)}</small>
         </span>
       </label>
 

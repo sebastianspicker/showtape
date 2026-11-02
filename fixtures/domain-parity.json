@@ -160,6 +160,24 @@
       "artist": "Artist",
       "normalized": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa🎵 encore",
       "query": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa Artist"
+    },
+    {
+      "name": "Left Behind - Live",
+      "artist": " Artist ",
+      "normalized": "Left Behind",
+      "query": "Left Behind Artist"
+    },
+    {
+      "name": "Defeat - Live",
+      "artist": " Artist ",
+      "normalized": "Defeat",
+      "query": "Defeat Artist"
+    },
+    {
+      "name": "Aircraft - Live",
+      "artist": " Artist ",
+      "normalized": "Aircraft",
+      "query": "Aircraft Artist"
     }
   ],
   "dedupe": [

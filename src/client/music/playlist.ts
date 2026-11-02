@@ -1,11 +1,5 @@
 import { initMusicKit } from './client';
-import type {
-  CreatePlaylistResult,
-  MusicKitPlaylistCreateResponse,
-  MusicKitAddTracksResponse,
-  MusicKitErrorItem,
-} from './types';
-import { throwIfMusicKitError } from './types';
+import type { CreatePlaylistResult, MusicKitPlaylistCreateResponse } from './types';
 
 export interface AddTracksToLibraryPlaylistResult {
   addedIds: string[];
@@ -20,13 +14,28 @@ const trackBatchPayload = (ids: string[]) => ({
   data: ids.map((id) => ({ id: id.trim(), type: 'songs' as const })),
 });
 
-const addTrackBatch = async (
-  music: MusicKitInstance,
-  path: string,
-  batch: string[]
-): Promise<MusicKitAddTracksResponse | undefined> =>
-  (await music.music.api(path, { method: 'POST', data: trackBatchPayload(batch) })) as
-    MusicKitAddTracksResponse | undefined;
+const postJson = (music: MusicKitInstance, path: string, body: unknown) =>
+  music.api.music(
+    path,
+    {},
+    {
+      fetchOptions: {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      },
+    }
+  );
+
+// MusicKit v3 throws for non-2xx replies and puts the fetch Response on `error.data`.
+const httpStatus = (error: unknown): number | null => {
+  const status = (error as { data?: { status?: unknown } } | null)?.data?.status;
+  return typeof status === 'number' ? status : null;
+};
+
+// A 4xx other than 408 means Apple refused the write, so nothing was applied.
+const isDefiniteRejection = (status: number | null): status is number =>
+  status !== null && status >= 400 && status < 500 && status !== 408;
 
 function validatedTrackIds(playlistId: string, songIds: string[]): string[] {
   if (!playlistId.trim()) {
@@ -75,46 +84,29 @@ export class AddTracksToLibraryPlaylistError extends Error {
   }
 }
 
-function throwIfMutationError(
-  response: { errors?: MusicKitErrorItem[] } | undefined,
-  context: string
-): void {
-  if (!response?.errors?.length) return;
-  const definiteRejection = response.errors.every((error) => {
-    const status = Number(error.status);
-    return status >= 400 && status < 500 && status !== 408;
-  });
-  if (!definiteRejection) {
-    throw new AmbiguousMusicMutationError(
-      `${context}: Apple Music did not confirm the outcome. Check your library before retrying.`
-    );
-  }
-  throwIfMusicKitError(response, context);
-}
-
 export async function createLibraryPlaylist(name: string): Promise<CreatePlaylistResult> {
   const music = await initMusicKit();
   if (!music.isAuthorized) {
     throw new Error('Not authorized. Please connect Apple Music first.');
   }
   const path = '/v1/me/library/playlists';
-  const body = {
-    attributes: { name },
-  };
-  let res: MusicKitPlaylistCreateResponse;
+  let res: Awaited<ReturnType<typeof postJson>>;
   try {
-    res = (await music.music.api(path, {
-      method: 'POST',
-      data: body,
-    })) as MusicKitPlaylistCreateResponse;
+    res = await postJson(music, path, { attributes: { name } });
   } catch (error) {
+    const status = httpStatus(error);
+    if (isDefiniteRejection(status)) {
+      throw new Error(
+        `Failed to create playlist: Apple Music rejected the request (HTTP ${status}).`
+      );
+    }
     throw new AmbiguousMusicMutationError(
       'Apple Music did not confirm whether the playlist was created. Check your library before retrying.',
       { cause: error }
     );
   }
-  throwIfMutationError(res, 'Failed to create playlist');
-  const playlist = Array.isArray(res?.data) ? res.data[0] : res?.data;
+  const body = res?.data as MusicKitPlaylistCreateResponse | undefined;
+  const playlist = Array.isArray(body?.data) ? body.data[0] : body?.data;
   if (!playlist?.id) {
     throw new AmbiguousMusicMutationError(
       'Apple Music returned no playlist ID. Check your library before retrying.'
@@ -142,10 +134,20 @@ export async function addTracksToLibraryPlaylist(
   let addedCount = 0;
   for (let i = 0; i < validIds.length; i += TRACK_BATCH_SIZE) {
     const batch = validIds.slice(i, i + TRACK_BATCH_SIZE);
-    let res: MusicKitAddTracksResponse | undefined;
     try {
-      res = await addTrackBatch(music, path, batch);
-    } catch {
+      await postJson(music, path, trackBatchPayload(batch));
+    } catch (error) {
+      const status = httpStatus(error);
+      if (isDefiniteRejection(status)) {
+        throw new AddTracksToLibraryPlaylistError(
+          `Adding tracks to playlist failed: Apple Music rejected the request (HTTP ${status}).`,
+          {
+            progress: 'exact',
+            addedIds: validIds.slice(0, addedCount),
+            remainingIds: validIds.slice(addedCount),
+          }
+        );
+      }
       throw new AddTracksToLibraryPlaylistError(
         'Apple Music did not confirm whether the current track batch was added. Check the playlist before retrying.',
         {
@@ -156,25 +158,7 @@ export async function addTracksToLibraryPlaylist(
         }
       );
     }
-
-    try {
-      if (res) {
-        throwIfMutationError(res, 'Adding tracks to playlist failed');
-      }
-      addedCount += batch.length;
-    } catch (error) {
-      throw new AddTracksToLibraryPlaylistError(
-        error instanceof Error ? error.message : 'Adding tracks to playlist failed',
-        {
-          progress: error instanceof AmbiguousMusicMutationError ? 'unknown' : 'exact',
-          addedIds: validIds.slice(0, addedCount),
-          remainingIds:
-            error instanceof AmbiguousMusicMutationError ? [] : validIds.slice(addedCount),
-          attemptedIds:
-            error instanceof AmbiguousMusicMutationError ? validIds.slice(addedCount) : [],
-        }
-      );
-    }
+    addedCount += batch.length;
   }
 
   return { addedIds: validIds, remainingIds: [] };

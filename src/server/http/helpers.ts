@@ -44,10 +44,10 @@ export function optionsNoContent(request: NextRequest): NextResponse {
   });
 }
 
-export function internalError(
-  request: NextRequest,
-  message = 'An unexpected error occurred. Please try again.'
-): NextResponse {
-  const payload: ApiErrorPayload = { error: message, code: API_ERROR.INTERNAL };
+export function internalError(request: NextRequest): NextResponse {
+  const payload: ApiErrorPayload = {
+    error: 'An unexpected error occurred. Please try again.',
+    code: API_ERROR.INTERNAL,
+  };
   return jsonResponse(payload, 500, request, { 'Cache-Control': 'no-store' });
 }

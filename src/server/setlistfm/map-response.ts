@@ -1,16 +1,10 @@
-import { getSetlistFmAttributionUrl, type Setlist, type SetlistEntry } from '@/domain/setlist';
-
-const record = (value: unknown): Record<string, unknown> | null =>
-  value != null &&
-  typeof value === 'object' &&
-  !Array.isArray(value) &&
-  !Object.hasOwn(value, '__proto__') &&
-  !Object.hasOwn(value, 'constructor')
-    ? (value as Record<string, unknown>)
-    : null;
-
-const text = (value: unknown): string | undefined =>
-  typeof value === 'string' ? value : undefined;
+import {
+  getSetlistFmAttributionUrl,
+  record,
+  text,
+  type Setlist,
+  type SetlistEntry,
+} from '@/domain/setlist';
 
 const nonempty = (value: unknown): value is string =>
   typeof value === 'string' && value.trim().length > 0;

@@ -9,8 +9,10 @@ import { isMusicKitAuthorized } from '@/client/music/client';
 import type { MatchRow } from '@/workflow/matching/model';
 import {
   getAddProgress,
+  readCreateUnknown,
   readResume,
   shouldDiscardResume,
+  writeCreateUnknown,
   writeResume,
   type ResumeState,
 } from './resume';
@@ -36,6 +38,8 @@ export interface PlaylistExport {
   dedupeTracks: boolean;
   setDedupeTracks: (value: boolean) => void;
   selectedSongIds: string[];
+  /** Repeated tracks in the selection, whether or not duplicates are being removed. */
+  duplicateCount: number;
   songIds: string[];
   create: () => Promise<void>;
   addRemaining: () => Promise<void>;
@@ -46,6 +50,9 @@ export interface PlaylistExport {
 const selectedIdsOf = (matchRows: MatchRow[]): string[] =>
   matchRows.flatMap((row) => (row.appleTrack ? [row.appleTrack.id] : []));
 
+const EARLIER_CREATE_UNCONFIRMED =
+  'An earlier attempt may already have created this playlist. Check your Apple Music library before creating it again.';
+
 function isAmbiguousMusicMutationError(error: unknown): boolean {
   return error instanceof Error && error.name === 'AmbiguousMusicMutationError';
 }
@@ -53,8 +60,12 @@ function isAmbiguousMusicMutationError(error: unknown): boolean {
 /** Owns the state and exclusive Apple Music mutations for a single playlist export. */
 export function usePlaylistExport({ setlist, matchRows }: UsePlaylistExportParams): PlaylistExport {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [createOutcomeUnknown, setCreateOutcomeUnknown] = useState(false);
+  // An unconfirmed create survives Back/forward, so the page never offers a plain create again.
+  const [earlierCreateUnknown] = useState(() => readCreateUnknown(setlist.id));
+  const [error, setError] = useState<string | null>(() =>
+    earlierCreateUnknown ? EARLIER_CREATE_UNCONFIRMED : null
+  );
+  const [createOutcomeUnknown, setCreateOutcomeUnknown] = useState(earlierCreateUnknown);
   const [created, setCreated] = useState<CreatedPlaylist | null>(null);
   const [needsAuth, setNeedsAuth] = useState(false);
   const [addTracksError, setAddTracksError] = useState<string | null>(null);
@@ -71,6 +82,10 @@ export function usePlaylistExport({ setlist, matchRows }: UsePlaylistExportParam
   });
   const mutationInFlightRef = useRef(false);
   const selectedSongIds = useMemo(() => selectedIdsOf(matchRows), [matchRows]);
+  const duplicateCount = useMemo(
+    () => selectedSongIds.length - dedupeTrackIdsOrdered(selectedSongIds).length,
+    [selectedSongIds]
+  );
   const songIds = useMemo(
     () => (dedupeTracks ? dedupeTrackIdsOrdered(selectedSongIds) : selectedSongIds),
     [dedupeTracks, selectedSongIds]
@@ -125,10 +140,14 @@ export function usePlaylistExport({ setlist, matchRows }: UsePlaylistExportParam
         return;
       }
       const { id, url } = await createLibraryPlaylist(buildPlaylistName(setlist));
+      writeCreateUnknown(setlist.id, false);
       setCreated({ id, url });
       await addTracksOrStoreResume(id, url);
     } catch (err) {
-      setCreateOutcomeUnknown(isAmbiguousMusicMutationError(err));
+      // Any attempt follows the acknowledged retry, so the stored flag tracks the latest outcome.
+      const outcomeUnknown = isAmbiguousMusicMutationError(err);
+      writeCreateUnknown(setlist.id, outcomeUnknown);
+      setCreateOutcomeUnknown(outcomeUnknown);
       setError(getErrorMessage(err, 'Failed to create playlist.'));
     } finally {
       setLoading(false);
@@ -185,6 +204,7 @@ export function usePlaylistExport({ setlist, matchRows }: UsePlaylistExportParam
     dedupeTracks,
     setDedupeTracks,
     selectedSongIds,
+    duplicateCount,
     songIds,
     create: () => runExclusive(createPlaylist),
     addRemaining: () => runExclusive(addRemainingTracks),

@@ -80,6 +80,29 @@ export const getAddProgress = (
 };
 
 export const resumeKey = (setlistId: string): string => `playlist_resume_v1:${setlistId}`;
+export const createUnknownKey = (setlistId: string): string =>
+  `playlist_create_unknown_v1:${setlistId}`;
+
+/** Whether an earlier create for this setlist ended without Apple confirming the outcome. */
+export const readCreateUnknown = (setlistId: string): boolean => {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.sessionStorage.getItem(createUnknownKey(setlistId)) === '1';
+  } catch {
+    return false;
+  }
+};
+
+export function writeCreateUnknown(setlistId: string, unknown: boolean): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const key = createUnknownKey(setlistId);
+    if (unknown) window.sessionStorage.setItem(key, '1');
+    else window.sessionStorage.removeItem(key);
+  } catch {
+    // Ignore quota and access errors; the in-page warning still applies.
+  }
+}
 
 export const readResume = (setlistId: string): ResumeState | null => {
   if (typeof window === 'undefined') return null;

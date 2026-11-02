@@ -115,7 +115,7 @@ Fill in `.env` before you exercise the live integrations, then open
 | `APPLE_KEY_ID`                   | Apple developer-token signing      | Server only                   |
 | `APPLE_PRIVATE_KEY`              | Apple developer-token signing      | Server only                   |
 | `NEXT_PUBLIC_APPLE_MUSIC_APP_ID` | MusicKit initialization            | Browser-visible build setting |
-| `ALLOWED_ORIGIN`                 | Production API CORS policy         | Server only                   |
+| `ALLOWED_ORIGIN`                 | Production CORS and token origins  | Server only                   |
 | `TRUST_PROXY`                    | Trusted forwarded-IP rate limiting | Server only                   |
 
 The browser always calls same-origin `/api` routes. `ALLOWED_ORIGIN` and

@@ -30,9 +30,6 @@ importers:
 
   .:
     dependencies:
-      jose:
-        specifier: ^6.2.2
-        version: 6.2.10
       next:
         specifier: ^16.4.1
         version: 16.4.3(@babel/core@7.29.6)(@playwright/test@1.63.0)(@types/node@22.20.1)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -67,6 +64,9 @@ importers:
       eslint-config-next:
         specifier: ^16.4.1
         version: 16.4.3(@typescript-eslint/parser@8.68.0(eslint@9.39.5)(typescript@5.9.3))(eslint@9.39.5)(typescript@5.9.3)
+      jose:
+        specifier: ^6.2.2
+        version: 6.2.10
       jsdom:
         specifier: ^29.0.1
         version: 29.1.1
