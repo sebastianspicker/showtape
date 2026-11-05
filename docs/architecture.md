@@ -12,22 +12,49 @@ search, user authorization, and playlist writes — goes straight from the
 browser to Apple Music. The static demo is built from allowlisted local files
 and deliberately has no network or storage access.
 
+This container view answers "what runs where, and who talks to whom":
+
 ```mermaid
 flowchart LR
-  User[User browser]
-  App[Next.js pages and workflow]
-  Routes[Next.js API routes]
-  Server[Server endpoints and HTTP policy]
-  Setlist[setlist.fm API]
-  Music[Apple Music via MusicKit]
+  user((User))
+  subgraph browser [Browser]
+    workflow[ShowtapeWorkflow]
+    apiClient[showtape-api.ts]
+    musickit[MusicKit JS]
+  end
+  subgraph node [Next.js process]
+    proxy[proxy.ts]
+    routes[server/routes]
+    cache[(In-memory caches)]
+  end
+  setlistfm[setlist.fm API]
+  apple[Apple Music API]
 
-  User --> App
-  App -->|same-origin /api| Routes
-  Routes --> Server
-  Server -->|server API key| Setlist
-  App -->|catalog, authorization, playlist writes| Music
-  Routes -->|short-lived developer token| App
+  user -->|clicks| workflow
+  proxy -->|"pages + CSP nonce"| workflow
+  workflow --> apiClient
+  apiClient -->|"same-origin GET /api/*"| routes
+  routes -->|"GET with server API key"| setlistfm
+  routes <-->|"setlists, rate limits"| cache
+  workflow --> musickit
+  musickit -->|"search, authorize, playlist writes"| apple
+  classDef focus fill:#fde68a,stroke:#b45309,color:#1f2937
+  class routes focus
 ```
+
+`proxy.ts` runs in front of every page request and adds the security headers;
+API paths are excluded from it. `server/routes` is the only code that holds a
+secret, and the browser reaches it only through `showtape-api.ts`. MusicKit is
+loaded from Apple's CDN (`js-cdn.music.apple.com/musickit/v3`) and talks to
+Apple directly, so the Next.js process never sees Apple user data.
+
+Where in the code:
+
+- [src/proxy.ts](../src/proxy.ts) — page headers and CSP nonce
+- [src/workflow/ShowtapeWorkflow.tsx](../src/workflow/ShowtapeWorkflow.tsx) — the browser app root
+- [src/client/showtape-api.ts](../src/client/showtape-api.ts) — the only caller of `/api/*`
+- [src/server/routes](../src/server/routes) — one module per endpoint
+- [src/client/music/client.ts](../src/client/music/client.ts) — MusicKit loading and configuration
 
 ## Repository boundaries
 
@@ -123,15 +150,51 @@ in that stage's folder; only genuinely generic presentation goes in `src/ui`.
 
 ### Importing a setlist
 
-1. `src/workflow/import` validates the URL or ID you typed.
-2. `src/client/showtape-api.ts` calls same-origin `GET /api/setlist/proxy`.
-3. `src/server/routes/setlist.ts` applies rate-limit, input-length, CORS, and
-   configuration policy, then calls `getSetlist` in `src/server/setlistfm`.
-4. `src/server/setlistfm` sends the server-only API key to setlist.fm, rejects
-   redirects, bounds the response body, validates the required fields and the
-   requested ID, and maps the response to the domain `Setlist` shape.
-5. Tape entries are dropped during mapping. The browser receives only the mapped
-   shape, with the validated attribution URL kept visible.
+What happens when the user pastes a setlist.fm URL and presses Load:
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor U as User
+  participant imp as useSetlistImport
+  participant api as showtape-api.ts
+  participant route as routes/setlist.ts
+  participant sfm as setlistfm/client.ts
+  participant ext as setlist.fm API
+  U->>imp: Submit URL or ID
+  imp->>api: requestSetlist(input)
+  api->>route: GET /api/setlist/proxy?id=…
+  route->>route: rate limit, length check, API key
+  route->>sfm: getSetlist → fetchSetlistFromApi(id)
+  alt cached or already in flight
+    sfm-->>route: Setlist from memory
+  else new request
+    sfm->>ext: GET setlist (x-api-key)
+    ext-->>sfm: setlist JSON
+    sfm-->>route: mapped Setlist (no tape entries)
+  end
+  route-->>api: 200 JSON or error envelope
+  api-->>imp: Result<Setlist, ApiFailure>
+  imp-->>U: Preview step, history updated
+```
+
+Step 4 can end early with a 429 or 400 before any upstream work. In steps 5–9,
+`get-setlist.ts` parses the ID and maps upstream status codes to API error
+codes (a rejected server key becomes a 503, not the user's fault). Step 12 also
+pushes the input onto the recent-imports list in `localStorage`.
+
+Where in the code:
+
+- [src/workflow/import/useSetlistImport.ts](../src/workflow/import/useSetlistImport.ts) — submit, abort, history
+- [src/server/routes/setlist.ts](../src/server/routes/setlist.ts) — HTTP policy and status mapping
+- [src/server/setlistfm/get-setlist.ts](../src/server/setlistfm/get-setlist.ts) — ID parsing, error codes
+- [src/server/setlistfm/client.ts](../src/server/setlistfm/client.ts) — cache, admission, retries, fetch
+- [src/server/setlistfm/map-response.ts](../src/server/setlistfm/map-response.ts) — upstream JSON → `Setlist`
+
+Details of the upstream call: the client rejects redirects, bounds the
+response body, and checks the required fields and that the returned ID is the
+one requested. The browser receives only the mapped shape, with the validated
+attribution URL kept visible.
 
 The upstream request has a 10-second total deadline and at most two bounded
 retries for HTTP 429. Successful responses are cached in a per-process,
@@ -143,14 +206,73 @@ of one admitted operation; excess work receives HTTP 429 with `Retry-After`.
 
 ### Matching and playlist export
 
-1. The browser fetches a one-hour ES256 developer token from
-   `GET /api/apple/dev-token` and caches it for 55 minutes.
-2. MusicKit runs in the browser and searches the current storefront. Catalog
-   results are cached in browser memory for five minutes, up to 500 entries.
-3. Automatic matching runs five replenishing workers. A manual choice stays
-   authoritative even if a late automatic result arrives afterward.
-4. Once you authorize, the browser creates the playlist and adds the selected
-   track IDs in ordered batches of 100.
+What happens from the Match step to a created playlist:
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor U as User
+  participant wf as Matching / Export UI
+  participant mk as client/music
+  participant route as routes/dev-token.ts
+  participant apple as Apple Music API
+  wf->>mk: searchCatalog (5 workers)
+  mk->>route: GET /api/apple/dev-token (once)
+  route-->>mk: ES256 developer token
+  mk->>apple: GET /v1/catalog/{storefront}/search
+  apple-->>mk: songs
+  mk-->>wf: autoResult per row
+  U->>wf: Accept, search, replace or skip
+  U->>wf: Create playlist
+  wf->>mk: authorize() if needed
+  mk->>apple: Apple sign-in (user token)
+  wf->>mk: createLibraryPlaylist(name)
+  mk->>apple: POST /v1/me/library/playlists
+  wf->>mk: addTracksToLibraryPlaylist(ids)
+  loop batches of 100
+    mk->>apple: POST …/playlists/{id}/tracks
+  end
+  wf-->>U: Success, or resume / check-library state
+```
+
+Steps 2–3 happen once per 55 minutes: `token.ts` caches the token and
+`initMusicKit` configures MusicKit with it. Steps 1–6 repeat for every row,
+with five searches in flight and results cached in memory for five minutes
+(up to 500 entries). Steps 8–15 run in `usePlaylistExport`, which allows only
+one mutation at a time. If a batch in step 14 fails with a definite error, the remaining IDs go to
+`sessionStorage` for a resume; if the outcome is unknown, the user is told to
+check their library instead.
+
+Each match row moves through these states (`matchesReducer`):
+
+```mermaid
+stateDiagram-v2
+  [*] --> pending: reset (import)
+  pending --> matched: autoResult with track
+  pending --> unmatched: autoResult, no track
+  unmatched --> skipped: skip or skipUnmatched
+  pending --> matched: choose
+  pending --> skipped: skip
+  unmatched --> matched: choose
+  matched --> matched: choose another
+  matched --> skipped: skip
+  skipped --> matched: choose
+```
+
+An `autoResult` only changes a row that is still `pending`, which is why a
+manual choice made while a search is running is never overwritten. Only
+`matched` rows contribute track IDs to the export.
+
+Where in the code:
+
+- [src/workflow/matching/useAutoMatch.ts](../src/workflow/matching/useAutoMatch.ts) — the five search workers
+- [src/workflow/matching/model.ts](../src/workflow/matching/model.ts) — `MatchRow` and `matchesReducer`
+- [src/client/music/catalog.ts](../src/client/music/catalog.ts) — storefront search and cache
+- [src/client/music/token.ts](../src/client/music/token.ts) — developer-token cache
+- [src/server/routes/dev-token.ts](../src/server/routes/dev-token.ts) and [src/server/apple-token](../src/server/apple-token) — token signing
+- [src/workflow/playlist/usePlaylistExport.ts](../src/workflow/playlist/usePlaylistExport.ts) — create, add, resume
+- [src/client/music/playlist.ts](../src/client/music/playlist.ts) — library writes in batches of 100
+- [src/workflow/playlist/resume.ts](../src/workflow/playlist/resume.ts) — 30-minute partial-export record
 
 The MusicKit user token, playlist name, selected IDs, and Apple API responses
 never pass through Showtape's API routes. A definite add-tracks failure can keep
@@ -206,6 +328,36 @@ cross-instance coordination.
 Reporting policy and operator responsibilities live in [SECURITY.md](../SECURITY.md).
 
 ## Build and delivery boundaries
+
+How a change is checked and what gets published:
+
+```mermaid
+flowchart LR
+  src[Source on main]
+  ci["ci.yml checks<br/>Node 20 + 22"]
+  build["pnpm build"]
+  next[(".next + csp-manifest.json")]
+  demo["build-pages-demo.mjs"]
+  pages[(dist/pages)]
+  gh[GitHub Pages demo]
+  host[Operator Node host]
+  src -->|"manual or Dependabot PR"| ci
+  ci --> build
+  build --> next
+  src -->|"pages.yml, manual on main"| demo
+  demo --> pages
+  pages -->|deploy-pages| gh
+  next -.->|"pnpm start (operator)"| host
+  classDef focus fill:#fde68a,stroke:#b45309,color:#1f2937
+  class gh focus
+```
+
+`ci.yml` runs only when triggered by hand or for a Dependabot pull request; it
+runs audit, hygiene, format, lint, architecture, typecheck, build and the demo
+contract. `pnpm build` runs `next build` and then
+`scripts/generate-csp-manifest.mjs`, which writes `.next/csp-manifest.json`.
+The dotted edge is not automated: no workflow deploys the live app, and the
+host is whatever the operator runs (see [DEPLOYMENT.md](DEPLOYMENT.md)).
 
 The root package builds the web application. `next build` produces the live
 application artifact, while `scripts/build-pages-demo.mjs` produces the

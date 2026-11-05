@@ -10,6 +10,8 @@ then gets out of the way while you fix what it got wrong. Nothing is written to
 your library until you say so, and a match you have not approved is never
 treated as certain.
 
+> _Claude was used to polish and proof-read the code and documentation of this repository._
+
 <details>
 <summary>Status and limitations</summary>
 
@@ -146,10 +148,17 @@ Run all commands from the repository root.
 
 ```mermaid
 flowchart LR
-    Setlist[setlist.fm setlist] --> API[Showtape server API]
-    API --> Review[Browser matching and review]
-    Review --> Confirm[User confirms and authorizes]
-    Confirm --> Apple[Apple Music playlist]
+  user((User))
+  subgraph showtape [Showtape]
+    browser[Browser app]
+    server[Next.js API routes]
+  end
+  setlistfm[setlist.fm API]
+  apple[Apple Music API]
+  user -->|"paste URL, review, export"| browser
+  browser -->|"same-origin /api"| server
+  server -->|"setlist lookup (API key)"| setlistfm
+  browser -->|"MusicKit: search, playlist"| apple
 ```
 
 One Next.js process serves the browser app and three API routes:
@@ -174,7 +183,8 @@ This is a single private package, not a multi-package monorepo.
 | `src/workflow`, `src/ui`                  | The import-to-export journey and generic presentation components.            |
 | `demo`, `public`, `scripts`               | Simulated demo source, public assets, and repository checks.                 |
 
-Deeper detail lives in [architecture and runtime flows](docs/architecture.md).
+Deeper detail, with a sequence diagram per user action, the match-row states and
+the build pipeline, lives in [architecture and runtime flows](docs/architecture.md).
 
 ## Documentation
 
