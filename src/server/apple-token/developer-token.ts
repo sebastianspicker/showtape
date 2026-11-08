@@ -7,9 +7,11 @@ export async function issueDeveloperToken(
   origins: readonly string[] | null = null
 ): Promise<DevTokenResponse> {
   if (!credentials.ok) {
-    return {
-      error: `Missing env var(s): ${credentials.missing.join(', ')}. Copy .env.example to .env and fill them in.`,
-    };
+    // Visitors only see the generic message; the setting names stay in the server log.
+    console.error(
+      `Apple Developer Token is not configured. Missing env var(s): ${credentials.missing.join(', ')}.`
+    );
+    return { error: 'Apple Music is temporarily unavailable.' };
   }
   try {
     return { token: signDeveloperToken({ ...credentials, origins }) };

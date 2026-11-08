@@ -1,0 +1,10 @@
+---
+# Repo verification scripts, not shipped code.
+exclude_paths:
+  - 'scripts/check-architecture.mjs'
+  - 'scripts/check-public-boundary.mjs'
+engines:
+  # Lockfile is generated; keep it visible to Trivy, hide it from complexity checks.
+  lizard:
+    exclude_paths:
+      - 'pnpm-lock.yaml'
