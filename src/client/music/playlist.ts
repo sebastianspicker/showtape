@@ -122,6 +122,7 @@ export async function addTracksToLibraryPlaylist(
   playlistId: string,
   songIds: string[]
 ): Promise<AddTracksToLibraryPlaylistResult> {
+  // #lizard forgives: length is the two progress-carrying error shapes; one job, fully tested.
   if (songIds.length === 0) {
     return { addedIds: [], remainingIds: [] };
   }

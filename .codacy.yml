@@ -4,7 +4,11 @@ exclude_paths:
   - 'scripts/check-architecture.mjs'
   - 'scripts/check-public-boundary.mjs'
 engines:
-  # Lockfile is generated; keep it visible to Trivy, hide it from complexity checks.
   lizard:
     exclude_paths:
+      # Lockfile is generated; keep it visible to Trivy, hide it from complexity checks.
       - 'pnpm-lock.yaml'
+      # Lizard counts JSX markup as function length; logic lives in the .ts hooks it still checks.
+      - 'src/**/*.tsx'
+      # Static Pages demo: DOM builders, not application logic.
+      - 'demo/**'

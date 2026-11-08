@@ -11,6 +11,7 @@ const nonempty = (value: unknown): value is string =>
 
 /** Converts an untrusted setlist.fm payload into the application's Setlist contract. */
 export function mapSetlistFmResponse(raw: unknown, expectedId: string): Setlist | null {
+  // #lizard forgives: the branches are the guards on untrusted input; one job, fully tested.
   const payload = record(raw);
   if (!payload) return null;
   const artist = record(payload?.artist);

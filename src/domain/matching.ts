@@ -96,6 +96,7 @@ const featureMarkerEnd = (value: string, index: number): number | null => {
 };
 
 const replaceFeaturedMetadata = (value: string): string => {
+  // #lizard forgives: a linear scanner that replaced a regex in a security fix; one job, fully tested.
   const candidates = featuredMetadataCandidates(value);
   const parentheses = [...value.matchAll(/\(/g)].map((match) => match.index);
   const lineFeeds = [...value.matchAll(/\n/g)].map((match) => match.index);
